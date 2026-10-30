@@ -1,0 +1,11 @@
+-- ========================================
+-- ⚠️  DO NOT RUN THIS FILE
+-- This migration was for an older schema version.
+-- The current schema.sql already includes all these columns.
+-- Running this file on a current database WILL cause errors
+-- (ER_DUP_FIELDNAME: Duplicate column name).
+--
+-- To set up the database, run setup-db.js instead:
+--   cd backend
+--   node setup-db.js
+-- ========================================
