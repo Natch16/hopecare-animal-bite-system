@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Analytics – HopeCare Admin</title>
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/js/shared/sidebar.js"></script>
+</head>
+<body class="hc-admin" data-nav="inventory-analytics">
+<div class="main-wrapper"><script>initAppSidebar();</script>
+<div class="main-content">
+  <div class="adm-header"><div><h1><i class="fa-solid fa-chart-line"></i> Inventory Analytics</h1><p>Vaccine usage, consumption trends, and stock analysis</p></div>
+  <div class="adm-header-actions"><button class="adm-btn adm-btn-secondary" onclick="window.print()"><i class="fa-solid fa-file-pdf"></i> Export PDF</button></div></div>
+  <div class="adm-filters">
+    <div><label>Year</label><input type="number" id="fYear" value="2026"></div>
+    <div><label>Month</label><input type="number" id="fMonth" min="1" max="12"></div>
+    <button class="adm-btn adm-btn-primary" onclick="load()">Apply</button>
+  </div>
+  <div class="adm-charts-2">
+    <div class="adm-panel"><div class="adm-panel-hd"><h3>Usage by Brand</h3></div><div class="adm-panel-bd"><canvas id="chartBrand"></canvas></div></div>
+    <div class="adm-panel"><div class="adm-panel-hd"><h3>Monthly Consumption</h3></div><div class="adm-panel-bd"><canvas id="chartMonth"></canvas></div></div>
+    <div class="adm-panel"><div class="adm-panel-hd"><h3>Transactions by Shift</h3></div><div class="adm-panel-bd"><canvas id="chartShift"></canvas></div></div>
+    <div class="adm-panel"><div class="adm-panel-hd"><h3>Remaining Inventory</h3></div><div class="adm-panel-bd"><canvas id="chartRemain"></canvas></div></div>
+  </div>
+</div></div>
+<script src="/js/shared/rbac.js"></script><script src="/js/shared/app.js"></script>
+<script>
+let c1,c2,c3,c4;
+document.addEventListener('DOMContentLoaded',async()=>{await checkAuth();load();});
+async function load(){
+  const p=new URLSearchParams();if(document.getElementById('fYear').value)p.append('year',document.getElementById('fYear').value);
+  if(document.getElementById('fMonth').value)p.append('month',document.getElementById('fMonth').value);
+  const r=await fetch('/api/inventory-analytics/overview?'+p);const j=await r.json();if(!j.success)return;const d=j.data;
+  mkChart('chartBrand','bar',d.usageByBrand.map(x=>x.brand),d.usageByBrand.map(x=>x.total_used),'#4274D9',c1,v=>c1=v);
+  mkChart('chartMonth','line',d.monthlyConsumption.map(x=>x.month),d.monthlyConsumption.map(x=>x.consumption),'#16a34a',c2,v=>c2=v);
+  mkChart('chartShift','doughnut',d.transactionsByShift.map(x=>x.shift),d.transactionsByShift.map(x=>x.total),null,c3,v=>c3=v);
+  mkChart('chartRemain','bar',d.remainingInventory.map(x=>x.brand),d.remainingInventory.map(x=>x.remaining),'#ea580c',c4,v=>c4=v);}
+function mkChart(id,type,labels,data,color,cur,set){if(cur)cur.destroy();const ctx=document.getElementById(id);
+set(new Chart(ctx,{type,data:{labels,datasets:[{data,backgroundColor:color||['#4274D9','#16a34a','#ea580c','#6366f1'],borderColor:color||'#4274D9',fill:type==='line'}]},options:{responsive:true,plugins:{legend:{display:type==='doughnut'}}}}));}
+</script></body></html>

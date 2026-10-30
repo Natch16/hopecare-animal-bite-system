@@ -1,0 +1,829 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics - Animal Bite System</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/shared/sidebar.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ═══════════════════════════════════════════
+       ANALYTICS PAGE — matches screenshot layout
+    ═══════════════════════════════════════════ */
+
+    /* Page header */
+    .an-page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .an-title-block .an-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #293681;
+      margin: 0;
+      line-height: 1.2;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .an-mod-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 14px;
+      background: #eef3ff;
+      color: #4274D9;
+      transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+    }
+    .an-mod-icon.ai {
+      background: #f3e8ff;
+      color: #7c3aed;
+    }
+    .an-mod-icon.vacc {
+      background: #e8f8ef;
+      color: #16a34a;
+    }
+    .an-ico {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 12px;
+      background: #eef3ff;
+      color: #4274D9;
+    }
+    .an-ico.teal  { background: #e8f6fa; color: #2a7a8c; }
+    .an-ico.green { background: #e8f8ef; color: #16a34a; }
+    .an-ico.amber { background: #fff6e5; color: #d97706; }
+    .an-ico.red   { background: #fef2f2; color: #dc2626; }
+    .an-ico.ai    { background: #f3e8ff; color: #7c3aed; }
+    .an-title:hover .an-mod-icon {
+      background: #4274D9;
+      color: #fff;
+    }
+    .an-insights-hd:hover .an-mod-icon.ai,
+    .an-ai-panel h5:hover .an-mod-icon.ai,
+    .ai-predict-head:hover .an-mod-icon.ai {
+      background: #7c3aed;
+      color: #fff;
+    }
+    .an-vacc-panel h5:hover .an-mod-icon.vacc {
+      background: #16a34a;
+      color: #fff;
+    }
+    .an-insights-hd {
+      color: #293681;
+      font-size: 14px;
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+    }
+    .an-title-block .an-subtitle {
+      font-size: 14px;
+      font-weight: 700;
+      color: #4274D9;
+      margin: 2px 0 0;
+    }
+    .an-title-block .an-quarter-lbl {
+      font-size: 12px;
+      color: #666;
+      margin: 2px 0 0;
+    }
+
+    /* Filter row on right */
+    .an-filter-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .an-fg {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .an-fg label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #293681;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    .an-fg select,
+    .an-fg input[type="date"] {
+      padding: 7px 10px;
+      border: 1.5px solid #cdd5e0;
+      border-radius: 8px;
+      font-size: 12.5px;
+      background: #fff;
+      min-width: 120px;
+      transition: border-color .2s;
+    }
+    .an-fg select:focus,
+    .an-fg input:focus { outline: none; border-color: #4274D9; }
+    .an-btn-filter {
+      padding: 8px 16px;
+      background: #4274D9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all .2s;
+    }
+    .an-btn-filter:hover { background: #293681; }
+
+    .an-loading {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px;
+      margin-bottom: 12px;
+      background: #eff6ff;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #293681;
+    }
+
+    .an-chart-wrap { position: relative; min-height: 200px; }
+    .an-chart-wrap canvas { max-height: 220px; width: 100% !important; }
+    .an-chart-empty {
+      display: none;
+      position: absolute;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 12px;
+      color: #94a3b8;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+
+    /* ── Summary cards ── */
+    .an-cards {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 1200px) { .an-cards { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 900px)  { .an-cards { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px)  { .an-cards { grid-template-columns: 1fr; } }
+
+    .an-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 12px 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: transform .15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .an-card:hover { transform: translateY(-2px); }
+    .an-card-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      margin-bottom: 4px;
+      background: #eef3ff;
+      color: #4274D9;
+    }
+    .an-card.teal .an-card-icon  { background: #e8f6fa; color: #2a7a8c; }
+    .an-card.green .an-card-icon { background: #e8f8ef; color: #16a34a; }
+    .an-card.amber .an-card-icon { background: #fff6e5; color: #d97706; }
+    .an-card.red .an-card-icon   { background: #fef2f2; color: #dc2626; }
+    .an-card-label {
+      font-size: 10.5px;
+      color: #777;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+    .an-card-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: #293681;
+      line-height: 1.1;
+    }
+    .an-card-sub {
+      font-size: 10.5px;
+      color: #888;
+    }
+    /* Accent bar on top */
+    .an-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: #4274D9;
+      border-radius: 10px 10px 0 0;
+    }
+    .an-card.green::before  { background: #22c55e; }
+    .an-card.amber::before  { background: #f59e0b; }
+    .an-card.red::before    { background: #ef4444; }
+    .an-card.teal::before   { background: #95CCDD; }
+
+    /* ── Chart grid — 4 per row ── */
+    .an-charts-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .an-charts-4col2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 1200px) {
+      .an-charts-4  { grid-template-columns: repeat(2, 1fr); }
+      .an-charts-4col2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .an-charts-4 { grid-template-columns: 1fr; }
+      .an-page-header { flex-direction: column; }
+      .an-filter-row { width: 100%; }
+      .an-fg select, .an-fg input { min-width: 100%; width: 100%; }
+    }
+
+    .an-chart-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 14px 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .an-chart-card h5 {
+      font-size: 12px;
+      font-weight: 700;
+      color: #293681;
+      margin: 0 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .an-chart-card canvas { max-height: 200px; }
+    .an-bottom-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (max-width: 900px) { .an-bottom-row { grid-template-columns: 1fr; } }
+
+    /* Vaccination schedule panel */
+    .an-vacc-panel {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .an-vacc-panel h5 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #293681;
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .an-vacc-items { display: flex; flex-direction: column; gap: 8px; }
+    .an-vacc-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .an-vacc-item.blue   { background: #eff6ff; color: #1d4ed8; }
+    .an-vacc-item.green  { background: #f0fdf4; color: #15803d; }
+    .an-vacc-item.amber  { background: #fffbeb; color: #b45309; }
+    .an-vacc-item.red    { background: #fef2f2; color: #b91c1c; }
+    .an-vacc-item .avi {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12px; flex-shrink: 0;
+      background: rgba(255,255,255,.72);
+    }
+    .an-vacc-item .av-lbl { flex: 1; margin: 0 10px; }
+    .an-vacc-item .av-val { font-size: 20px; font-weight: 800; }
+
+    /* AI panel */
+    .an-ai-panel {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .an-ai-panel h5 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #293681;
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .an-ai-list { display: flex; flex-direction: column; gap: 7px; }
+    .an-ai-item {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      padding: 8px 10px;
+      border-radius: 7px;
+    }
+    .an-ai-item.red    { background: #fef2f2; }
+    .an-ai-item.amber  { background: #fffbeb; }
+    .an-ai-item.blue   { background: #eff6ff; }
+    .an-ai-item.green  { background: #f0fdf4; }
+    .an-ai-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+      margin-top: 0;
+      background: rgba(255,255,255,.75);
+      color: #4274D9;
+    }
+    .an-ai-item.red .an-ai-icon    { color: #dc2626; }
+    .an-ai-item.amber .an-ai-icon  { color: #d97706; }
+    .an-ai-item.green .an-ai-icon  { color: #16a34a; }
+    .an-ai-item.blue .an-ai-icon   { color: #4274D9; }
+    .an-ai-item span:last-child { min-width: 0; }
+    .ai-insights-card .an-ai-list {
+      color: #4a5568;
+    }
+    .an-ai-predictive-section { margin-top: 14px; }
+
+    /* Footer note */
+    .an-footer-note {
+      margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #888;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    /* AI Predictive Analytics Styles */
+    .ai-predict-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+    .ai-predictions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .ai-predict-card {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border-radius: 12px;
+      padding: 18px 16px;
+      text-align: center;
+      border: 1px solid #bfdbfe;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .ai-predict-card .an-ico { margin-bottom: 2px; }
+    .ai-predict-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .ai-predict-head h5 { margin: 0; }
+    .ai-predict-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4274D9;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .ai-predict-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: #293681;
+    }
+    .ai-insights-card {
+      background: linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #ddd6fe;
+    }
+
+    @media (max-width: 600px) {
+      .ai-predictions-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .ai-predict-value {
+        font-size: 22px;
+      }
+    }
+
+    /* ── Bottom row: vacc schedule + AI ── */
+  </style>
+</head>
+<body data-nav="analytics">
+  <div class="main-wrapper">
+    <script>initAppSidebar();</script>
+
+    <div class="main-content">
+
+      <!-- ══ PAGE HEADER ══ -->
+      <div class="an-page-header">
+        <div class="an-title-block">
+          <p class="an-title"><span class="an-mod-icon" aria-hidden="true"><i class="fa-solid fa-chart-simple"></i></span> DATA ANALYTICS</p>
+          <p class="an-subtitle">QUARTERLY RABIES AND BITE VICTIM REPORT</p>
+          <p class="an-quarter-lbl" id="anQuarterLbl">—</p>
+        </div>
+        <div class="an-filter-row">
+          <div class="an-fg">
+            <label>Year</label>
+            <select id="fYear"></select>
+          </div>
+          <div class="an-fg">
+            <label>Quarter</label>
+            <select id="fQuarter">
+              <option value="1">1st Quarter</option>
+              <option value="2">2nd Quarter</option>
+              <option value="3">3rd Quarter</option>
+              <option value="4">4th Quarter</option>
+            </select>
+          </div>
+          <div class="an-fg">
+            <label>Month</label>
+            <select id="fMonth">
+              <option value="">All Months</option>
+              <option value="1">January</option><option value="2">February</option>
+              <option value="3">March</option><option value="4">April</option>
+              <option value="5">May</option><option value="6">June</option>
+              <option value="7">July</option><option value="8">August</option>
+              <option value="9">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+          <div class="an-fg">
+            <label>Date From</label>
+            <input type="date" id="fDateFrom">
+          </div>
+          <div class="an-fg">
+            <label>Date To</label>
+            <input type="date" id="fDateTo">
+          </div>
+          <div class="an-fg">
+            <label>Animal Type</label>
+            <select id="fAnimal">
+              <option value="all">All Animals</option>
+              <option value="Dog">Dog</option>
+              <option value="Cat">Cat</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="an-fg">
+            <label>Barangay</label>
+            <select id="fBarangay">
+              <option value="all">All Barangays</option>
+            </select>
+          </div>
+          <div class="an-fg">
+            <label>Risk Level</label>
+            <select id="fRisk">
+              <option value="all">All Levels</option>
+              <option value="Low">Low (1–4)</option>
+              <option value="Medium">Medium (5–9)</option>
+              <option value="High">High (10–19)</option>
+              <option value="Critical">Critical (20+)</option>
+            </select>
+          </div>
+          <button class="an-btn-filter" type="button" onclick="loadAnalytics()">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="an-loading" id="anLoading"><i class="fa-solid fa-spinner fa-spin"></i> Updating analytics…</div>
+
+      <!-- ══ SUMMARY CARDS ══ -->
+      <div class="an-cards">
+        <div class="an-card">
+          <div class="an-card-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="an-card-label">Total Registered Patients</div>
+          <div class="an-card-value" id="sc-total">—</div>
+        </div>
+        <div class="an-card">
+          <div class="an-card-icon"><i class="fa-solid fa-kit-medical"></i></div>
+          <div class="an-card-label">Total Animal Bite Cases</div>
+          <div class="an-card-value" id="sc-bites">—</div>
+        </div>
+        <div class="an-card teal">
+          <div class="an-card-icon"><i class="fa-solid fa-dog"></i></div>
+          <div class="an-card-label">Dog Bite Cases</div>
+          <div class="an-card-value" id="sc-dog">—</div>
+        </div>
+        <div class="an-card teal">
+          <div class="an-card-icon"><i class="fa-solid fa-cat"></i></div>
+          <div class="an-card-label">Cat Bite Cases</div>
+          <div class="an-card-value" id="sc-cat">—</div>
+        </div>
+        <div class="an-card teal">
+          <div class="an-card-icon"><i class="fa-solid fa-paw"></i></div>
+          <div class="an-card-label">Other Animal Cases</div>
+          <div class="an-card-value" id="sc-other">—</div>
+        </div>
+        <div class="an-card">
+          <div class="an-card-icon"><i class="fa-solid fa-mars"></i></div>
+          <div class="an-card-label">Male Cases</div>
+          <div class="an-card-value" id="sc-male">—</div>
+        </div>
+        <div class="an-card">
+          <div class="an-card-icon"><i class="fa-solid fa-venus"></i></div>
+          <div class="an-card-label">Female Cases</div>
+          <div class="an-card-value" id="sc-female">—</div>
+        </div>
+        <div class="an-card">
+          <div class="an-card-icon"><i class="fa-solid fa-child"></i></div>
+          <div class="an-card-label">Age &lt; 15 years</div>
+          <div class="an-card-value" id="sc-age-lt15">—</div>
+        </div>
+        <div class="an-card">
+          <div class="an-card-icon"><i class="fa-solid fa-user"></i></div>
+          <div class="an-card-label">Age ≥ 15 years</div>
+          <div class="an-card-value" id="sc-age-gte15">—</div>
+        </div>
+        <div class="an-card green">
+          <div class="an-card-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="an-card-label">Completed Vaccinations</div>
+          <div class="an-card-value" id="sc-vcomp">—</div>
+          <div class="an-card-sub" id="sc-vcomp-pct"></div>
+        </div>
+        <div class="an-card amber">
+          <div class="an-card-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="an-card-label">Incomplete Vaccinations</div>
+          <div class="an-card-value" id="sc-vongoing">—</div>
+          <div class="an-card-sub" id="sc-vongoing-pct"></div>
+        </div>
+        <div class="an-card red">
+          <div class="an-card-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="an-card-label">Overdue Vaccinations</div>
+          <div class="an-card-value" id="sc-vover">—</div>
+          <div class="an-card-sub" id="sc-vover-pct"></div>
+        </div>
+        <div class="an-card">
+          <div class="an-card-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+          <div class="an-card-label">Affected Barangays</div>
+          <div class="an-card-value" id="sc-affected">—</div>
+        </div>
+        <div class="an-card amber">
+          <div class="an-card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+          <div class="an-card-label">Overall Risk Level</div>
+          <div class="an-card-value" id="sc-risk" style="font-size:18px;">—</div>
+        </div>
+      </div>
+
+      <!-- ══ CHARTS ROW 1: Monthly + Barangay + Animal + Category ══ -->
+      <div class="an-charts-4">
+        <div class="an-chart-card">
+          <h5><span class="an-ico"><i class="fa-solid fa-chart-line"></i></span> 1. Monthly Bite Cases Trend</h5>
+          <div class="an-chart-wrap"><canvas id="chartMonthly"></canvas></div>
+        </div>
+        <div class="an-chart-card">
+          <h5><span class="an-ico"><i class="fa-solid fa-map-location-dot"></i></span> 2. Top Affected Barangays</h5>
+          <div class="an-chart-wrap"><canvas id="chartBarangay"></canvas></div>
+        </div>
+        <div class="an-chart-card">
+          <h5><span class="an-ico teal"><i class="fa-solid fa-paw"></i></span> 3. Cases by Animal Type</h5>
+          <div class="an-chart-wrap"><canvas id="chartAnimal"></canvas></div>
+        </div>
+        <div class="an-chart-card">
+          <h5><span class="an-ico"><i class="fa-solid fa-layer-group"></i></span> 4. Bite Category Analysis</h5>
+          <div class="an-chart-wrap"><canvas id="chartCategory"></canvas></div>
+        </div>
+      </div>
+
+      <div class="an-charts-4">
+        <div class="an-chart-card">
+          <h5><span class="an-ico"><i class="fa-solid fa-user-group"></i></span> 5. Age Group Analysis</h5>
+          <div class="an-chart-wrap"><canvas id="chartAge"></canvas></div>
+        </div>
+        <div class="an-chart-card">
+          <h5><span class="an-ico"><i class="fa-solid fa-venus-mars"></i></span> 6. Gender Distribution</h5>
+          <div class="an-chart-wrap"><canvas id="chartGender"></canvas></div>
+        </div>
+        <div class="an-chart-card">
+          <h5><span class="an-ico amber"><i class="fa-solid fa-shield-halved"></i></span> 7. Risk Level Distribution (Barangays)</h5>
+          <div class="an-chart-wrap"><canvas id="chartRisk"></canvas></div>
+        </div>
+        <div class="an-chart-card">
+          <h5><span class="an-ico green"><i class="fa-solid fa-syringe"></i></span> 8. Vaccine Brand Usage</h5>
+          <div class="an-chart-wrap"><canvas id="chartBrand"></canvas></div>
+        </div>
+      </div>
+
+      <div class="an-charts-4col2">
+        <div class="an-chart-card">
+          <h5><span class="an-ico"><i class="fa-solid fa-chart-column"></i></span> 9. Quarterly Comparison</h5>
+          <div class="an-chart-wrap"><canvas id="chartQuarterly"></canvas></div>
+        </div>
+        <div class="an-chart-card">
+          <h5><span class="an-ico"><i class="fa-solid fa-calendar"></i></span> 10. Yearly Comparison</h5>
+          <div class="an-chart-wrap"><canvas id="chartYearly"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ══ BOTTOM ROW: Vaccination Schedule + AI ══ -->
+      <div class="an-bottom-row">
+
+        <div class="an-vacc-panel">
+          <h5><span class="an-mod-icon vacc" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span> 11. Vaccination Schedule Summary</h5>
+          <div class="an-vacc-items">
+            <div class="an-vacc-item blue">
+              <span class="avi"><i class="fa-solid fa-calendar-day"></i></span>
+              <span class="av-lbl">Patients Due Today</span>
+              <span class="av-val" id="vs-today">—</span>
+            </div>
+            <div class="an-vacc-item amber">
+              <span class="avi"><i class="fa-solid fa-calendar-week"></i></span>
+              <span class="av-lbl">Patients Due This Week</span>
+              <span class="av-val" id="vs-week">—</span>
+            </div>
+            <div class="an-vacc-item green">
+              <span class="avi"><i class="fa-solid fa-circle-check"></i></span>
+              <span class="av-lbl">Completed Vaccinations</span>
+              <span class="av-val" id="vs-comp">—</span>
+            </div>
+            <div class="an-vacc-item red">
+              <span class="avi"><i class="fa-solid fa-clock"></i></span>
+              <span class="av-lbl">Overdue Vaccinations</span>
+              <span class="av-val" id="vs-over">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="an-ai-panel">
+          <h5><span class="an-mod-icon ai" aria-hidden="true"><i class="fa-solid fa-brain"></i></span> 12. Statistical Insights &amp; Recommendations</h5>
+          <div class="an-ai-list" id="aiList">
+            <p style="color:#aaa;font-size:12px;text-align:center;padding:16px;">Loading insights…</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══ AI Predictive Analytics ══ -->
+      <div class="an-ai-predictive-section">
+        <div class="an-chart-card">
+          <div class="ai-predict-head">
+            <h5><span class="an-mod-icon ai" aria-hidden="true"><i class="fa-solid fa-microchip"></i></span> 13. AI Predictive Analytics</h5>
+            <button id="btnGenerateAI" class="an-btn-filter" type="button">
+              <i class="fa-solid fa-microchip"></i>
+              Generate AI Analysis
+            </button>
+          </div>
+
+          <p id="aiPredictStatus" class="ai-predict-status" style="display:none; margin:8px 0 0; font-size:12px; color:#4274D9; font-weight:600;"></p>
+
+          <!-- Loading indicator -->
+          <div id="aiPredictLoading" class="ai-predict-loading" style="display:none;">
+            <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+            <p style="margin-top:8px; color:#293681; font-weight:600;">Generating AI Analysis...</p>
+            <p style="margin:4px 0 0; color:#666; font-size:13px;">Analyzing aggregated REMIS data...</p>
+          </div>
+
+          <!-- Error message -->
+          <div id="aiPredictError" class="ai-predict-error" style="display:none; padding:16px; background:#fff5f5; border-radius:8px; border:1px solid #fecaca; color:#c53030;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="aiPredictErrorText" style="margin-left:8px;">AI analysis is temporarily unavailable. Please try again later.</span>
+          </div>
+
+          <div id="aiPredictWarn" style="display:none; padding:12px 16px; margin-bottom:12px; background:#fffbeb; border-radius:8px; border:1px solid #fde68a; color:#92400e; font-size:13px;">
+            <i class="fa-solid fa-circle-info"></i>
+            <span id="aiPredictWarnText" style="margin-left:8px;"></span>
+          </div>
+
+          <!-- Predictions Grid -->
+          <div id="aiPredictionsGrid" class="ai-predictions-grid" style="display:none;">
+            <div class="ai-predict-card">
+              <span class="an-ico ai"><i class="fa-solid fa-calendar-plus"></i></span>
+              <div class="ai-predict-label">Predicted Cases Next Month</div>
+              <div class="ai-predict-value" id="aiPredNextMonth">—</div>
+            </div>
+            <div class="ai-predict-card">
+              <span class="an-ico ai"><i class="fa-solid fa-chart-line"></i></span>
+              <div class="ai-predict-label">Predicted Cases Next Quarter</div>
+              <div class="ai-predict-value" id="aiPredNextQuarter">—</div>
+            </div>
+            <div class="ai-predict-card">
+              <span class="an-ico amber"><i class="fa-solid fa-location-dot"></i></span>
+              <div class="ai-predict-label">Highest Risk Barangay</div>
+              <div class="ai-predict-value" id="aiPredBarangay">—</div>
+            </div>
+            <div class="ai-predict-card">
+              <span class="an-ico green"><i class="fa-solid fa-arrow-trend-up"></i></span>
+              <div class="ai-predict-label">Trend</div>
+              <div class="ai-predict-value" id="aiPredTrend">—</div>
+            </div>
+          </div>
+
+          <!-- AI Insights Card -->
+          <div id="aiInsightsCard" class="ai-insights-card" style="display:none; margin-top:20px;">
+            <h6 class="an-insights-hd">
+              <span class="an-mod-icon ai" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></span>
+              AI Insights
+            </h6>
+            <div id="aiInsightsText" class="an-ai-list" style="margin:0;"></div>
+            <h6 class="an-insights-hd" style="margin-top:16px;">
+              <span class="an-mod-icon ai" aria-hidden="true"><i class="fa-solid fa-clipboard-list"></i></span>
+              Recommendations
+            </h6>
+            <div id="aiRecsText" class="an-ai-list" style="margin:0;"></div>
+            <div id="aiTrendWrap" style="display:none;">
+              <h6 class="an-insights-hd" style="margin-top:16px;">
+                <span class="an-mod-icon ai" aria-hidden="true"><i class="fa-solid fa-chart-line"></i></span>
+                Trend Explanation
+              </h6>
+              <div id="aiTrendText" class="an-ai-list" style="margin:0;"></div>
+            </div>
+            <div id="aiRiskWrap" style="display:none;">
+              <h6 class="an-insights-hd" style="margin-top:16px;">
+                <span class="an-mod-icon ai" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                Risk Areas
+              </h6>
+              <div id="aiRiskText" class="an-ai-list" style="margin:0;"></div>
+            </div>
+            <div id="aiLimitWrap" style="display:none;">
+              <h6 class="an-insights-hd" style="margin-top:16px;">
+                <span class="an-mod-icon ai" aria-hidden="true"><i class="fa-solid fa-circle-info"></i></span>
+                Limitations
+              </h6>
+              <p id="aiLimitText" style="margin:0; font-size:13px; color:#475569;"></p>
+            </div>
+            <p id="aiLastUpdated" style="margin:14px 0 0; font-size:12px; color:#64748b;"></p>
+            <p class="ai-disclaimer" style="margin:10px 0 0; font-size:11px; line-height:1.5; color:#64748b;">
+              AI-generated insights are based on aggregated REMIS data and are intended to support data analysis and administrative decision-making. They should not be treated as a medical diagnosis or a replacement for professional clinical judgment.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer note -->
+      <div class="an-footer-note">
+        <span>Note: Data is based on the selected filter. All charts and data automatically update.</span>
+        <span id="anGenDate"></span>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /main-wrapper -->
+
+  <script src="/js/shared/rbac.js"></script>
+  <script src="/js/shared/app.js"></script>
+  <script src="/js/nurse/analytics-page.js?v=groq"></script>
+</body>
+</html>

@@ -1,0 +1,1043 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Management – HopeCare Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="/js/shared/sidebar.js"></script>
+  <style>
+    /* ── Header ── */
+    .sm-header {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:20px; flex-wrap:wrap; gap:12px;
+    }
+    .sm-header h1 { color:#293681; margin:0; font-size:22px; }
+    .sm-header p  { color:#64748b; margin:4px 0 0; font-size:13px; }
+
+    /* ── Toolbar ── */
+    .sm-toolbar {
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:18px;
+    }
+    .sm-search {
+      padding:10px 14px; border:1.5px solid #cdd5e0; border-radius:8px;
+      min-width:280px; font-size:13px; outline:none; transition:border-color .2s;
+    }
+    .sm-search:focus { border-color:#4274D9; box-shadow:0 0 0 3px rgba(66,116,217,.12); }
+    .sm-search-wrap { position:relative; display:inline-flex; align-items:center; }
+    .sm-search-wrap .sm-clear-btn {
+      position:absolute; right:10px; background:none; border:none; cursor:pointer;
+      color:#94a3b8; font-size:13px; display:none; padding:0;
+    }
+    .sm-search-wrap .sm-clear-btn.visible { display:block; }
+
+    /* ── Stats ── */
+    .sm-stats { display:flex; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
+    .sm-stat {
+      background:#fff; border-radius:10px; padding:12px 18px;
+      box-shadow:0 1px 4px rgba(0,0,0,.07);
+      display:flex; align-items:center; gap:10px; min-width:120px;
+    }
+    .sm-stat-icon { font-size:20px; }
+    .sm-stat-val  { font-size:20px; font-weight:800; color:#293681; line-height:1; }
+    .sm-stat-lbl  { font-size:11px; color:#64748b; margin-top:2px; }
+
+    /* ── Table ── */
+    .sm-table-wrap {
+      overflow-x:auto; background:#fff; border-radius:12px;
+      box-shadow:0 2px 8px rgba(0,0,0,.08);
+    }
+    table.sm-table { width:100%; border-collapse:collapse; font-size:13px; min-width:860px; }
+    .sm-table th, .sm-table td { padding:12px 14px; border-bottom:1px solid #e8edf8; text-align:left; }
+    .sm-table th {
+      background:#f8faff; color:#293681; font-weight:700;
+      font-size:11.5px; text-transform:uppercase; letter-spacing:.4px;
+    }
+    .sm-table tr:last-child td { border-bottom:none; }
+    .sm-table tbody tr:hover td { background:#f8faff; }
+
+    /* ── Badges ── */
+    .badge {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:3px 9px; border-radius:99px; font-size:11px; font-weight:700;
+    }
+    .badge-active   { background:#dcfce7; color:#16a34a; }
+    .badge-inactive { background:#f1f5f9; color:#64748b; }
+    .badge-admin    { background:#fef3c7; color:#92400e; }
+    .badge-nurse    { background:#eff6ff; color:#2563eb; }
+
+    /* ── Action buttons ── */
+    .btn {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:5px 11px; border-radius:7px; border:none; cursor:pointer;
+      font-size:11.5px; font-weight:600; margin:2px; transition:opacity .15s;
+      white-space:nowrap;
+    }
+    .btn:hover    { opacity:.82; }
+    .btn:disabled { opacity:.45; cursor:not-allowed; }
+    .btn-blue   { background:#eff6ff; color:#2563eb; }
+    .btn-warn   { background:#fef3c7; color:#92400e; }
+    .btn-green  { background:#dcfce7; color:#16a34a; }
+    .btn-red    { background:#fee2e2; color:#dc2626; }
+    .btn-primary{ background:#293681; color:#fff; padding:10px 16px; font-size:12.5px; }
+
+    /* ── Modals (shared) ── */
+    .sm-modal {
+      display:none; position:fixed; inset:0; z-index:9000;
+      background:rgba(10,18,50,.5); align-items:center; justify-content:center; padding:20px;
+    }
+    .sm-modal.open { display:flex; }
+    .sm-modal-box {
+      background:#fff; border-radius:16px; padding:28px;
+      width:100%; display:flex; flex-direction:column;
+    }
+    .sm-modal-hd {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #e8edf8;
+    }
+    .sm-modal-hd h4 { margin:0; color:#293681; font-size:16px; }
+    .sm-modal-close {
+      background:none; border:none; font-size:22px; cursor:pointer;
+      color:#64748b; line-height:1; padding:0 4px;
+    }
+    .sm-modal-body { font-size:13.5px; color:#475569; line-height:1.6; margin-bottom:18px; }
+    .sm-modal-body strong { color:#1e2a4a; }
+    .sm-modal-actions { display:flex; gap:10px; justify-content:flex-end; }
+    .btn-modal-cancel  { background:#f1f5f9; color:#475569; padding:9px 18px; font-size:13px; }
+    .btn-modal-confirm { padding:9px 18px; font-size:13px; }
+
+    /* ── Form (Add/Edit modal) ── */
+    .sm-form-box {
+      max-width: 520px;
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid #e8edf8;
+      border-radius: 18px;
+      box-shadow: 0 18px 48px rgba(41,54,129,.16);
+    }
+    .sm-form-hd {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px 14px;
+      background: linear-gradient(180deg, #f5f8ff 0%, #fff 100%);
+      border-bottom: 1px solid #e8edf8;
+    }
+    .sm-form-hd-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .sm-form-icon {
+      width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #4274D9, #293681);
+      color: #fff; font-size: 15px;
+      box-shadow: 0 6px 14px rgba(66,116,217,.28);
+    }
+    .sm-form-hd h4 { margin: 0; color: #293681; font-size: 16px; font-weight: 800; line-height: 1.2; }
+    .sm-form-sub { margin: 3px 0 0; font-size: 12px; color: #64748b; }
+    .sm-form-box .sm-modal-close {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: #f1f5f9; font-size: 18px; flex-shrink: 0;
+    }
+    .sm-form-box .sm-modal-close:hover { background: #fee2e2; color: #dc2626; }
+    .sm-form-body { padding: 16px 18px 10px; }
+    .sm-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 12px 14px;
+      margin-bottom: 0;
+    }
+    .sm-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .sm-field-full { grid-column: 1 / -1; }
+    .sm-field label {
+      font-size: 11.5px; font-weight: 700; color: #293681; letter-spacing: .2px;
+    }
+    .sm-field label .req { color: #dc2626; }
+    .sm-field input, .sm-field select {
+      width: 100%; height: 40px; padding: 0 12px;
+      border: 1.5px solid #d7deee; border-radius: 10px;
+      font-size: 13px; outline: none; box-sizing: border-box;
+      background: #f8faff; color: #1e2a4a; font-family: inherit;
+      transition: border-color .18s, box-shadow .18s, background .18s;
+    }
+    .sm-field input:focus, .sm-field select:focus {
+      background: #fff; border-color: #4274D9;
+      box-shadow: 0 0 0 3px rgba(66,116,217,.12);
+    }
+    .sm-field-pw { position: relative; }
+    .sm-field-pw input { padding-right: 40px; }
+    .sm-field-pw .pw-toggle {
+      position: absolute; right: 8px; bottom: 4px;
+      width: 32px; height: 32px;
+      background: none; border: none; cursor: pointer;
+      color: #94a3b8; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sm-field-pw .pw-toggle:hover { color: #4274D9; background: #eef3ff; }
+    .sm-pw-hint {
+      display: none;
+      align-items: flex-start; gap: 8px;
+      margin-top: 12px; padding: 9px 11px;
+      background: #f0f4ff; border: 1px solid #dbe4ff; border-radius: 10px;
+      font-size: 12px; color: #475569; line-height: 1.45;
+    }
+    .sm-pw-hint.show { display: flex; }
+    .sm-pw-hint i { color: #4274D9; margin-top: 2px; flex-shrink: 0; }
+    .sm-pw-hint code {
+      font-family: ui-monospace, Consolas, monospace;
+      background: #fff; color: #293681; font-weight: 700;
+      padding: 1px 6px; border-radius: 5px; border: 1px solid #e0e7ff;
+    }
+    .sm-form-foot {
+      display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;
+      padding: 12px 18px 16px;
+      border-top: 1px solid #e8edf8;
+      background: #fafbff;
+    }
+    .sm-form-foot .btn { margin: 0; padding: 9px 16px; font-size: 13px; border-radius: 9px; }
+    .sm-form-foot .btn-modal-cancel { background: #fff; color: #475569; border: 1.5px solid #d7deee; }
+    .sm-form-foot .btn-modal-cancel:hover { opacity: 1; background: #f8faff; }
+    .sm-form-foot .btn-modal-confirm {
+      background: linear-gradient(135deg, #4274D9, #293681); color: #fff;
+      border: none; box-shadow: 0 6px 14px rgba(66,116,217,.28);
+    }
+    .sm-form-foot .btn-modal-confirm:hover { opacity: 1; filter: brightness(1.05); }
+    @media (max-width: 640px) {
+      .sm-form-grid { grid-template-columns: 1fr !important; }
+      .sm-form-box { max-width: 100%; }
+    }
+
+    /* ── Reset PW modal ── */
+    .sm-resetpw-box { max-width:440px; }
+
+    /* ── Confirm modal ── */
+    .sm-confirm-box { max-width:460px; }
+
+    /* ── Toast ── */
+    #smToastWrap {
+      position:fixed; bottom:24px; right:24px; z-index:9999;
+      display:flex; flex-direction:column; gap:8px; pointer-events:none;
+    }
+    .sm-toast {
+      padding:11px 18px; border-radius:10px; font-size:13px; font-weight:600;
+      pointer-events:auto; display:flex; align-items:center; gap:8px;
+      box-shadow:0 4px 16px rgba(0,0,0,.15); animation:smSlideIn .25s ease;
+    }
+    .sm-toast.success { background:#16a34a; color:#fff; }
+    .sm-toast.error   { background:#dc2626; color:#fff; }
+    .sm-toast.info    { background:#2563eb; color:#fff; }
+    @keyframes smSlideIn {
+      from { transform:translateX(60px); opacity:0; }
+      to   { transform:none; opacity:1; }
+    }
+
+    /* ── Loading overlay ── */
+    #smLoading {
+      display:none; position:fixed; inset:0; z-index:8888;
+      background:rgba(255,255,255,.55); align-items:center; justify-content:center;
+    }
+    #smLoading.show { display:flex; }
+    .sm-spinner {
+      width:44px; height:44px; border:4px solid #e8edf8;
+      border-top-color:#4274D9; border-radius:50%; animation:smSpin .7s linear infinite;
+    }
+    @keyframes smSpin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body class="hc-admin" data-nav="staff-management">
+<div class="main-wrapper"><script>initAppSidebar();</script>
+<div class="main-content">
+
+  <!-- Header -->
+  <div class="sm-header">
+    <div>
+      <h1><i class="fa-solid fa-user-shield"></i> Staff Account Management</h1>
+      <p>Manage Nurse and Administrator accounts</p>
+    </div>
+    <button class="btn btn-primary" onclick="openAddModal()">
+      <i class="fa-solid fa-user-plus"></i> Add Staff Account
+    </button>
+  </div>
+
+  <!-- Toolbar: search + refresh -->
+  <div class="sm-toolbar">
+    <div class="sm-search-wrap">
+      <input class="sm-search" id="smSearch"
+             placeholder="Search by name, username, STF-ID…"
+             oninput="handleSearchInput()" autocomplete="off">
+      <button class="sm-clear-btn" id="smClearBtn" onclick="clearSearch()" title="Clear search">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <button class="btn btn-blue" onclick="loadStaff()" style="padding:10px 16px;font-size:12.5px;">
+      <i class="fa-solid fa-rotate-right"></i> Refresh
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="sm-stats" id="smStats"></div>
+
+  <!-- Table -->
+  <div class="sm-table-wrap">
+    <table class="sm-table">
+      <thead>
+        <tr>
+          <th>Staff ID</th>
+          <th>Full Name</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Designation</th>
+          <th>Status</th>
+          <th class="hc-actions-cell">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="smTbody">
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:#94a3b8;">
+          <i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Loading staff accounts…
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div></div>
+
+<!-- ═══════════════════════════════════════
+     ADD / EDIT STAFF MODAL
+════════════════════════════════════════ -->
+<div class="sm-modal" id="staffFormModal">
+  <div class="sm-modal-box sm-form-box">
+    <div class="sm-form-hd">
+      <div class="sm-form-hd-left">
+        <span class="sm-form-icon" id="formModalIcon"><i class="fa-solid fa-user-plus"></i></span>
+        <div>
+          <h4 id="formModalTitle">Add Staff Account</h4>
+          <p class="sm-form-sub" id="formModalSub">Create a nurse or administrator account</p>
+        </div>
+      </div>
+      <button type="button" class="sm-modal-close" onclick="closeFormModal()" aria-label="Close">×</button>
+    </div>
+
+    <div class="sm-form-body">
+      <input type="hidden" id="formEditId">
+      <div class="sm-form-grid">
+        <div class="sm-field">
+          <label for="formFullName">Full Name <span class="req">*</span></label>
+          <input type="text" id="formFullName" autocomplete="off">
+        </div>
+        <div class="sm-field">
+          <label for="formUsername">Username <span class="req">*</span></label>
+          <input type="text" id="formUsername" autocomplete="off">
+        </div>
+        <div class="sm-field sm-field-pw" id="formPwRow">
+          <label for="formPassword">Password</label>
+          <input type="password" id="formPassword" autocomplete="new-password">
+          <button type="button" class="pw-toggle" onclick="togglePwVis('formPassword', this)" aria-label="Show password">
+            <i class="fa-regular fa-eye"></i>
+          </button>
+        </div>
+        <div class="sm-field">
+          <label for="formRole">Role <span class="req">*</span></label>
+          <select id="formRole">
+            <option value="Nurse">Nurse</option>
+            <option value="Administrator">Administrator</option>
+          </select>
+        </div>
+        <div class="sm-field sm-field-full" id="formDesignationRow">
+          <label for="formDesignation">Designation</label>
+          <input type="text" id="formDesignation" autocomplete="off">
+        </div>
+        <div class="sm-field" id="formStatusRow" style="display:none;">
+          <label for="formStatus">Status</label>
+          <select id="formStatus">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="sm-pw-hint" id="formHint">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Leave password blank to use the default <code>hopecare</code>.</span>
+      </div>
+    </div>
+
+    <div class="sm-form-foot sm-modal-actions">
+      <button type="button" class="btn btn-modal-cancel" onclick="closeFormModal()">
+        <i class="fa-solid fa-xmark"></i> Cancel
+      </button>
+      <button type="button" class="btn btn-modal-confirm" id="formSaveBtn" onclick="saveStaff()">
+        <i class="fa-solid fa-user-plus"></i> Add Staff
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     RESET PASSWORD MODAL  (confirmation only — resets to default "hopecare")
+════════════════════════════════════════ -->
+<div class="sm-modal" id="resetPwModal">
+  <div class="sm-modal-box sm-resetpw-box">
+    <div class="sm-modal-hd">
+      <h4>
+        <i class="fa-solid fa-key" style="color:#d97706;margin-right:8px;"></i>
+        Reset Password
+      </h4>
+      <button class="sm-modal-close" onclick="closeResetPwModal()">×</button>
+    </div>
+    <input type="hidden" id="resetPwId">
+
+    <!-- Staff identity card -->
+    <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:18px;">
+      <div style="width:48px;height:48px;min-width:48px;border-radius:50%;background:#fef3c7;
+                  display:flex;align-items:center;justify-content:center;">
+        <i class="fa-solid fa-unlock-keyhole" style="color:#d97706;font-size:20px;"></i>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#1e2a4a;margin-bottom:4px;">
+          Reset password for <span id="resetPwName" style="color:#d97706;"></span>
+        </div>
+        <div style="font-size:13px;color:#475569;line-height:1.55;">
+          The password will be reset to the default:
+          <strong style="color:#293681;background:#f0f4ff;padding:1px 7px;border-radius:5px;font-family:monospace;">hopecare</strong>
+        </div>
+        <div style="font-size:12px;color:#64748b;margin-top:6px;">
+          The staff member must change their password at next login.
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;
+                padding:10px 13px;display:flex;gap:8px;align-items:flex-start;margin-bottom:18px;">
+      <i class="fa-solid fa-circle-info" style="color:#ea580c;margin-top:2px;flex-shrink:0;"></i>
+      <div style="font-size:12px;color:#9a3412;line-height:1.5;">
+        This action cannot be undone. The existing password will be permanently replaced
+        with the default password <strong>hopecare</strong>.
+      </div>
+    </div>
+
+    <div class="sm-modal-actions">
+      <button class="btn btn-modal-cancel" onclick="closeResetPwModal()">
+        <i class="fa-solid fa-xmark"></i> Cancel
+      </button>
+      <button class="btn btn-modal-confirm" id="resetPwSaveBtn"
+              style="background:#d97706;color:#fff;border:none;cursor:pointer;border-radius:7px;font-weight:700;"
+              onclick="doResetPw()">
+        <i class="fa-solid fa-key"></i> Reset to Default
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     GENERIC CONFIRM MODAL (Activate / Deactivate / Delete)
+════════════════════════════════════════ -->
+<div class="sm-modal" id="confirmModal">
+  <div class="sm-modal-box sm-confirm-box">
+    <div class="sm-modal-hd">
+      <h4 id="confirmTitle">Confirm Action</h4>
+      <button class="sm-modal-close" onclick="closeConfirm()">×</button>
+    </div>
+    <div class="sm-modal-body" id="confirmBody"></div>
+    <div class="sm-modal-actions">
+      <button class="btn btn-modal-cancel" onclick="closeConfirm()">
+        <i class="fa-solid fa-xmark"></i> Cancel
+      </button>
+      <button class="btn btn-modal-confirm" id="confirmOkBtn"
+              style="border:none;cursor:pointer;border-radius:7px;font-weight:700;padding:9px 18px;"
+              onclick="runConfirmedAction()">
+        Confirm
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div id="smLoading"><div class="sm-spinner"></div></div>
+<!-- Toast container -->
+<div id="smToastWrap"></div>
+
+<script src="/js/shared/rbac.js"></script>
+<script src="/js/shared/app.js"></script>
+<script>
+'use strict';
+
+/* ─────────────────────────────────────
+   STATE
+───────────────────────────────────── */
+let allStaff      = [];   // full unfiltered list
+let _pendingAction = null; // confirmed action fn
+
+/* ─────────────────────────────────────
+   INIT
+───────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkAuth();
+  loadStaff();
+
+  // Close modals on backdrop click
+  ['staffFormModal', 'resetPwModal', 'confirmModal'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+      if (e.target === this) {
+        if (id === 'staffFormModal') closeFormModal();
+        else if (id === 'resetPwModal') closeResetPwModal();
+        else closeConfirm();
+      }
+    });
+  });
+
+  // Delegated click on table body
+  document.getElementById('smTbody').addEventListener('click', handleTableClick);
+});
+
+/* ─────────────────────────────────────
+   LOAD ALL STAFF
+───────────────────────────────────── */
+async function loadStaff() {
+  showLoading();
+  setTbody('<tr><td colspan="7" style="text-align:center;padding:32px;color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Loading…</td></tr>');
+  try {
+    const res  = await fetch('/api/staff', { credentials: 'include' });
+    if (res.status === 401) { window.location.href = '/shared/login.html'; return; }
+    if (res.status === 403) {
+      showMsg('Access denied — insufficient permissions.', 'error');
+      setTbody('<tr><td colspan="7" style="text-align:center;padding:32px;color:#dc2626;">Access denied.</td></tr>');
+      return;
+    }
+    const json = await res.json();
+    if (!json.success) {
+      showMsg(json.message || 'Failed to load staff.', 'error');
+      setTbody('<tr><td colspan="7" style="text-align:center;padding:32px;color:#dc2626;">' + escHtml(json.message || 'Error') + '</td></tr>');
+      return;
+    }
+    allStaff = json.data || [];
+    renderStats(allStaff);
+    renderTable(allStaff);
+
+    // Re-apply search filter if one is active
+    const q = document.getElementById('smSearch').value.trim();
+    if (q) filterStaff(q);
+  } catch (err) {
+    console.error('loadStaff error:', err);
+    showMsg('Network error — could not load staff.', 'error');
+    setTbody('<tr><td colspan="7" style="text-align:center;padding:32px;color:#dc2626;">Network error. Try again.</td></tr>');
+  } finally {
+    hideLoading();
+  }
+}
+
+function setTbody(html) {
+  document.getElementById('smTbody').innerHTML = html;
+}
+
+/* ─────────────────────────────────────
+   STATS BAR
+───────────────────────────────────── */
+function renderStats(data) {
+  const total    = data.length;
+  const active   = data.filter(s => s.status === 'Active').length;
+  const inactive = data.filter(s => s.status === 'Inactive').length;
+  const admins   = data.filter(s => (s.role || '').toLowerCase().includes('admin')).length;
+  const nurses   = data.filter(s => (s.role || '').toLowerCase() === 'nurse').length;
+
+  const items = [
+    { icon:'fa-users',        val:total,    color:'#293681', label:'Total Staff' },
+    { icon:'fa-circle-check', val:active,   color:'#16a34a', label:'Active' },
+    { icon:'fa-circle-xmark', val:inactive, color:'#64748b', label:'Inactive' },
+    { icon:'fa-user-shield',  val:admins,   color:'#92400e', label:'Administrators' },
+    { icon:'fa-user-nurse',   val:nurses,   color:'#2563eb', label:'Nurses' },
+  ];
+  document.getElementById('smStats').innerHTML = items.map(i =>
+    `<div class="sm-stat">
+       <div class="sm-stat-icon" style="color:${i.color};">
+         <i class="fa-solid ${i.icon}"></i>
+       </div>
+       <div>
+         <div class="sm-stat-val">${i.val}</div>
+         <div class="sm-stat-lbl">${i.label}</div>
+       </div>
+     </div>`
+  ).join('');
+}
+
+/* ─────────────────────────────────────
+   RENDER TABLE
+   Uses data-* attrs — no inline string
+   escaping on onclick needed.
+───────────────────────────────────── */
+function renderTable(data) {
+  if (!data.length) {
+    setTbody('<tr><td colspan="7" style="text-align:center;padding:32px;color:#94a3b8;">No staff accounts found.</td></tr>');
+    return;
+  }
+
+  const rows = data.map(s => {
+    const sid    = escHtml(s.staff_id_display || ('STF-' + String(s.staff_id || s.id).padStart(6, '0')));
+    const name   = escHtml(s.full_name   || '—');
+    const uname  = escHtml(s.username    || '—');
+    const desig  = escHtml(s.designation || '—');
+    const role   = s.role || 'Nurse';
+    const status = s.status || 'Active';
+    const rowId  = s.staff_id || s.id;
+
+    const roleBadge = role.toLowerCase().includes('admin')
+      ? `<span class="badge badge-admin"><i class="fa-solid fa-user-shield" style="font-size:9px;"></i> ${escHtml(role)}</span>`
+      : `<span class="badge badge-nurse"><i class="fa-solid fa-user-nurse"  style="font-size:9px;"></i> ${escHtml(role)}</span>`;
+
+    const statusBadge = status === 'Active'
+      ? `<span class="badge badge-active"><i class="fa-solid fa-circle" style="font-size:7px;"></i> Active</span>`
+      : `<span class="badge badge-inactive"><i class="fa-solid fa-circle" style="font-size:7px;"></i> Inactive</span>`;
+
+    const nextStatus  = status === 'Active' ? 'Inactive' : 'Active';
+    const toggleCls   = status === 'Active' ? 'btn-warn' : 'btn-green';
+    const toggleLabel = status === 'Active'
+      ? '<i class="fa-solid fa-ban"></i> Deactivate'
+      : '<i class="fa-solid fa-circle-check"></i> Activate';
+
+    return `<tr>
+      <td><strong style="color:#293681;">${sid}</strong></td>
+      <td style="font-weight:600;">${name}</td>
+      <td style="color:#475569;">${uname}</td>
+      <td>${roleBadge}</td>
+      <td style="color:#475569;">${desig}</td>
+      <td>${statusBadge}</td>
+      <td class="hc-actions-cell">
+        <div class="hc-actions">
+        <button class="btn btn-blue"
+          data-action="edit"
+          data-id="${rowId}"
+          data-name="${escAttr(s.full_name || s.username || '')}">
+          <i class="fa-solid fa-pen"></i> Edit
+        </button>
+        <button class="btn btn-blue"
+          data-action="resetpw"
+          data-id="${rowId}"
+          data-name="${escAttr(s.full_name || s.username || '')}">
+          <i class="fa-solid fa-key"></i> Reset PW
+        </button>
+        <button class="btn ${toggleCls}"
+          data-action="toggle"
+          data-id="${rowId}"
+          data-name="${escAttr(s.full_name || s.username || '')}"
+          data-next="${nextStatus}">
+          ${toggleLabel}
+        </button>
+        <button class="btn btn-red"
+          data-action="delete"
+          data-id="${rowId}"
+          data-name="${escAttr(s.full_name || s.username || '')}">
+          <i class="fa-solid fa-trash"></i> Delete
+        </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  setTbody(rows);
+}
+
+/* ─────────────────────────────────────
+   DELEGATED CLICK HANDLER
+───────────────────────────────────── */
+function handleTableClick(e) {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+
+  const action = btn.dataset.action;
+  const id     = parseInt(btn.dataset.id, 10);
+  const name   = btn.dataset.name || 'this staff member';
+
+  switch (action) {
+    case 'edit':
+      openEditModal(id);
+      break;
+
+    case 'resetpw':
+      openResetPwModal(id, name);
+      break;
+
+    case 'toggle': {
+      const next = btn.dataset.next;
+      const isDeactivate = next === 'Inactive';
+      openConfirm({
+        title:    isDeactivate ? 'Deactivate Staff Account' : 'Activate Staff Account',
+        body:     isDeactivate
+          ? `Deactivate the account for <strong>${escHtml(name)}</strong>? They will no longer be able to log in.`
+          : `Activate the account for <strong>${escHtml(name)}</strong>? They will be able to log in again.`,
+        btnLabel: isDeactivate
+          ? '<i class="fa-solid fa-ban"></i> Deactivate'
+          : '<i class="fa-solid fa-circle-check"></i> Activate',
+        btnStyle: isDeactivate
+          ? 'background:#92400e;color:#fff;'
+          : 'background:#16a34a;color:#fff;',
+        fn: () => apiToggleStatus(id, next, name),
+      });
+      break;
+    }
+
+    case 'delete':
+      openConfirm({
+        title:    'Delete Staff Account',
+        body:     `Permanently delete the account for <strong>${escHtml(name)}</strong>?<br><br>
+                   <span style="color:#dc2626;font-size:12.5px;">
+                     <i class="fa-solid fa-triangle-exclamation"></i>
+                     This action cannot be undone. Activity logs will remain intact.
+                   </span>`,
+        btnLabel: '<i class="fa-solid fa-trash"></i> Yes, Delete',
+        btnStyle: 'background:#dc2626;color:#fff;',
+        fn: () => apiDelete(id, name),
+      });
+      break;
+  }
+}
+
+/* ─────────────────────────────────────
+   ADD / EDIT FORM MODAL
+───────────────────────────────────── */
+function openAddModal() {
+  document.getElementById('formModalTitle').textContent = 'Add Staff Account';
+  document.getElementById('formModalSub').textContent = 'Create a nurse or administrator account';
+  document.getElementById('formModalIcon').innerHTML = '<i class="fa-solid fa-user-plus"></i>';
+
+  document.getElementById('formEditId').value      = '';
+  document.getElementById('formFullName').value    = '';
+  document.getElementById('formUsername').value    = '';
+  document.getElementById('formPassword').value    = '';
+  document.getElementById('formRole').value        = 'Nurse';
+  document.getElementById('formDesignation').value = 'ABC Nurse';
+  document.getElementById('formStatus').value      = 'Active';
+
+  document.getElementById('formPwRow').style.display = '';
+  document.getElementById('formStatusRow').style.display = 'none';
+  document.getElementById('formDesignationRow').classList.add('sm-field-full');
+  document.getElementById('formHint').classList.add('show');
+  setSaveBtn('<i class="fa-solid fa-user-plus"></i> Add Staff', '');
+
+  document.getElementById('staffFormModal').classList.add('open');
+  document.getElementById('formFullName').focus();
+}
+
+async function openEditModal(id) {
+  showLoading();
+  try {
+    const res  = await fetch(`/api/staff/${id}`, { credentials: 'include' });
+    const json = await res.json();
+    if (!json.success || !json.data) {
+      showMsg(json.message || 'Failed to load staff details.', 'error');
+      return;
+    }
+    const s = json.data;
+
+    document.getElementById('formModalTitle').textContent = 'Edit Staff Account';
+    document.getElementById('formModalSub').textContent = 'Update account details for this staff member';
+    document.getElementById('formModalIcon').innerHTML = '<i class="fa-solid fa-pen"></i>';
+
+    document.getElementById('formEditId').value      = s.staff_id || s.id;
+    document.getElementById('formFullName').value    = s.full_name    || '';
+    document.getElementById('formUsername').value    = s.username     || '';
+    document.getElementById('formPassword').value    = '';
+    document.getElementById('formRole').value        = s.role         || 'Nurse';
+    document.getElementById('formDesignation').value = s.designation  || '';
+    document.getElementById('formStatus').value      = s.status       || 'Active';
+
+    document.getElementById('formPwRow').style.display = 'none';
+    document.getElementById('formStatusRow').style.display = '';
+    document.getElementById('formDesignationRow').classList.remove('sm-field-full');
+    document.getElementById('formHint').classList.remove('show');
+    setSaveBtn('<i class="fa-solid fa-floppy-disk"></i> Save Changes', '');
+
+    document.getElementById('staffFormModal').classList.add('open');
+  } catch (err) {
+    showMsg('Network error — could not load staff details.', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+function closeFormModal() {
+  document.getElementById('staffFormModal').classList.remove('open');
+}
+
+function setSaveBtn(html, bg) {
+  const btn = document.getElementById('formSaveBtn');
+  btn.innerHTML = html;
+  if (bg) btn.style.background = bg;
+  else btn.style.background = '';
+  btn.disabled = false;
+}
+
+async function saveStaff() {
+  const id      = document.getElementById('formEditId').value;
+  const saveBtn = document.getElementById('formSaveBtn');
+
+  const payload = {
+    full_name:   document.getElementById('formFullName').value.trim(),
+    username:    document.getElementById('formUsername').value.trim(),
+    role:        document.getElementById('formRole').value,
+    designation: document.getElementById('formDesignation').value.trim(),
+  };
+
+  if (!payload.full_name) { showMsg('Full name is required.', 'error'); return; }
+  if (!payload.username)  { showMsg('Username is required.',  'error'); return; }
+
+  if (id) {
+    // Edit — include status, no password
+    payload.status = document.getElementById('formStatus').value;
+  } else {
+    // Add — password is optional; if provided must be ≥6 chars, else backend defaults to 'hopecare'
+    const pw = document.getElementById('formPassword').value;
+    if (pw && pw.length < 6) {
+      showMsg('Password must be at least 6 characters (or leave blank for default).', 'error');
+      return;
+    }
+    if (pw) payload.password = pw;
+    // If blank, omit entirely — backend will use 'hopecare'
+  }
+
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+  showLoading();
+
+  try {
+    const url    = id ? `/api/staff/${id}` : '/api/staff';
+    const method = id ? 'PUT' : 'POST';
+    const res    = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (json.success) {
+      showMsg(id ? `Staff account updated for ${payload.full_name}.` : `Staff account created for ${payload.full_name}.`);
+      closeFormModal();
+      loadStaff();
+    } else {
+      showMsg(json.message || 'Failed to save staff account.', 'error');
+      setSaveBtn(id ? '<i class="fa-solid fa-floppy-disk"></i> Save Changes' : '<i class="fa-solid fa-user-plus"></i> Add Staff', '#293681');
+    }
+  } catch (err) {
+    console.error('saveStaff error:', err);
+    showMsg('Network error — save failed.', 'error');
+    setSaveBtn(id ? '<i class="fa-solid fa-floppy-disk"></i> Save Changes' : '<i class="fa-solid fa-user-plus"></i> Add Staff', '#293681');
+  } finally {
+    hideLoading();
+  }
+}
+
+/* ─────────────────────────────────────
+   RESET PASSWORD MODAL
+   Confirmation only — resets to default 'hopecare'.
+   No password input needed.
+───────────────────────────────────── */
+function openResetPwModal(id, name) {
+  document.getElementById('resetPwId').value         = id;
+  document.getElementById('resetPwName').textContent = name;
+  const btn = document.getElementById('resetPwSaveBtn');
+  btn.disabled  = false;
+  btn.innerHTML = '<i class="fa-solid fa-key"></i> Reset to Default';
+  document.getElementById('resetPwModal').classList.add('open');
+}
+
+function closeResetPwModal() {
+  document.getElementById('resetPwModal').classList.remove('open');
+}
+
+async function doResetPw() {
+  const id  = document.getElementById('resetPwId').value;
+  const btn = document.getElementById('resetPwSaveBtn');
+
+  btn.disabled  = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Resetting…';
+  showLoading();
+
+  try {
+    // Send empty body — backend defaults to 'hopecare'
+    const res  = await fetch(`/api/staff/${id}/reset-password`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({}),
+    });
+    const json = await res.json();
+    if (json.success) {
+      showMsg(json.message || 'Password reset to default (hopecare).');
+      closeResetPwModal();
+    } else {
+      showMsg(json.message || 'Failed to reset password.', 'error');
+      btn.disabled  = false;
+      btn.innerHTML = '<i class="fa-solid fa-key"></i> Reset to Default';
+    }
+  } catch (err) {
+    console.error('doResetPw error:', err);
+    showMsg('Network error — reset failed.', 'error');
+    btn.disabled  = false;
+    btn.innerHTML = '<i class="fa-solid fa-key"></i> Reset to Default';
+  } finally {
+    hideLoading();
+  }
+}
+
+/* ─────────────────────────────────────
+   GENERIC CONFIRM MODAL
+───────────────────────────────────── */
+function openConfirm({ title, body, btnLabel, btnStyle, fn }) {
+  _pendingAction = fn;
+  document.getElementById('confirmTitle').textContent   = title;
+  document.getElementById('confirmBody').innerHTML      = body;
+  const okBtn = document.getElementById('confirmOkBtn');
+  okBtn.innerHTML  = btnLabel;
+  okBtn.style.cssText = btnStyle + 'border:none;cursor:pointer;border-radius:7px;font-weight:700;padding:9px 18px;';
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function closeConfirm() {
+  _pendingAction = null;
+  document.getElementById('confirmModal').classList.remove('open');
+}
+
+async function runConfirmedAction() {
+  if (!_pendingAction) return;
+  const fn = _pendingAction;
+  closeConfirm();
+  await fn();
+}
+
+/* ─────────────────────────────────────
+   API ACTIONS
+───────────────────────────────────── */
+async function apiToggleStatus(id, newStatus, name) {
+  showLoading();
+  try {
+    const res  = await fetch(`/api/staff/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ status: newStatus }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      showMsg(newStatus === 'Active'
+        ? `Account activated for ${name}.`
+        : `Account deactivated for ${name}.`);
+      loadStaff();
+    } else {
+      showMsg(json.message || 'Failed to update status.', 'error');
+    }
+  } catch (err) {
+    console.error('apiToggleStatus error:', err);
+    showMsg('Network error — status update failed.', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function apiDelete(id, name) {
+  showLoading();
+  try {
+    const res  = await fetch(`/api/staff/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    const json = await res.json();
+    if (json.success) {
+      showMsg(`Staff account deleted for ${name}.`);
+      loadStaff();
+    } else {
+      showMsg(json.message || 'Failed to delete staff account.', 'error');
+    }
+  } catch (err) {
+    console.error('apiDelete error:', err);
+    showMsg('Network error — delete failed.', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+/* ─────────────────────────────────────
+   SEARCH / FILTER
+   Only filters when user has typed something.
+   Empty input → shows all staff.
+───────────────────────────────────── */
+function handleSearchInput() {
+  const val = document.getElementById('smSearch').value;
+  const clearBtn = document.getElementById('smClearBtn');
+  clearBtn.classList.toggle('visible', val.length > 0);
+
+  const q = val.trim().toLowerCase();
+  if (!q) {
+    // Empty — show everything, no filter
+    renderTable(allStaff);
+    renderStats(allStaff);
+    return;
+  }
+  filterStaff(q);
+}
+
+function filterStaff(q) {
+  if (!q) { renderTable(allStaff); return; }
+  const term = q.toLowerCase();
+  const filtered = allStaff.filter(s =>
+    (s.full_name          || '').toLowerCase().includes(term) ||
+    (s.username           || '').toLowerCase().includes(term) ||
+    (s.designation        || '').toLowerCase().includes(term) ||
+    (s.role               || '').toLowerCase().includes(term) ||
+    (s.staff_id_display   || '').toLowerCase().includes(term) ||
+    ('STF-' + String(s.staff_id || s.id).padStart(6,'0')).toLowerCase().includes(term)
+  );
+  renderTable(filtered);
+}
+
+function clearSearch() {
+  document.getElementById('smSearch').value = '';
+  document.getElementById('smClearBtn').classList.remove('visible');
+  renderTable(allStaff);
+  renderStats(allStaff);
+  document.getElementById('smSearch').focus();
+}
+
+/* ─────────────────────────────────────
+   PASSWORD VISIBILITY TOGGLE
+───────────────────────────────────── */
+function togglePwVis(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.innerHTML = show
+    ? '<i class="fa-regular fa-eye-slash"></i>'
+    : '<i class="fa-regular fa-eye"></i>';
+}
+
+/* ─────────────────────────────────────
+   HELPERS
+───────────────────────────────────── */
+function showLoading() { document.getElementById('smLoading').classList.add('show'); }
+function hideLoading() { document.getElementById('smLoading').classList.remove('show'); }
+
+function showMsg(msg, type = 'success') {
+  const wrap = document.getElementById('smToastWrap');
+  const t = document.createElement('div');
+  t.className = `sm-toast ${type}`;
+  const icons = { success:'fa-circle-check', error:'fa-circle-exclamation', info:'fa-circle-info' };
+  t.innerHTML = `<i class="fa-solid ${icons[type] || 'fa-circle-check'}"></i> ${msg}`;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, 3700);
+  setTimeout(() => t.remove(), 4000);
+}
+
+function escHtml(v) {
+  if (v == null) return '';
+  return String(v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escAttr(v) {
+  if (v == null) return '';
+  return String(v)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+</script>
+</body>
+</html>

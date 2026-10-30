@@ -1,0 +1,2351 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports - Animal Bite System</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/shared/sidebar.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ══════════════════════════════════════════════════════
+       REPORTS PAGE — CONTROLS BAR
+    ══════════════════════════════════════════════════════ */
+    .report-controls {
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      margin-bottom: 22px;
+      display: flex;
+      align-items: flex-end;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .report-controls .ctrl-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }
+    .report-controls label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #293681;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+    .report-controls select,
+    .report-controls input[type="number"] {
+      padding: 9px 13px;
+      border: 1.5px solid #cdd5e0;
+      border-radius: 9px;
+      font-size: 14px;
+      min-width: 130px;
+      background: #f8faff;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    .report-controls select:focus,
+    .report-controls input:focus {
+      outline: none;
+      border-color: #4274D9;
+    }
+    .ctrl-actions { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+
+    .export-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 16px;
+      border: none;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .export-btn-pdf   { background: #c0392b; color: #fff; }
+    .export-btn-pdf:hover { background: #962d22; transform: translateY(-1px); }
+    .export-btn-print { background: #4274D9; color: #fff; }
+    .export-btn-print:hover { background: #293681; transform: translateY(-1px); }
+    .export-btn svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
+
+    .generate-btn {
+      padding: 10px 22px;
+      background: linear-gradient(135deg, #4274D9 0%, #293681 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.22s;
+      box-shadow: 0 3px 10px rgba(66,116,217,0.28);
+      white-space: nowrap;
+    }
+    .generate-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(66,116,217,0.38); }
+    .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    #reportWrapper {
+      background: #e8ecf4;
+      padding: 24px 16px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    #reportWrapper.hidden { display: none; }
+
+    .rpt-export-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       QUARTERLY RABIES REPORT — F4 Landscape (330 × 210 mm)
+    ══════════════════════════════════════════════════════ */
+    #reportDoc.rabies-report {
+      background: #fff;
+      width: 1247px;
+      min-height: 794px;
+      margin: 0 auto;
+      padding: 16px 20px 20px;
+      border-radius: 6px;
+      box-shadow: 0 3px 20px rgba(0,0,0,0.15);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9.5px;
+      color: #111;
+      display: flex;
+      flex-direction: column;
+      transform-origin: top center;
+    }
+
+    .rpt-body-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .rpt-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .rpt-header-logo { width: 60px; height: 60px; object-fit: contain; flex-shrink: 0; }
+    .rpt-header-text h2 {
+      font-size: 11px; font-weight: 700; color: #293681;
+      margin: 0 0 1px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .rpt-header-text h1 {
+      font-size: 14.5px; font-weight: 900; color: #293681;
+      margin: 0 0 2px; text-transform: uppercase;
+    }
+    .rpt-header-text .quarter-label { font-size: 11px; font-weight: 700; color: #444; }
+
+    .rpt-meta {
+      display: flex;
+      justify-content: space-between;
+      border: 1px solid #bbb;
+      padding: 4px 10px;
+      margin-bottom: 7px;
+      font-size: 9px;
+      background: #f9fafb;
+      flex-wrap: wrap;
+      gap: 2px;
+    }
+    .rpt-meta .meta-left { line-height: 1.7; }
+    .rpt-meta .meta-right { line-height: 1.7; text-align: right; }
+    .rpt-meta strong { color: #293681; }
+
+    .rpt-table-scroll { overflow: visible; }
+    .rpt-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 8.5px;
+    }
+    .rpt-table th, .rpt-table td {
+      border: 1px solid #555;
+      padding: 3px 3px;
+      text-align: center;
+      vertical-align: middle;
+      line-height: 1.3;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    .rpt-table thead tr.group-hdr th {
+      background: #293681; color: #fff; font-weight: 700; font-size: 8px;
+    }
+    .rpt-table thead tr.sub-hdr th {
+      background: #4274D9; color: #fff; font-weight: 700; font-size: 7.5px;
+    }
+    .rpt-table tbody tr:nth-child(even) td { background: #f4f7ff; }
+    .rpt-table tbody tr:hover td { background: #ddeeff; }
+    .rpt-table tr.total-row td {
+      background: #fff59d !important; font-weight: 700; font-size: 9px;
+    }
+    .rpt-table td.dates-col {
+      text-align: left;
+      padding-left: 4px;
+      white-space: normal;
+      word-break: break-word;
+      width: 130px;
+    }
+    .rpt-table td.divzero { color: #c0392b; font-style: italic; }
+
+    .rpt-signatures {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+      gap: 60px;
+      page-break-inside: avoid;
+    }
+    .sig-block {
+      flex: 1;
+      padding-top: 4px;
+      font-size: 10px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .sig-block .sig-label {
+      width: 100%;
+      align-self: flex-start;
+      font-size: 10px; font-weight: 700; color: #293681;
+      text-transform: uppercase; letter-spacing: 0.3px;
+      margin-bottom: 18px; text-align: left;
+    }
+    .sig-block .sig-image-wrap {
+      min-height: 48px;
+      margin-bottom: 2px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sig-block .sig-image-wrap:empty { display: block; min-height: 48px; }
+    .sig-image { max-height: 48px; max-width: 200px; object-fit: contain; display: block; }
+    .sig-block .sig-name-line {
+      width: 220px; max-width: 100%;
+      border-top: 1px solid #555;
+      margin: 0 auto;
+    }
+    .sig-block .sig-name {
+      width: 100%;
+      font-weight: 700; text-transform: uppercase; color: #293681;
+      font-size: 10.5px;
+      padding-top: 5px;
+      text-align: center;
+    }
+    .sig-block .sig-sop {
+      font-size: 8px; font-style: italic; color: #555;
+      margin-top: 1px; text-align: center;
+    }
+    .sig-block .sig-designation {
+      font-size: 9.5px; color: #333;
+      margin-top: 8px; text-align: center;
+      font-weight: 600;
+    }
+    .sig-block .sig-date {
+      font-size: 9.5px; color: #555;
+      margin-top: 3px; text-align: center;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       GEOGRAPHIC MAPPING & AI ANALYTICS REPORT — F4 Portrait
+       F4 / Folio = 210mm × 330mm. At 96 dpi = 794px × 1247px.
+    ══════════════════════════════════════════════════════ */
+    #reportDoc.geo-ai-report {
+      background: #fff;
+      width: 794px;
+      min-height: 1247px;
+      margin: 0 auto;
+      padding: 14px 18px 14px;
+      border-radius: 6px;
+      box-shadow: 0 3px 20px rgba(0,0,0,0.15);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9px;
+      color: #111;
+      display: flex;
+      flex-direction: column;
+      transform-origin: top center;
+      line-height: 1.35;
+    }
+
+    /* ── Geo-AI Header ── */
+    .geo-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2.5px solid #293681;
+      margin-bottom: 10px;
+    }
+    .geo-header-logo {
+      width: 66px; height: 66px; object-fit: contain; flex-shrink: 0;
+      border: 1px solid #e2e8f0; border-radius: 6px; background: #fff;
+    }
+    .geo-header-title { flex: 1; text-align: center; }
+    .geo-header-title h2 {
+      font-size: 12.5px; font-weight: 800; color: #293681;
+      margin: 0 0 3px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .geo-header-title h1 {
+      font-size: 17px; font-weight: 900; color: #293681;
+      margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .geo-header-title .sub {
+      font-size: 10.5px; font-weight: 600; color: #475569;
+    }
+    .geo-header-meta {
+      flex-shrink: 0;
+      min-width: 200px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: #f8fafc;
+    }
+    .geo-header-meta .mh-row {
+      display: flex; justify-content: space-between; gap: 8px;
+      font-size: 8.5px; line-height: 1.7;
+    }
+    .geo-header-meta .mh-row .mh-lbl {
+      color: #475569; font-weight: 700; white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .geo-header-meta .mh-row .mh-val {
+      color: #0f172a; font-weight: 600; text-align: right;
+    }
+    .geo-header-meta i { color: #4274D9; font-size: 9.5px; }
+
+    /* ── Section Base ── */
+    .g-section {
+      page-break-inside: avoid;
+      margin-bottom: 10px;
+    }
+    .g-sec-hd {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, #293681 0%, #1e2a6b 100%);
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 5px 5px 0 0;
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      margin-bottom: 0;
+    }
+    .g-sec-hd.sec-ai { background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%); }
+    .g-sec-hd.sec-rec { background: linear-gradient(135deg, #15803d 0%, #166534 100%); }
+    .g-sec-hd .sn {
+      background: rgba(255,255,255,0.18);
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 900;
+    }
+    .g-sec-body {
+      border: 1px solid #cbd5e1;
+      border-top: none;
+      border-radius: 0 0 5px 5px;
+      padding: 8px 10px;
+      background: #fff;
+    }
+
+    /* ── Section 1: Map + Legend ── */
+    .g-map-wrap {
+      display: grid;
+      grid-template-columns: 1fr 190px;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .g-map-canvas {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 5px;
+      position: relative;
+      overflow: hidden;
+    }
+    .g-map-canvas svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .g-map-legend {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      padding: 8px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .g-map-legend .lg-title {
+      font-size: 8.5px; font-weight: 800; color: #293681;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      padding-bottom: 4px; border-bottom: 1px solid #e2e8f0;
+    }
+    .lg-row { display: flex; align-items: center; gap: 6px; font-size: 8px; }
+    .lg-swatch {
+      width: 22px; height: 11px;
+      border-radius: 2px;
+      border: 0.5px solid rgba(0,0,0,0.2);
+      flex-shrink: 0;
+    }
+    .lg-row strong { color: #0f172a; }
+    .lg-row span { color: #475569; }
+    .g-map-n-label {
+      position: absolute; top: 6px; right: 8px;
+      background: rgba(255,255,255,0.92);
+      padding: 3px 6px; border-radius: 4px;
+      font-size: 11px; color: #293681;
+      display: flex; align-items: center; gap: 3px;
+      font-weight: 700;
+    }
+
+    /* ── Section 2: Summary Cards ── */
+    .g-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 7px;
+    }
+    .g-stat {
+      background: linear-gradient(135deg, #f8fbff 0%, #e8f1fe 100%);
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      padding: 7px 8px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .g-stat.s-green  { background: linear-gradient(135deg,#f0fdf4,#dcfce7); border-color:#86efac; }
+    .g-stat.s-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); border-color:#fcd34d; }
+    .g-stat.s-orange { background: linear-gradient(135deg,#fff7ed,#ffedd5); border-color:#fdba74; }
+    .g-stat.s-red    { background: linear-gradient(135deg,#fef2f2,#fee2e2); border-color:#fca5a5; }
+    .g-stat-icon {
+      font-size: 16px; margin-bottom: 2px; line-height: 1;
+    }
+    .g-stat-val {
+      font-size: 17px; font-weight: 900; color: #293681;
+      line-height: 1.1;
+    }
+    .g-stat.s-red .g-stat-val    { color: #b91c1c; }
+    .g-stat.s-orange .g-stat-val { color: #c2410c; }
+    .g-stat.s-amber .g-stat-val  { color: #854d0e; }
+    .g-stat.s-green .g-stat-val  { color: #15803d; }
+    .g-stat-lbl {
+      font-size: 7.5px; font-weight: 700; color: #475569;
+      margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+
+    /* ── Section 3: Top Barangays Table ── */
+    .g-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+    .g-top-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8px;
+    }
+    .g-top-table th, .g-top-table td {
+      border: 1px solid #94a3b8;
+      padding: 2.5px 4px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .g-top-table thead th {
+      background: #293681; color: #fff; font-weight: 700;
+    }
+    .g-top-table tbody tr:nth-child(even) td { background: #f4f7ff; }
+    .g-top-table td.rank-col {
+      width: 26px; font-weight: 800; color: #4274D9;
+    }
+    .g-top-table td.brgy-col {
+      text-align: left; font-weight: 600; padding-left: 5px;
+    }
+    .g-top-table tr.total td {
+      background: #fff59d !important; font-weight: 800; font-size: 8.5px;
+    }
+    .g-risk-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 99px;
+      font-size: 7px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .g-risk-badge.r-None     { background:#e2e8f0; color:#475569; }
+    .g-risk-badge.r-Low      { background:#dcfce7; color:#15803d; }
+    .g-risk-badge.r-Medium   { background:#fef9c3; color:#854d0e; }
+    .g-risk-badge.r-High     { background:#ffedd5; color:#c2410c; }
+    .g-risk-badge.r-Critical { background:#fee2e2; color:#b91c1c; }
+
+    /* ── Section 4: Animal Distribution ── */
+    .g-anim-wrap {
+      display: grid;
+      grid-template-columns: 210px 1fr;
+      gap: 18px;
+      align-items: center;
+    }
+    .donut-wrap {
+      position: relative;
+      width: 190px;
+      height: 190px;
+      margin: 0 auto;
+    }
+    .donut-canvas-wrap {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin: 0 auto;
+    }
+    .donut-canvas-wrap canvas {
+      display: block;
+      width: 180px !important;
+      height: 180px !important;
+    }
+    .donut-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      pointer-events: none;
+    }
+    .donut-center .dc-total {
+      font-size: 28px; font-weight: 900; color: #293681; line-height: 1;
+    }
+    .donut-center .dc-lbl {
+      font-size: 8px; font-weight: 700; color: #475569;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      margin-top: 3px;
+    }
+    .anim-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .anim-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 2px;
+      font-size: 9px;
+    }
+    .anim-swatch {
+      width: 16px; height: 16px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .anim-name {
+      font-weight: 600;
+      color: #0f172a;
+      flex: 1;
+      font-size: 9px;
+    }
+    .anim-pct {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 9px;
+      white-space: nowrap;
+    }
+    .anim-footnote {
+      margin-top: 6px;
+      padding: 5px 9px;
+      background: #eff6ff;
+      border-left: 3px solid #4274D9;
+      border-radius: 4px;
+      font-size: 8px;
+      color: #1e40af;
+      line-height: 1.55;
+    }
+    .anim-empty {
+      text-align: center; padding: 24px 12px;
+      color: #94a3b8; font-size: 8.5px;
+      background: #f8fafc; border-radius: 6px;
+      border: 1.5px dashed #e2e8f0;
+    }
+    .anim-empty i { font-size: 20px; display: block; margin-bottom: 5px; opacity: 0.4; }
+
+    /* ── AI Sections (5-7) ── */
+    .g-ai-three {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .ai-card {
+      border-radius: 5px;
+      padding: 8px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .ai-card.card-insights { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .ai-card.card-predict { background: #faf5ff; border: 1px solid #ddd6fe; }
+    .ai-card.card-recs    { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .ai-card-title {
+      font-size: 9px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.4px;
+      display: flex; align-items: center; gap: 5px;
+      padding-bottom: 4px; border-bottom: 1px dashed rgba(0,0,0,0.1);
+    }
+    .card-insights .ai-card-title { color: #1e40af; }
+    .card-predict .ai-card-title { color: #6d28d9; }
+    .card-recs    .ai-card-title { color: #166534; }
+
+    .ai-ins-list { display: flex; flex-direction: column; gap: 4.5px; }
+    .ai-ins-item {
+      display: flex; gap: 5px;
+      font-size: 8px; line-height: 1.45;
+      padding: 3.5px 5px;
+      background: rgba(255,255,255,0.7);
+      border-radius: 3px;
+    }
+    .ai-ins-item .ins-icon {
+      font-size: 10px; flex-shrink: 0; margin-top: 0.5px;
+    }
+    .ai-ins-item .ins-body { flex: 1; color: #1e293b; }
+    .ai-ins-item .ins-body strong { color: #0f172a; }
+
+    .pred-list { display: flex; flex-direction: column; gap: 4.5px; }
+    .pred-item {
+      background: rgba(255,255,255,0.75);
+      border-radius: 4px;
+      padding: 4px 6px;
+      display: grid;
+      grid-template-columns: 20px 1fr auto;
+      gap: 5px;
+      align-items: center;
+      font-size: 8px;
+    }
+    .pred-item .pi-icon {
+      font-size: 11px; color: #6d28d9; text-align: center;
+    }
+    .pred-item .pi-lbl { color: #334155; font-weight: 600; }
+    .pred-item .pi-val {
+      font-weight: 800; color: #4c1d95; text-align: right;
+      max-width: 118px;
+      white-space: normal;
+      line-height: 1.25;
+    }
+    .pred-item.trend-up .pi-val    { color: #b91c1c; }
+    .pred-item.trend-down .pi-val  { color: #15803d; }
+    .pred-item.trend-stable .pi-val { color: #854d0e; }
+
+    .rel-detail {
+      font-size: 7.5px;
+      font-weight: 600;
+      color: #5b21b6;
+      line-height: 1.35;
+    }
+    .ai-fail-note {
+      font-size: 7.5px;
+      line-height: 1.35;
+      color: #92400e;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 4px;
+      padding: 4px 6px;
+      margin-bottom: 6px;
+    }
+    .geo-ai-disclaimer {
+      margin: 6px 2px 0;
+      font-size: 7.5px;
+      line-height: 1.4;
+      color: #64748b;
+    }
+    .conf-label {
+      display: flex; justify-content: space-between;
+      font-size: 8px; font-weight: 700; color: #4c1d95;
+      margin-bottom: 3px;
+    }
+    .conf-bar-track {
+      height: 7px; background: #e9d5ff;
+      border-radius: 99px; overflow: hidden;
+    }
+    .conf-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #8b5cf6, #4c1d95);
+      border-radius: 99px;
+    }
+
+    .rec-list { display: flex; flex-direction: column; gap: 4.5px; }
+    .rec-item {
+      display: flex; gap: 5px;
+      font-size: 8px; line-height: 1.45;
+      padding: 3.5px 5px;
+      background: rgba(255,255,255,0.75);
+      border-radius: 3px;
+      color: #14532d;
+    }
+    .rec-item .rec-check {
+      color: #16a34a; font-size: 10px; flex-shrink: 0; margin-top: 0.5px;
+    }
+    .rec-item strong { color: #0f172a; }
+
+    /* ── Section 8: Report Summary ── */
+    .g-summary-body {
+      display: grid;
+      grid-template-columns: 1fr 170px;
+      gap: 10px;
+      align-items: center;
+    }
+    .g-sum-narrative {
+      padding: 8px 10px;
+      background: linear-gradient(135deg, #fffbeb, #fef3c7);
+      border-left: 3px solid #f59e0b;
+      border-radius: 5px;
+      font-size: 9px;
+      line-height: 1.6;
+      color: #451a03;
+      text-align: justify;
+    }
+    .g-sum-narrative strong { color: #78350f; }
+    .g-sum-illustration {
+      width: 100%; text-align: center;
+      opacity: 0.85;
+    }
+    .g-sum-illustration svg { width: 100%; height: auto; }
+
+    /* ── Footer ── */
+    .geo-footer {
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 2px solid #293681;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.2fr 1fr;
+      gap: 8px;
+      align-items: end;
+      font-size: 8.5px;
+      page-break-inside: avoid;
+    }
+    .gf-sig {
+      text-align: center;
+    }
+    .gf-sig .gf-lbl {
+      font-weight: 700; color: #293681;
+      text-transform: uppercase; letter-spacing: 0.3px;
+      margin-bottom: 2px; text-align: left;
+      font-size: 8.5px;
+    }
+    .gf-sig .gf-name {
+      font-weight: 800; color: #293681;
+      text-transform: uppercase;
+      padding-top: 4px; margin-top: 2px;
+      border-top: 1px solid #334155;
+      font-size: 9px;
+    }
+    .gf-sig .gf-desc { color: #475569; font-size: 8px; margin-top: 1px; }
+    .gf-meta {
+      display: flex; flex-direction: column; gap: 2px;
+      font-size: 8px; color: #334155;
+      border-left: 1px dashed #cbd5e1;
+      padding-left: 8px;
+    }
+    .gf-meta .gm-row { display: flex; gap: 4px; align-items: flex-start; }
+    .gf-meta .gm-row i { color: #4274D9; flex-shrink: 0; margin-top: 1px; }
+    .gf-purpose {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      padding: 6px 8px;
+      font-size: 8px;
+      color: #334155;
+      line-height: 1.5;
+    }
+    .gf-purpose strong { color: #293681; }
+    .gf-purpose .gfp-title {
+      font-weight: 800; color: #293681;
+      font-size: 8.5px; margin-bottom: 2px;
+    }
+
+    .geo-band-bottom {
+      margin-top: 5px;
+      background: linear-gradient(135deg, #293681 0%, #1e2a6b 100%);
+      color: #fff;
+      text-align: center;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      font-style: italic;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .geo-band-bottom .slogan { text-align: center; flex: 1; }
+    .geo-band-bottom .page-num { font-style: normal; font-size: 8.5px; opacity: 0.85; }
+
+    /* ══════════════════════════════════════════════════════
+       PAPER SIZE PICKER MODAL
+    ══════════════════════════════════════════════════════ */
+    #paperModal {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(10,18,50,0.50);
+      backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #paperModal.open { display: flex; }
+    .pm-card {
+      background: #fff;
+      border-radius: 18px;
+      width: 100%; max-width: 420px;
+      padding: 30px 28px 24px;
+      box-shadow: 0 24px 64px rgba(10,18,50,.22);
+      animation: pmIn .22s cubic-bezier(.22,1,.36,1) both;
+    }
+    @keyframes pmIn {
+      from { opacity:0; transform: scale(.94) translateY(16px); }
+      to   { opacity:1; transform: scale(1)   translateY(0); }
+    }
+    .pm-hd {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; padding-bottom: 14px;
+      border-bottom: 1.5px solid #e8f0fe;
+    }
+    .pm-hd h4 {
+      font-size: 16px; font-weight: 800; color: #293681;
+      display: flex; align-items: center; gap: 9px; margin: 0;
+    }
+    .pm-hd h4 i { color: #4274D9; }
+    .pm-close {
+      width: 32px; height: 32px; background: #f1f5f9;
+      border: none; border-radius: 8px; font-size: 18px;
+      cursor: pointer; color: #64748b; transition: all .15s;
+      display: flex; align-items: center; justify-content: center;
+      font-family: inherit;
+    }
+    .pm-close:hover { background: #fee2e2; color: #ef4444; }
+    .pm-body { margin-bottom: 22px; }
+    .pm-body label {
+      display: block; font-size: 11.5px; font-weight: 700; color: #293681;
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px;
+    }
+    .pm-body select {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid #cdd5e0; border-radius: 10px;
+      font-size: 14px; font-family: inherit; background: #f8faff;
+      transition: border-color .2s;
+    }
+    .pm-body select:focus { outline: none; border-color: #4274D9; }
+    .pm-hint {
+      font-size: 11.5px; color: #64748b; margin-top: 8px;
+      line-height: 1.5; background: #f0f4ff; border-radius: 8px;
+      padding: 8px 12px;
+    }
+    .pm-actions { display: flex; gap: 10px; }
+    .pm-btn {
+      flex: 1; padding: 11px 16px; border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 700; font-family: inherit;
+      cursor: pointer; transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .pm-btn-cancel {
+      background: #f1f5f9; color: #64748b; border: 1.5px solid #e2e8f0;
+    }
+    .pm-btn-cancel:hover { background: #e2e8f0; }
+    .pm-btn-confirm {
+      background: linear-gradient(135deg, #4274D9, #293681);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(66,116,217,.3);
+    }
+    .pm-btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(66,116,217,.4); }
+
+    .empty-state {
+      text-align: center; padding: 48px 20px; color: #888; font-size: 15px;
+    }
+    .empty-state svg { width: 52px; height: 52px; margin-bottom: 12px; opacity: 0.35; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1024px) {
+      .report-controls { gap: 10px; padding: 14px 16px; }
+      .report-controls select,
+      .report-controls input[type="number"] { min-width: 110px; font-size: 13px; }
+      .generate-btn { padding: 9px 16px; font-size: 13px; }
+      .export-btn   { padding: 8px 13px; font-size: 12px; }
+
+      #reportWrapper { padding: 14px 8px; overflow: hidden; }
+      #reportDoc { transform-origin: top center; }
+
+      .rpt-export-row {
+        flex-wrap: wrap; justify-content: flex-start; gap: 8px; margin-bottom: 12px;
+      }
+    }
+    @media (max-width: 768px) {
+      .report-controls { flex-direction: column; align-items: stretch; }
+      .report-controls .ctrl-group { width: 100%; }
+      .report-controls select,
+      .report-controls input[type="number"] { width: 100%; min-width: unset; }
+      .ctrl-actions { justify-content: stretch; }
+      .generate-btn { width: 100%; justify-content: center; }
+      .rpt-export-row { justify-content: stretch; }
+      .export-btn { flex: 1; justify-content: center; }
+      .pm-card { padding: 22px 18px 20px; border-radius: 14px; }
+      .pm-actions { flex-direction: column-reverse; }
+      .pm-btn { width: 100%; }
+    }
+
+    /* ══════════════════════════════════════════════════════
+       PRINT STYLES — F4 / Folio
+       Geo-AI: 210mm × 330mm portrait
+       Quarterly Rabies: 330mm × 210mm landscape
+    ══════════════════════════════════════════════════════ */
+    @media print {
+      .sidebar, .header, .report-controls,
+      .rpt-export-row, .user-info,
+      .hc-admin-hamburger, .hc-admin-overlay { display: none !important; }
+
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body {
+        width: 100% !important; height: auto !important;
+        margin: 0 !important; padding: 0 !important;
+        background: #fff !important; overflow: visible !important;
+      }
+      .main-wrapper, .main-content {
+        display: block !important;
+        margin: 0 !important; padding: 0 !important;
+        width: 100% !important; max-width: 100% !important;
+        background: #fff !important; box-shadow: none !important;
+        overflow: visible !important;
+      }
+      .main-content { margin-left: 0 !important; }
+
+      #reportWrapper {
+        display: block !important;
+        background: #fff !important;
+        padding: 0 !important; margin: 0 !important;
+        width: 100% !important; overflow: visible !important;
+        min-height: 0 !important;
+      }
+
+      #reportDoc {
+        transform: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 0 !important;
+        background: #fff !important;
+        overflow: visible !important;
+        display: flex !important;
+        flex-direction: column !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      /* Quarterly Rabies — F4 landscape, fill the page so PREPARED BY sits at the bottom */
+      #reportDoc.rabies-report {
+        padding: 6mm 7mm 8mm !important;
+        font-size: 7.6px !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        min-height: 210mm !important;
+        height: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+      }
+      #reportDoc.rabies-report .rpt-header,
+      #reportDoc.rabies-report .rpt-meta {
+        flex-shrink: 0 !important;
+      }
+      #reportDoc.rabies-report .rpt-body-area {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+      }
+      #reportDoc.rabies-report .rpt-table-scroll {
+        flex: 0 0 auto !important;
+      }
+      /* Geo-AI — F4 portrait */
+      #reportDoc.geo-ai-report {
+        padding: 8mm 9mm 7mm !important;
+        font-size: 8px !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+      }
+
+      .rpt-body-area { flex: 1 !important; min-width: 0 !important; }
+      .rpt-table-scroll { overflow: visible !important; width: 100% !important; }
+
+      .rpt-header { margin-bottom: 5px !important; gap: 10px !important; }
+      .rpt-header-logo { width: 42px !important; height: 42px !important; }
+      .rpt-header-text h2 { font-size: 9.5px !important; }
+      .rpt-header-text h1 { font-size: 12px !important; }
+      .rpt-header-text .quarter-label { font-size: 9.5px !important; }
+      .rpt-meta { padding: 3px 8px !important; margin-bottom: 5px !important; font-size: 8px !important; }
+
+      .rpt-table {
+        width: 100% !important;
+        table-layout: fixed !important;
+        font-size: 6.7px !important;
+        border-collapse: collapse !important;
+      }
+      .rpt-table col { width: auto !important; }
+      .rpt-table th, .rpt-table td {
+        padding: 2px 1.5px !important;
+        font-size: 6.7px !important;
+        border: 0.4px solid #555 !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
+        line-height: 1.2 !important;
+      }
+      .rpt-table thead { display: table-header-group !important; }
+      .rpt-table tfoot { display: table-footer-group !important; }
+      .rpt-table tr { page-break-inside: avoid !important; }
+      .rpt-table td.dates-col { font-size: 6.5px !important; text-align: left !important; }
+
+      #reportDoc.rabies-report .rpt-signatures {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin-top: auto !important;
+        padding-top: 10px !important;
+        gap: 40px !important;
+        flex-shrink: 0 !important;
+        justify-content: center !important;
+        align-items: flex-end !important;
+      }
+      #reportDoc.rabies-report .rpt-signatures .sig-block {
+        padding-top: 2px !important;
+        flex: 0 1 280px !important;
+        max-width: 320px !important;
+        align-items: center !important;
+        text-align: center !important;
+      }
+      #reportDoc.rabies-report .sig-block .sig-label {
+        text-align: center !important;
+        align-self: center !important;
+        margin-bottom: 14px !important;
+        width: 100% !important;
+      }
+      #reportDoc.rabies-report .sig-image-wrap {
+        min-height: 36px !important;
+        display: flex !important;
+        justify-content: center !important;
+      }
+      #reportDoc.rabies-report .sig-name-line {
+        width: 200px !important;
+        border-top: 1px solid #555 !important;
+        margin: 0 auto !important;
+      }
+      #reportDoc.rabies-report .sig-block .sig-name,
+      #reportDoc.rabies-report .sig-block .sig-sop,
+      #reportDoc.rabies-report .sig-block .sig-designation,
+      #reportDoc.rabies-report .sig-block .sig-date {
+        text-align: center !important;
+        width: 100% !important;
+      }
+      .sig-image { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      .geo-header { page-break-after: avoid !important; margin-bottom: 7px !important; padding-bottom: 6px !important; }
+      .geo-header-logo { width: 52px !important; height: 52px !important; }
+      .geo-header-title h1 { font-size: 14px !important; }
+      .geo-header-title h2 { font-size: 11px !important; }
+      .g-section { margin-bottom: 6px !important; page-break-inside: avoid !important; }
+      .g-two-col, .g-ai-three, .g-map-wrap, .g-summary-grid { page-break-inside: avoid !important; }
+      .g-map-wrap { grid-template-columns: 1fr 150px !important; gap: 7px !important; }
+      .g-map-canvas { overflow: hidden !important; }
+      .g-map-canvas svg { display: block !important; width: 100% !important; height: auto !important; max-height: 88mm !important; }
+      .g-map-legend { font-size: 7.5px !important; padding: 6px 7px !important; }
+      .g-stat-val { font-size: 14px !important; }
+      .g-ai-three { gap: 6px !important; margin-top: 6px !important; }
+      .ai-card { padding: 6px 7px !important; }
+      .donut-canvas-wrap, .donut-canvas-wrap canvas {
+        width: 140px !important; height: 140px !important;
+      }
+      .geo-footer { page-break-inside: avoid !important; margin-top: 6px !important; padding-top: 6px !important; }
+      .geo-band-bottom { margin-top: 4px !important; }
+
+      .rpt-table thead tr.group-hdr th,
+      .rpt-table thead tr.sub-hdr th,
+      .rpt-table tbody tr:nth-child(even) td,
+      .rpt-table tr.total-row td,
+      .g-sec-hd,
+      .g-stat,
+      .g-top-table thead th,
+      .g-top-table tbody tr:nth-child(even) td,
+      .g-top-table tr.total td,
+      .g-risk-badge,
+      .ai-card,
+      .ai-ins-item,
+      .pred-item,
+      .confidence-wrap,
+      .rec-item,
+      .g-sum-narrative,
+      .gf-purpose,
+      .geo-band-bottom {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+    @page geo-f4 {
+      size: 210mm 330mm;
+      margin: 0;
+    }
+    @page rabies-f4 {
+      size: 330mm 210mm;
+      margin: 0;
+    }
+    @media print {
+      #reportDoc.geo-ai-report { page: geo-f4; }
+      #reportDoc.rabies-report { page: rabies-f4; }
+    }
+  </style>
+</head>
+<body data-nav="reports">
+  <div class="main-wrapper">
+    <script>initAppSidebar();</script>
+
+    <div class="main-content">
+      <div class="header">
+        <h1><i class="fa-solid fa-file-lines"></i> Reports</h1>
+        <div class="user-info"></div>
+      </div>
+
+      <!-- ── Controls ── -->
+      <div class="report-controls">
+        <div class="ctrl-group">
+          <label><i class="fa-solid fa-clipboard-list"></i> Report Type</label>
+          <select id="reportType" onchange="onReportTypeChange()">
+            <option value="geoai" selected>Geographic Mapping &amp; AI Analytics Report</option>
+            <option value="quarterly">Quarterly Rabies Report</option>
+          </select>
+        </div>
+
+        <!-- Geo-AI Filters -->
+        <div class="ctrl-group" data-for="geoai" id="fPeriodGroup">
+          <label><i class="fa-solid fa-calendar-days"></i> Period</label>
+          <select id="periodType" onchange="onPeriodTypeChange()">
+            <option value="quarterly" selected>Quarterly</option>
+            <option value="monthly">Monthly</option>
+            <option value="annual">Annual</option>
+          </select>
+        </div>
+        <div class="ctrl-group" data-for="geoai,quarterly" id="fYearGroup">
+          <label><i class="fa-solid fa-calendar"></i> Year</label>
+          <input type="number" id="selYear" value="2025" min="2020" max="2099" style="width:100px;">
+        </div>
+        <div class="ctrl-group" data-for="geoai" id="fQuarterGroup">
+          <label><i class="fa-solid fa-calendar-range"></i> Quarter</label>
+          <select id="selQuarter">
+            <option value="1">1st Quarter (Jan–Mar)</option>
+            <option value="2">2nd Quarter (Apr–Jun)</option>
+            <option value="3" selected>3rd Quarter (Jul–Sep)</option>
+            <option value="4">4th Quarter (Oct–Dec)</option>
+          </select>
+        </div>
+        <div class="ctrl-group" data-for="geoai" id="fMonthGroup" style="display:none;">
+          <label><i class="fa-solid fa-calendar-week"></i> Month</label>
+          <select id="selMonth">
+            <option value="1">January</option><option value="2">February</option>
+            <option value="3">March</option><option value="4">April</option>
+            <option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option>
+            <option value="9">September</option><option value="10">October</option>
+            <option value="11">November</option><option value="12">December</option>
+          </select>
+        </div>
+        <div class="ctrl-group" data-for="quarterly" id="fQuarterOldGroup" style="display:none;">
+          <label>Quarter</label>
+          <select id="selQuarterOld">
+            <option value="1">Q1 (Jan–Mar)</option>
+            <option value="2">Q2 (Apr–Jun)</option>
+            <option value="3" selected>Q3 (Jul–Sep)</option>
+            <option value="4">Q4 (Oct–Dec)</option>
+          </select>
+        </div>
+        <div class="ctrl-group" data-for="geoai" id="fAnimalGroup">
+          <label><i class="fa-solid fa-paw"></i> Animal Type</label>
+          <select id="selAnimal">
+            <option value="all">All Animals</option>
+            <option value="Dog">Dog</option>
+            <option value="Cat">Cat</option>
+            <option value="Other">Other Animals</option>
+          </select>
+        </div>
+        <div class="ctrl-group" data-for="geoai" id="fRiskGroup">
+          <label><i class="fa-solid fa-shield-halved"></i> Risk Level</label>
+          <select id="selRisk">
+            <option value="all">All Risk Levels</option>
+            <option value="None">No Cases</option>
+            <option value="Low">Low (1–4)</option>
+            <option value="Medium">Medium (5–9)</option>
+            <option value="High">High (10–19)</option>
+            <option value="Critical">Critical (20+)</option>
+          </select>
+        </div>
+        <div class="ctrl-group" data-for="geoai" id="fAiGroup">
+          <label for="chkAi"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Interpretation</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:500;font-size:13px;cursor:pointer;">
+            <input type="checkbox" id="chkAi"> Include AI interpretation
+          </label>
+        </div>
+        <div class="ctrl-actions">
+          <button class="generate-btn" id="genBtn" onclick="generateReport()">
+            <i class="fa-solid fa-chart-simple"></i> Generate Report
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Report preview (hidden until generated) ── -->
+      <div id="reportWrapper" class="hidden">
+
+        <div class="rpt-export-row">
+          <button type="button" class="export-btn export-btn-print" onclick="printReport()">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Print
+          </button>
+        </div>
+
+        <!-- Dynamic report root → class toggled by JS -->
+        <div id="reportDoc"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/shared/app.js"></script>
+  <script src="/js/nurse/gingoog-barangays.js"></script>
+  <script>
+  /* ═══════════════════════════════════════════════════════
+     REPORTS PAGE — Geographic + Rabies Reports
+  ═══════════════════════════════════════════════════════ */
+
+  const QUARTER_LABELS = {
+    '1': '1st QUARTER', '2': '2nd QUARTER',
+    '3': '3rd QUARTER', '4': '4th QUARTER'
+  };
+
+  const PAPER_KEYS = {
+    'f4-portrait':   { w: 794,  h: 1247, css: '210mm 330mm', orient: 'portrait',  label: 'F4 Portrait' },
+    'f4-landscape':  { w: 1247, h: 794,  css: '330mm 210mm', orient: 'landscape', label: 'F4 Landscape' },
+  };
+
+  let currentReportType = 'geoai';
+  let currentData = null;
+  let currentGeoData = null;
+  let reportSettings = null;
+  let geoJsonData = null;
+  let currentStaffInfo = null;
+
+  // ═══ Frontend activity logger (for UI-only actions like PDF export / print) ═══
+  async function logFrontendActivity({ action, module: mod, reference_id, description }) {
+    try {
+      await fetch('/api/activity-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, module: mod, reference_id, description }),
+        credentials: 'include'
+      });
+    } catch(e) { console.warn('Frontend activity log failed:', e); }
+  }
+
+  /* ── Init ── */
+  document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
+
+    // Cache current logged-in staff info for "Generated By" display
+    try {
+      const me = await fetch('/api/auth/check', { credentials: 'include' });
+      const mj = await me.json();
+      if (mj && mj.loggedIn) {
+        currentStaffInfo = { fullName: mj.full_name || mj.fullName || mj.username, username: mj.username, designation: mj.designation };
+      }
+    } catch(e) { console.warn('Auth check failed for reports:', e); }
+
+    const now = new Date();
+    document.getElementById('selYear').value = now.getFullYear();
+    const curQ = Math.ceil((now.getMonth() + 1) / 3);
+    document.getElementById('selQuarter').value = String(curQ);
+    document.getElementById('selQuarterOld').value = String(curQ);
+    document.getElementById('selMonth').value = String(now.getMonth() + 1);
+    onPeriodTypeChange();
+
+    await loadReportSettings();
+    applyDocScale();
+  });
+
+  function defaultPaperKey() {
+    return currentReportType === 'geoai' ? 'f4-portrait' : 'f4-landscape';
+  }
+
+  function onReportTypeChange() {
+    currentReportType = document.getElementById('reportType').value;
+    const showIds = new Set();
+    document.querySelectorAll('.ctrl-group[data-for]').forEach(el => {
+      const types = el.getAttribute('data-for').split(',');
+      if (types.includes(currentReportType)) {
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+    document.getElementById('reportWrapper').classList.add('hidden');
+    currentData = null;
+    currentGeoData = null;
+    if (currentReportType === 'geoai') onPeriodTypeChange();
+  }
+
+  function onPeriodTypeChange() {
+    const pt = document.getElementById('periodType').value;
+    document.getElementById('fQuarterGroup').style.display = pt === 'quarterly' ? '' : 'none';
+    document.getElementById('fMonthGroup').style.display = pt === 'monthly' ? '' : 'none';
+  }
+
+  function applyDocScale(paperKey) {
+    const wrapper = document.getElementById('reportWrapper');
+    if (!wrapper || wrapper.classList.contains('hidden')) return;
+
+    const pKey = paperKey || defaultPaperKey();
+    const size = PAPER_KEYS[pKey] || PAPER_KEYS[defaultPaperKey()];
+    const doc = document.getElementById('reportDoc');
+
+    doc.style.width = `${size.w}px`;
+    doc.style.minHeight = `${size.h}px`;
+
+    const padding = 32;
+    const available = Math.max(wrapper.clientWidth - padding, 200);
+    const scale = Math.min(available / size.w, 1);
+    doc.style.transform = `scale(${scale})`;
+    doc.style.transformOrigin = 'top center';
+    wrapper.style.minHeight = `${Math.ceil(size.h * scale + padding)}px`;
+  }
+
+  window.addEventListener('resize', () => applyDocScale());
+
+  async function loadReportSettings() {
+    try {
+      const res = await fetch('/api/settings/report');
+      const json = await res.json();
+      if (json.success) reportSettings = json.data;
+    } catch (e) { console.error('Failed to load report settings:', e); }
+  }
+
+  function applySignatureBlock(nameElId, imgWrapId, name, signature, designationElId, designation) {
+    const nameEl = document.getElementById(nameElId);
+    const imgWrap = document.getElementById(imgWrapId);
+    if (nameEl) {
+      nameEl.textContent = name ? name.toUpperCase() : '';
+    }
+    if (imgWrap) {
+      imgWrap.innerHTML = '';
+      if (signature && String(signature).startsWith('data:image/')) {
+        const img = document.createElement('img');
+        img.src = signature; img.className = 'sig-image'; img.alt = '';
+        img.onerror = () => img.remove();
+        imgWrap.appendChild(img);
+      }
+    }
+    const descEl = designationElId ? document.getElementById(designationElId) : null;
+    if (descEl && designation) {
+      descEl.innerHTML = `Designation: <strong>${designation}</strong>`;
+    } else if (descEl && !designation) {
+      descEl.innerHTML = '';
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════
+     GENERATE REPORT DISPATCHER
+  ════════════════════════════════════════════════════════ */
+  async function generateReport() {
+    const btn = document.getElementById('genBtn');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating…';
+
+    try {
+      if (currentReportType === 'quarterly') {
+        await generateRabiesReport();
+      } else {
+        await generateGeoAIReport();
+      }
+      const wrapper = document.getElementById('reportWrapper');
+      wrapper.classList.remove('hidden');
+      wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      requestAnimationFrame(() => applyDocScale());
+    } catch (e) {
+      console.error(e);
+      showAlert('Network error while generating report.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-chart-simple"></i> Generate Report';
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════
+     QUARTERLY RABIES REPORT (legacy, preserved)
+  ════════════════════════════════════════════════════════ */
+  async function generateRabiesReport() {
+    const quarter = document.getElementById('selQuarterOld').value;
+    const year = document.getElementById('selYear').value;
+    const formattedDate = new Date().toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric'
+    });
+
+    const res = await fetch(`/api/analytics/quarterly-report?quarter=${quarter}&year=${year}`);
+    const data = await res.json();
+    if (!data.success) { showAlert(data.message || 'Failed to generate report.', 'error'); return; }
+
+    currentData = data.data;
+    await loadReportSettings();
+
+    const doc = document.getElementById('reportDoc');
+    doc.className = 'rabies-report';
+
+    doc.innerHTML = renderRabiesReport(currentData, formattedDate);
+
+    document.getElementById('sigPreparedDate').textContent = formattedDate;
+
+    attachReportSignatures();
+
+    const ql = QUARTER_LABELS[String(currentData.quarter)] || `Q${currentData.quarter}`;
+    document.getElementById('quarterLabel').textContent = `${ql}, ${currentData.year}`;
+    document.getElementById('metaQuarter').textContent = ql;
+    document.getElementById('metaYear').textContent = currentData.year;
+  }
+
+  function renderRabiesReport(d, formattedDate) {
+    return `
+      <div class="rpt-header">
+        <img src="/images/logo.png" class="rpt-header-logo" alt="Logo">
+        <div class="rpt-header-text">
+          <h2>HOPECARE ANIMAL BITE CENTER - GINGOOG CITY</h2>
+          <h1>QUARTERLY RABIES AND BITE VICTIM REPORT</h1>
+          <div class="quarter-label" id="quarterLabel"></div>
+        </div>
+      </div>
+      <div class="rpt-meta">
+        <div class="meta-left">
+          <div><strong>PROVINCE:</strong> MISAMIS ORIENTAL</div>
+          <div><strong>ABC/ABTC:</strong> HOPECARE ANIMAL BITE CENTER - GINGOOG CITY</div>
+        </div>
+        <div class="meta-right">
+          <div><strong>QUARTER:</strong> <span id="metaQuarter"></span></div>
+          <div><strong>YEAR:</strong> <span id="metaYear"></span></div>
+          <div><strong>GENERATED BY:</strong> <span style="color:#1e293b;">${(currentStaffInfo?.fullName || currentStaffInfo?.username || 'System')}${currentStaffInfo?.designation ? ' — ' + currentStaffInfo.designation : ''}</span></div>
+        </div>
+      </div>
+      <div class="rpt-demo" style="display:flex;flex-wrap:wrap;gap:10px 18px;margin:0 0 12px;font-size:12px;color:#334155;">
+        <span><strong>Age:</strong> &lt;15 yr ${Number(d.totals?.ageLt15 || 0)} · ≥15 yr ${Number(d.totals?.ageGte15 || 0)}</span>
+        <span><strong>Sex:</strong> Male ${Number(d.totals?.males || 0)} · Female ${Number(d.totals?.females || 0)}</span>
+        <span><strong>Type of Animal:</strong> Dog ${Number(d.totals?.dogs || 0)} · Cat ${Number(d.totals?.cats || 0)} · Other ${Number(d.totals?.others || 0)}</span>
+      </div>
+      <div class="rpt-body-area">
+        <div class="rpt-table-scroll">
+          <table class="rpt-table">
+            <colgroup>
+              <col style="width:11%">
+              <col style="width:4.4%"><col style="width:3.4%"><col style="width:3.4%"><col style="width:4.2%">
+              <col style="width:4.2%"><col style="width:4.2%"><col style="width:4.2%">
+              <col style="width:4.3%"><col style="width:4.3%"><col style="width:4.3%"><col style="width:4.3%">
+              <col style="width:3.6%"><col style="width:3.6%"><col style="width:4.2%"><col style="width:4.2%"><col style="width:4.2%">
+              <col style="width:4.2%"><col style="width:4.2%"><col style="width:4.4%"><col style="width:4.4%">
+              <col style="width:5.1%"><col style="width:5.1%">
+            </colgroup>
+            <thead>
+              <tr class="group-hdr">
+                <th rowspan="2">Inclusive Dates</th>
+                <th colspan="4">Human Cases</th>
+                <th colspan="3">Age</th>
+                <th colspan="4">No. of Cases Category</th>
+                <th colspan="5">HR Post Exposure Prophylaxis</th>
+                <th colspan="4">Biting Animals</th>
+                <th colspan="2">PEP Coverage</th>
+              </tr>
+              <tr class="sub-hdr">
+                <th>Population</th><th>M</th><th>F</th><th>Total</th>
+                <th>&lt;15 yr</th><th>≥15 yr</th><th>Total</th>
+                <th>Cat I</th><th>Cat II</th><th>Cat III</th><th>Total</th>
+                <th>No.</th><th>IR</th><th>TCV</th><th>HRIG</th><th>ERIG</th>
+                <th>Dog</th><th>Cat</th><th>Others</th><th>Total</th>
+                <th>% TCV</th><th>% RIG</th>
+              </tr>
+            </thead>
+            <tbody id="rptBody">
+              ${renderRabiesRows(d.rows, d.totals)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="rpt-signatures" id="rptSig" style="justify-content:flex-start;">
+        <div class="sig-block">
+          <div class="sig-label">Prepared By:</div>
+          <div class="sig-image-wrap" id="sigPreparedImg"></div>
+          <div class="sig-name-line"></div>
+          <div class="sig-name" id="sigPreparedName">${currentStaffInfo?.fullName || currentStaffInfo?.username || ''}</div>
+          <div class="sig-sop">Signature over printed name</div>
+          <div class="sig-designation" id="sigPreparedDesignation">${currentStaffInfo?.designation ? 'Designation: <strong>' + currentStaffInfo.designation + '</strong>' : ''}</div>
+          <div class="sig-date">Date: <span id="sigPreparedDate"></span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderRabiesRows(rows, totals) {
+    const buildRow = (row, isTotal) => {
+      const pctTCV = row.population > 0 ? row.pctTCV : null;
+      const pctRIG = row.population > 0 ? row.pctRIG : null;
+      const vals = [
+        row.population, row.males, row.females, row.total,
+        row.ageLt15, row.ageGte15, row.ageLt15 + row.ageGte15,
+        row.cat1, row.cat2, row.cat3, row.catTotal,
+        '', '', row.tcv, row.hrig, row.erig,
+        row.dogs, row.cats, row.others, row.animalTotal,
+      ].map(v => `<td>${v}</td>`).join('');
+      const tc = pctTCV !== null ? pctTCV + '%' : '';
+      const rc = pctRIG !== null ? pctRIG + '%' : '';
+      const cls = isTotal ? ' class="total-row"' : '';
+      return `<tr${cls}><td class="dates-col">${row.label}</td>${vals}<td>${tc}</td><td>${rc}</td></tr>`;
+    };
+    const body = (rows || []).map(r => buildRow(r, false)).join('');
+    return body + buildRow(totals, true);
+  }
+
+  /* ════════════════════════════════════════════════════════
+     GEOGRAPHIC MAPPING & AI ANALYTICS REPORT (new)
+  ════════════════════════════════════════════════════════ */
+
+  async function generateGeoAIReport() {
+    const reportType = document.getElementById('periodType').value;
+    const year = document.getElementById('selYear').value;
+    const quarter = document.getElementById('selQuarter').value;
+    const month = document.getElementById('selMonth').value;
+    const animalType = document.getElementById('selAnimal').value;
+    const riskLevel = document.getElementById('selRisk').value;
+
+    const params = new URLSearchParams();
+    params.append('reportType', reportType);
+    params.append('year', year);
+    params.append('animalType', animalType);
+    params.append('riskLevel', riskLevel);
+    if (reportType === 'monthly') params.append('month', month);
+    else params.append('quarter', quarter);
+    if (document.getElementById('chkAi')?.checked) params.append('interpret', '1');
+
+    const res = await fetch('/api/analytics/geo-ai-report?' + params.toString());
+    const json = await res.json().catch(() => ({}));
+    if (!json.success) { showAlert(json.message || 'Failed to generate report.', 'error'); return; }
+
+    currentGeoData = json.data;
+    if (json.data.aiErrorCode) showAlert(json.data.aiWarning, 'warning');
+    await loadReportSettings();
+
+    // Load GeoJSON once (cached)
+    if (!geoJsonData) {
+      try {
+        const gjRes = await fetch('/data/gingoog-barangays.geojson');
+        geoJsonData = await gjRes.json();
+      } catch (e) {
+        console.warn('GeoJSON load failed, map will show legend only.', e);
+      }
+    }
+
+    const doc = document.getElementById('reportDoc');
+    doc.className = 'geo-ai-report';
+    doc.innerHTML = renderGeoAIReport(currentGeoData);
+
+    // Defer SVG rendering to after DOM insertion
+    requestAnimationFrame(() => {
+      renderSvgMap(currentGeoData);
+      renderDonutChart(currentGeoData);
+      attachReportSignatures();
+    });
+  }
+
+  function escapeReportHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
+
+  function renderGeoAIReport(d) {
+    const meta = d.meta;
+    const s = d.summary;
+    const p = d.predictions || {};
+    const nextMonth = p.nextMonth || { label: '—', range: '—', display: '—' };
+    const nextQuarter = p.nextQuarter || { label: '—', range: '—', display: '—' };
+    const animal = d.animalDistribution;
+    const totalCases = animal.total || 0;
+
+    return `
+      <!-- Header -->
+      <div class="geo-header">
+        <img src="/images/logo.png" class="geo-header-logo" alt="HOPECARE Logo">
+        <div class="geo-header-title">
+          <h2>HOPECARE Animal Bite Center – Gingoog City</h2>
+          <h1>Geographic Mapping &amp; AI Analytics Report</h1>
+          <div class="sub">Animal Bite Patient Record Management System</div>
+        </div>
+        <div class="geo-header-meta">
+          <div class="mh-row"><span class="mh-lbl"><i class="fa-solid fa-file-contract"></i> Report ID</span><span class="mh-val">${meta.reportId}</span></div>
+          <div class="mh-row"><span class="mh-lbl"><i class="fa-solid fa-calendar"></i> Reporting Period</span><span class="mh-val">${meta.periodLabel}</span></div>
+          <div class="mh-row"><span class="mh-lbl"><i class="fa-solid fa-shield-halved"></i> Risk Level</span><span class="mh-val">${escapeReportHtml(meta.riskLabel || 'All Risk Levels')}</span></div>
+          <div class="mh-row"><span class="mh-lbl"><i class="fa-solid fa-clock"></i> Generated Date</span><span class="mh-val">${meta.generatedDate}</span></div>
+          <div class="mh-row"><span class="mh-lbl"><i class="fa-solid fa-user-check"></i> Generated By</span><span class="mh-val">${(currentStaffInfo?.fullName || currentStaffInfo?.username || 'System')}</span></div>
+          <div class="mh-row"><span class="mh-lbl"><i class="fa-solid fa-user-nurse"></i> Prepared By</span><span class="mh-val">${(currentStaffInfo?.fullName || currentStaffInfo?.username || '')}</span></div>
+        </div>
+      </div>
+
+      <!-- Section 1 + 2 -->
+      <div class="g-section">
+        <div class="g-sec-hd"><span class="sn">1</span> <i class="fa-solid fa-map-location-dot"></i> Geographic Case Map</div>
+        <div class="g-sec-body">
+          <div class="g-map-wrap">
+            <div class="g-map-canvas" id="gMapCanvas">
+              <div class="g-map-n-label"><i class="fa-solid fa-compass"></i> N</div>
+              <div id="gMapSvg" style="padding:4px;">Loading map…</div>
+            </div>
+            <div class="g-map-legend">
+              <div class="lg-title">Risk Level Legend</div>
+              <div class="lg-row"><div class="lg-swatch" style="background:#ef4444;"></div><div><strong>Critical</strong><br><span>(20+ cases)</span></div></div>
+              <div class="lg-row"><div class="lg-swatch" style="background:#f97316;"></div><div><strong>High</strong><br><span>(10 – 19 cases)</span></div></div>
+              <div class="lg-row"><div class="lg-swatch" style="background:#eab308;"></div><div><strong>Medium</strong><br><span>(5 – 9 cases)</span></div></div>
+              <div class="lg-row"><div class="lg-swatch" style="background:#22c55e;"></div><div><strong>Low</strong><br><span>(1 – 4 cases)</span></div></div>
+              <div class="lg-row"><div class="lg-swatch" style="background:#94a3b8;"></div><div><strong>No Cases</strong><br><span>(0 cases)</span></div></div>
+              ${meta.riskLevel && meta.riskLevel !== 'all' ? '<div class="lg-row"><div class="lg-swatch" style="background:#e2e8f0;border:1px solid #cbd5e1;"></div><div><strong>Outside filter</strong><br><span>Not in the selected risk level</span></div></div>' : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Summary Cards -->
+      <div class="g-section">
+        <div class="g-sec-hd"><span class="sn">2</span> <i class="fa-solid fa-chart-pie"></i> Geographic Summary</div>
+        <div class="g-sec-body" style="padding:8px;">
+          <div class="g-summary-grid">
+            <div class="g-stat">
+              <div class="g-stat-icon">👥</div>
+              <div class="g-stat-val">${s.totalCases}</div>
+              <div class="g-stat-lbl">Total Animal<br>Bite Cases</div>
+            </div>
+            <div class="g-stat s-green">
+              <div class="g-stat-icon">📍</div>
+              <div class="g-stat-val">${s.affectedBarangays}</div>
+              <div class="g-stat-lbl">Affected<br>Barangays</div>
+            </div>
+            <div class="g-stat s-red">
+              <div class="g-stat-icon">⚠️</div>
+              <div class="g-stat-val" title="${escapeReportHtml(s.highestRiskTied ? 'Tied on the validated case count for this period' : 'Highest recorded case count for this period')}" style="font-size:${(s.highestRiskBarangay || '').length > 16 ? '11px' : '13px'}; line-height:1.25;">${escapeReportHtml(s.highestRiskBarangay || 'Insufficient Data')}</div>
+              <div class="g-stat-lbl">Highest Risk<br>Barangay</div>
+            </div>
+            <div class="g-stat s-amber">
+              <div class="g-stat-icon">🐾</div>
+              <div class="g-stat-val">${s.mostCommonAnimal}</div>
+              <div class="g-stat-lbl">Most Common<br>Animal</div>
+            </div>
+            <div class="g-stat s-orange">
+              <div class="g-stat-icon">🛡️</div>
+              <div class="g-stat-val" title="${escapeReportHtml(s.overallRiskBasis || '')}" style="color:${/critical|high/i.test(s.overallRiskLevel || '') ? '#b91c1c' : /medium/i.test(s.overallRiskLevel || '') ? '#c2410c' : /insufficient|no cases/i.test(s.overallRiskLevel || '') ? '#64748b' : '#15803d'}; font-size:${(s.overallRiskLevel || '').length > 12 ? '13px' : '17px'};">${escapeReportHtml(s.overallRiskLevel || 'Insufficient Data')}</div>
+              <div class="g-stat-lbl">Overall Risk<br>Level</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3 + 4 (two column): Top Barangays + Animal Distribution -->
+      <div class="g-two-col">
+        <!-- Section 3 -->
+        <div class="g-section" style="margin-bottom:0;">
+          <div class="g-sec-hd"><span class="sn">3</span> <i class="fa-solid fa-ranking-star"></i> Top Affected Barangays</div>
+          <div class="g-sec-body" style="padding:6px;">
+            <table class="g-top-table">
+              <thead>
+                <tr>
+                  <th style="width:26px;">Rank</th>
+                  <th>Barangay</th>
+                  <th style="width:48px;">No. of Cases</th>
+                  <th style="width:62px;">Risk Level</th>
+                  <th style="width:54px;">Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${renderTopBarangays(d.topBarangays, totalCases)}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 4 -->
+        <div class="g-section" style="margin-bottom:0;">
+          <div class="g-sec-hd"><span class="sn">4</span> <i class="fa-solid fa-paw"></i> Animal Bite Distribution</div>
+          <div class="g-sec-body" style="padding:8px 10px;">
+            <div class="g-anim-wrap">
+              <div class="donut-canvas-wrap">
+                <canvas id="donutChartCanvas" width="180" height="180"></canvas>
+                <div class="donut-center">
+                  <div class="dc-total" id="dcTotal">${totalCases}</div>
+                  <div class="dc-lbl">Total<br>Cases</div>
+                </div>
+              </div>
+              <div class="anim-legend" id="animLegend">
+                ${renderAnimalLegend(animal, totalCases)}
+                <div class="anim-footnote">
+                  🐾 ${escapeReportHtml(s.animalNote || '')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Trio: Sections 5-7 -->
+      <div class="g-ai-three" style="margin-top:10px;">
+        <!-- 5: AI Insights -->
+        <div class="ai-card card-insights">
+          <div class="ai-card-title"><span class="sn" style="background:rgba(30,64,175,0.2);padding:1px 6px;border-radius:3px;">5</span> <i class="fa-solid fa-circle-info"></i> AI Insights</div>
+          ${d.aiUsed
+            ? `<div class="ai-fail-note">AI Analysis Generated${d.aiModel ? ` (Groq · ${escapeReportHtml(d.aiModel)})` : ''}${d.aiGeneratedAt ? ` · Last Updated: ${escapeReportHtml(new Date(d.aiGeneratedAt).toLocaleString())}` : ''}</div>`
+            : `<div class="ai-fail-note">${escapeReportHtml(d.aiWarning || 'Statistical observations from REMIS (not AI-generated).')}</div>`}
+          <div class="ai-ins-list">
+            ${(d.aiInsights || []).filter(ins => ins && ins.text).map(ins => `
+              <div class="ai-ins-item">
+                <span class="ins-icon">${escapeReportHtml(ins.icon || '•')}</span>
+                <div class="ins-body">${escapeReportHtml(ins.text)}</div>
+              </div>
+            `).join('') || '<div class="ai-ins-item"><div class="ins-body">No insights for this reporting period.</div></div>'}
+            ${(d.riskAreas || []).length ? `
+              <div class="ai-ins-item">
+                <span class="ins-icon">!</span>
+                <div class="ins-body"><strong>Risk areas:</strong> ${escapeReportHtml(d.riskAreas.join(', '))}</div>
+              </div>` : ''}
+            ${d.limitations ? `
+              <div class="ai-ins-item">
+                <span class="ins-icon">i</span>
+                <div class="ins-body"><strong>Limitations:</strong> ${escapeReportHtml(d.limitations)}</div>
+              </div>` : ''}
+          </div>
+        </div>
+
+        <!-- 6: AI Predictive Analytics -->
+        <div class="ai-card card-predict">
+          <div class="ai-card-title"><span class="sn" style="background:rgba(109,40,217,0.2);padding:1px 6px;border-radius:3px;">6</span> <i class="fa-solid fa-wand-magic-sparkles"></i> AI Predictive Analytics</div>
+          <div class="pred-list">
+            <div class="pred-item">
+              <span class="pi-icon"><i class="fa-solid fa-database"></i></span>
+              <span class="pi-lbl">Recorded Cases This Period<br><small style="color:#6d28d9;opacity:0.8;">Actual records, not a forecast</small></span>
+              <span class="pi-val">${escapeReportHtml(p.currentRecordedCases ?? s.totalCases ?? 0)}</span>
+            </div>
+            <div class="pred-item">
+              <span class="pi-icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+              <span class="pi-lbl">Historical Recorded Cases<br><small style="color:#6d28d9;opacity:0.8;">Months used for regression</small></span>
+              <span class="pi-val">${escapeReportHtml(p.historicalRecordedCases ?? 0)} <small>(${escapeReportHtml(p.historicalMonthsWithCases ?? 0)} mo.)</small></span>
+            </div>
+            <div class="pred-item">
+              <span class="pi-icon"><i class="fa-solid fa-chart-line"></i></span>
+              <span class="pi-lbl">Predicted Cases Next Month<br><small style="color:#6d28d9;opacity:0.8;">(${escapeReportHtml(nextMonth.label)} · ${nextMonth.estimated ? 'estimate' : 'not a recorded total'})</small></span>
+              <span class="pi-val">${escapeReportHtml(nextMonth.display || nextMonth.range)}</span>
+            </div>
+            <div class="pred-item">
+              <span class="pi-icon"><i class="fa-solid fa-chart-line"></i></span>
+              <span class="pi-lbl">Predicted Cases Next Quarter<br><small style="color:#6d28d9;opacity:0.8;">(${escapeReportHtml(nextQuarter.label)} · ${nextQuarter.estimated ? 'estimate' : 'not a recorded total'})</small></span>
+              <span class="pi-val">${escapeReportHtml(nextQuarter.display || nextQuarter.range)}</span>
+            </div>
+            <div class="pred-item">
+              <span class="pi-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+              <span class="pi-lbl">Highest Recorded This Period<br><small style="color:#6d28d9;opacity:0.8;">${escapeReportHtml(p.highestRecordedNote || 'Recorded count, not a forecast')}</small></span>
+              <span class="pi-val">${escapeReportHtml(p.highestRecordedBarangay || p.expectedHighestBarangay || 'Insufficient Data')}</span>
+            </div>
+            <div class="pred-item trend-${escapeReportHtml(String(p.trend || 'insufficient-data').toLowerCase().replace(/\s+/g, '-'))}">
+              <span class="pi-icon">
+                ${p.trend === 'Increasing' ? '<i class="fa-solid fa-arrow-trend-up"></i>'
+                  : p.trend === 'Decreasing' ? '<i class="fa-solid fa-arrow-trend-down"></i>'
+                  : p.trend === 'Insufficient Data' ? '<i class="fa-solid fa-circle-question"></i>'
+                  : '<i class="fa-solid fa-equals"></i>'}
+              </span>
+              <span class="pi-lbl">Predicted Trend</span>
+              <span class="pi-val">${escapeReportHtml(p.trend || 'Insufficient Data')}</span>
+            </div>
+          </div>
+          <div class="confidence-wrap">
+            <div class="conf-label">
+              <span><i class="fa-solid fa-database"></i> Prediction Reliability</span>
+            </div>
+            <div class="rel-detail">${escapeReportHtml(p.reliability?.label || 'Based on available historical data')}${p.reliability?.detail ? ` — ${escapeReportHtml(p.reliability.detail)}` : ''}</div>
+          </div>
+        </div>
+
+        <!-- 7: Recommendations -->
+        <div class="ai-card card-recs">
+          <div class="ai-card-title"><span class="sn" style="background:rgba(22,101,52,0.2);padding:1px 6px;border-radius:3px;">7</span> <i class="fa-solid fa-lightbulb"></i> Recommendations</div>
+          <div class="rec-list">
+            ${(d.recommendations || []).map(r => `
+              <div class="rec-item">
+                <span class="rec-check">${escapeReportHtml(r.icon || '✓')}</span>
+                <div>${escapeReportHtml(r.text)}</div>
+              </div>
+            `).join('') || '<div class="rec-item"><div>No recommendations for this reporting period.</div></div>'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 8: Report Summary -->
+      <div class="g-section">
+        <div class="g-sec-hd"><span class="sn">8</span> <i class="fa-solid fa-file-lines"></i> Report Summary</div>
+        <div class="g-sec-body" style="padding:6px;">
+          <div class="g-summary-body">
+            <div class="g-sum-narrative">
+              ${escapeReportHtml(d.reportSummary)}
+            </div>
+            <div class="g-sum-illustration">
+              ${buildingIllustrationSvg()}
+            </div>
+          </div>
+          <p class="geo-ai-disclaimer">${escapeReportHtml(d.disclaimer || 'AI-generated insights are based on aggregated REMIS data and are intended to support data analysis and planning. Predictions are estimates and should not be treated as guaranteed outcomes or as a substitute for professional clinical judgment.')}</p>
+        </div>
+      </div>
+
+      <!-- Footer: Prepared / Meta / Purpose + bottom band -->
+      <div class="geo-footer">
+        <div class="gf-sig">
+          <div class="gf-lbl">Prepared By:</div>
+          <div class="sig-image-wrap" id="geoSigPreparedImg" style="min-height:0;"></div>
+          <div class="gf-name" id="geoSigPreparedName">${currentStaffInfo?.fullName || currentStaffInfo?.username || ''}</div>
+          <div class="gf-desc" id="geoSigPreparedDesc">${currentStaffInfo?.designation || ''}</div>
+        </div>
+        <div class="gf-meta">
+          <div class="gm-row"><i class="fa-solid fa-calendar-check"></i> <span><strong style="color:#293681;">Date Generated:</strong> ${meta.generatedDate}</span></div>
+          <div class="gm-row"><i class="fa-solid fa-laptop-medical"></i> <span><strong style="color:#293681;">System:</strong> Animal Bite Patient Record Management System</span></div>
+        </div>
+        <div class="gf-purpose">
+          <div class="gfp-title">Report Purpose:</div>
+          This report is for planning, monitoring, and decision-making to support rabies prevention and control programs in Gingoog City. Submitted to LGU and Department of Health (DOH).
+        </div>
+      </div>
+
+      <div class="geo-band-bottom">
+        <span style="visibility:hidden;">page</span>
+        <span class="slogan">One Bite. One Life. Let's Save Them All.</span>
+        <span class="page-num">Page 1 of 1</span>
+      </div>
+    `;
+  }
+
+  function renderTopBarangays(rows, total) {
+    if (!rows || rows.length === 0) {
+      return `<tr><td colspan="5" style="color:#888;padding:10px;text-align:center;">No barangay data for selected filters.</td></tr>`;
+    }
+    const body = rows.map((b) => `
+      <tr>
+        <td class="rank-col">${escapeReportHtml(b.rankLabel || b.rank || '—')}</td>
+        <td class="brgy-col">${escapeReportHtml(b.barangay)}</td>
+        <td>${escapeReportHtml(b.case_count)}</td>
+        <td><span class="g-risk-badge r-${escapeReportHtml(b.risk_level)}">${escapeReportHtml(b.risk_level)}</span></td>
+        <td>${escapeReportHtml(b.percentage)}%</td>
+      </tr>
+    `).join('');
+    const sumCases = rows.reduce((s, b) => s + Number(b.case_count), 0);
+    const sumHundredths = rows.reduce((s, b) => s + Math.round(Number(b.percentage) * 100), 0);
+    const sumPct = sumHundredths % 100 === 0 ? String(sumHundredths / 100) : (sumHundredths / 100).toFixed(2);
+    return body + `
+      <tr class="total">
+        <td colspan="2" style="text-align:right;padding-right:6px;">TOTAL (Top ${rows.length})</td>
+        <td>${sumCases}</td>
+        <td>—</td>
+        <td>${sumPct}%</td>
+      </tr>
+    `;
+  }
+
+  function renderAnimalLegend(a, total) {
+    const totalNum = Number(total) || 0;
+    const items = [
+      { name: 'Dog',          count: Number(a.dog.count)   || 0, pct: Number(a.dog.pct)   || 0, color: '#4274D9' },
+      { name: 'Cat',          count: Number(a.cat.count)   || 0, pct: Number(a.cat.pct)   || 0, color: '#22c55e' },
+      { name: 'Other Animals', count: Number(a.other.count) || 0, pct: Number(a.other.pct) || 0, color: '#8b5cf6' },
+    ];
+    if (totalNum === 0) {
+      return `<div class="anim-empty"><i class="fa-solid fa-paw"></i>No animal bite data<br>for the selected period.</div>`;
+    }
+    return items.map(i => `
+      <div class="anim-row">
+        <div class="anim-swatch" style="background:${i.color};"></div>
+        <div class="anim-name">${i.name}</div>
+        <div class="anim-pct">${i.count} (${i.pct}%)</div>
+      </div>
+    `).join('');
+  }
+
+  /* ── Chart.js Doughnut — Animal Bite Distribution ── */
+  let donutChartInstance = null;
+
+  function renderDonutChart(d) {
+    const canvas = document.getElementById('donutChartCanvas');
+    if (!canvas) return;
+
+    const a = d.animalDistribution;
+    const total = Number(a.total) || 0;
+
+    // Destroy previous instance if re-rendering
+    if (donutChartInstance) {
+      donutChartInstance.destroy();
+      donutChartInstance = null;
+    }
+
+    const dogCount   = Number(a.dog.count)   || 0;
+    const catCount   = Number(a.cat.count)   || 0;
+    const otherCount = Number(a.other.count) || 0;
+
+    const isEmpty = total === 0;
+
+    const chartData = isEmpty
+      ? {
+          labels: ['No Data'],
+          datasets: [{
+            data: [1],
+            backgroundColor: ['#e2e8f0'],
+            borderColor: ['#cbd5e1'],
+            borderWidth: 0,
+          }],
+        }
+      : {
+          labels: ['Dog', 'Cat', 'Other Animals'],
+          datasets: [{
+            data: [dogCount, catCount, otherCount],
+            backgroundColor: ['#4274D9', '#22c55e', '#8b5cf6'],
+            borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+            borderWidth: 3,
+            hoverOffset: 6,
+            hoverBorderWidth: 3,
+          }],
+        };
+
+    donutChartInstance = new Chart(canvas, {
+      type: 'doughnut',
+      data: chartData,
+      options: {
+        responsive: false,
+        cutout: '58%',
+        animation: {
+          animateRotate: true,
+          animateScale: false,
+          duration: 600,
+          easing: 'easeOutQuart',
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: isEmpty ? { enabled: false } : {
+            enabled: true,
+            backgroundColor: 'rgba(15,23,42,0.90)',
+            titleColor: '#fff',
+            titleFont: { size: 11, weight: 'bold' },
+            bodyColor: '#cbd5e1',
+            bodyFont: { size: 10 },
+            borderColor: 'rgba(255,255,255,0.12)',
+            borderWidth: 1,
+            padding: { top: 8, bottom: 8, left: 12, right: 12 },
+            cornerRadius: 8,
+            displayColors: true,
+            boxWidth: 10,
+            boxHeight: 10,
+            callbacks: {
+              title: (items) => items[0]?.label || '',
+              label: (item) => {
+                const count = item.raw;
+                const pct = total > 0 ? (count / total) * 100 : 0;
+                const pctLabel = Math.round(pct * 100) % 100 === 0 ? String(Math.round(pct)) : pct.toFixed(2);
+                return [` ${count} case${count !== 1 ? 's' : ''}  (${pctLabel}%)`];
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /* ── SVG Choropleth Map with barangay labels ── */
+  function renderSvgMap(d) {
+    const container = document.getElementById('gMapSvg');
+    if (!container) return;
+
+    const riskColors = { None: '#94a3b8', Low: '#22c55e', Medium: '#eab308', High: '#f97316', Critical: '#ef4444', Excluded: '#e2e8f0' };
+    const riskFiltered = d.meta && d.meta.riskLevel && d.meta.riskLevel !== 'all';
+    const norm = (s) => (s || '')
+      .trim().toLowerCase()
+      .replace(/\s*\(pob\.?\)\s*/gi, '')
+      .replace(/\s+/g, ' ').replace(/[^a-z0-9]/g, '');
+
+    // Build case lookup
+    const caseMap = new Map();
+    (d.barangayCases || []).forEach(b => {
+      caseMap.set(norm(b.barangay), { count: Number(b.case_count), risk: b.risk_level, pct: b.percentage });
+    });
+
+    if (!geoJsonData || !geoJsonData.features) {
+      container.innerHTML = `
+        <div style="padding:40px;text-align:center;color:#94a3b8;font-size:11px;">
+          <i class="fa-solid fa-map-location-dot" style="font-size:32px;opacity:0.4;display:block;margin-bottom:8px;"></i>
+          GeoJSON barangay boundaries not available.<br>
+          Legend is shown at right.
+        </div>`;
+      return;
+    }
+
+    const feats = geoJsonData.features;
+    const getName = (f) => f.properties?.barangay || f.properties?.name || f.properties?.NAME || f.properties?.ADM4_EN || f.properties?.BARANGAY || '';
+
+    // Compute bounds
+    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+    const collect = (ring) => ring.forEach(([lng, lat]) => {
+      if (lng < minLng) minLng = lng;
+      if (lat < minLat) minLat = lat;
+      if (lng > maxLng) maxLng = lng;
+      if (lat > maxLat) maxLat = lat;
+    });
+    feats.forEach(f => {
+      const g = f.geometry;
+      if (!g) return;
+      if (g.type === 'Polygon') g.coordinates.forEach(collect);
+      else if (g.type === 'MultiPolygon') g.coordinates.forEach(poly => poly.forEach(collect));
+    });
+    const pad = 0.004;
+    minLng -= pad; minLat -= pad; maxLng += pad; maxLat += pad;
+
+    const W = 520, H = 380;
+    const dx = maxLng - minLng, dy = maxLat - minLat;
+    const sx = W / dx, sy = H / dy;
+    const s = Math.min(sx, sy);
+    const offX = (W - dx * s) / 2;
+    const offY = (H - dy * s) / 2;
+    const proj = (lng, lat) => [
+      offX + (lng - minLng) * s,
+      H - offY - (lat - minLat) * s
+    ];
+    const toPath = (ring) => ring.map((pt, i) => {
+      const [x, y] = proj(pt[0], pt[1]);
+      return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(' ') + ' Z';
+
+    // Approximate on-screen label size based on font-size
+    const LABEL_FONT = 7.8;           // emulated ~9–11pt at print scale
+    const LABEL_HEIGHT = LABEL_FONT * 1.25;
+    const estLabelWidth = (text) => Math.max(28, text.length * (LABEL_FONT * 0.56));
+
+    // Projected ring bbox (in SVG pixels) given a raw lng/lat ring
+    const ringBBox = (ring) => {
+      let xMin = Infinity, yMin = Infinity, xMax = -Infinity, yMax = -Infinity;
+      for (const pt of ring) {
+        const [x, y] = proj(pt[0], pt[1]);
+        if (x < xMin) xMin = x;
+        if (y < yMin) yMin = y;
+        if (x > xMax) xMax = x;
+        if (y > yMax) yMax = y;
+      }
+      return { xMin, yMin, xMax, yMax, w: xMax - xMin, h: yMax - yMin };
+    };
+
+    // Build polygons, labels, and leader lines
+    let polys = '';
+    let leaderLines = '';
+    let countLabels = '';
+    let nameLabels = '';
+
+    // Remember placed label rectangles to try to avoid overlap for large ones
+    const placed = [];
+    const collides = (rx, ry, rw, rh) => {
+      for (const p of placed) {
+        if (rx < p.x + p.w && rx + rw > p.x && ry < p.y + p.h && ry + rh > p.y) return true;
+      }
+      return false;
+    };
+
+    // Sort features smallest-area first so the smallest barangays get label priority at their centroids
+    const featsWithArea = feats.map(f => {
+      const g = f.geometry;
+      if (!g) return [f, 0, null, null];
+      let totalArea = 0, centroidXY = null, bbox = null;
+      if (g.type === 'Polygon') {
+        totalArea = Math.abs(ringSignedArea(g.coordinates[0]));
+        centroidXY = polyCentroid(g.coordinates[0]);
+        bbox = ringBBox(g.coordinates[0]);
+      } else if (g.type === 'MultiPolygon') {
+        let bestA = 0, best = null, bestBbox = null;
+        g.coordinates.forEach(poly => {
+          const c = polyCentroid(poly[0]);
+          const a = Math.abs(ringSignedArea(poly[0]));
+          totalArea += a;
+          if (a > bestA) { bestA = a; best = c; bestBbox = ringBBox(poly[0]); }
+        });
+        centroidXY = best;
+        bbox = bestBbox;
+      }
+      return [f, totalArea, centroidXY, bbox];
+    }).sort((a, b) => a[1] - b[1]);
+
+    for (const [f, totalArea, centroidXY, bbox] of featsWithArea) {
+      const g = f.geometry;
+      if (!g) continue;
+      const rawName = getName(f);
+      const displayName = (rawName || '').replace(/\s*\(Pob\.?\)\s*/i, '').trim() || rawName || '';
+      const matched = caseMap.get(norm(rawName));
+      const data = matched || { count: 0, risk: riskFiltered ? 'Excluded' : 'None' };
+      const fill = riskColors[data.risk] || riskColors.None;
+      const riskTitle = data.risk === 'Excluded' ? 'Outside the selected risk level' : data.risk;
+      const stroke = '#1e3a8a';
+
+      // --- paths ---
+      let pathD = '';
+      if (g.type === 'Polygon') {
+        pathD = g.coordinates.map(toPath).join(' ');
+      } else if (g.type === 'MultiPolygon') {
+        pathD = g.coordinates.map(poly => poly.map(toPath).join(' ')).join(' ');
+      }
+      if (pathD) {
+        polys += `<path d="${pathD}" fill="${fill}" fill-opacity="0.82" stroke="${stroke}" stroke-width="0.6" stroke-opacity="0.75">
+          <title>${rawName}: ${data.count} case(s) — ${riskTitle}</title>
+        </path>`;
+      }
+
+      if (!centroidXY || !bbox) continue;
+      const [cx, cy] = proj(centroidXY[0], centroidXY[1]);
+
+      // --- count badge (for non-zero cases only), drawn inside near centroid as compact 2-digit badge ---
+      if (data.count > 0) {
+        countLabels += `<g transform="translate(${cx.toFixed(2)},${cy.toFixed(2)})">
+          <circle r="6.2" fill="#ffffff" stroke="#0f172a" stroke-width="0.6" opacity="0.95"/>
+          <text x="0" y="2.1" text-anchor="middle" font-size="6.6" font-weight="800" fill="#0f172a" font-family="Arial, Helvetica, sans-serif">${data.count}</text>
+        </g>`;
+      }
+
+      // --- barangay name label ---
+      const txtWidth = estLabelWidth(displayName);
+      const fitsInside = bbox.w >= txtWidth * 0.9 && bbox.h >= LABEL_HEIGHT * 0.9;
+
+      let labelX, labelY, placeOutside = false;
+
+      if (fitsInside) {
+        // Prefer centroid; if it overlaps another label, nudge slightly
+        labelX = cx - txtWidth / 2;
+        labelY = cy - LABEL_HEIGHT / 2 + (data.count > 0 ? 9 : 0);
+        let tries = 0;
+        while (tries < 4 && collides(labelX, labelY, txtWidth, LABEL_HEIGHT)) {
+          labelY += LABEL_HEIGHT * 0.95;
+          if (labelY + LABEL_HEIGHT / 2 > bbox.yMax) { labelY = cy - LABEL_HEIGHT / 2 - (data.count > 0 ? 9 : 0) - LABEL_HEIGHT * (tries + 1); }
+          tries++;
+        }
+        if (collides(labelX, labelY, txtWidth, LABEL_HEIGHT)) { placeOutside = true; }
+      } else {
+        placeOutside = true;
+      }
+
+      if (placeOutside) {
+        // Place to the side of the polygon bbox centroid, in the direction of the nearest edge of the overall map
+        const bCx = (bbox.xMin + bbox.xMax) / 2;
+        const bCy = (bbox.yMin + bbox.yMax) / 2;
+        const toLeft = bCx < W / 2;
+        const toTop  = bCy < H / 2;
+        // Choose placement side: prefer the quadrant with more available space
+        const gapX = toLeft ? -(bbox.xMin - 2) : (W - bbox.xMax - 2);
+        const gapY = toTop  ? -(bbox.yMin - 2) : (H - bbox.yMax - 2);
+        if (gapX >= gapY) {
+          // Horizontal leader
+          labelX = toLeft ? Math.max(2, bbox.xMin - txtWidth - 4) : Math.min(W - txtWidth - 2, bbox.xMax + 4);
+          labelY = Math.max(1, Math.min(H - LABEL_HEIGHT - 1, bCy - LABEL_HEIGHT / 2));
+        } else {
+          labelY = toTop ? Math.max(1, bbox.yMin - LABEL_HEIGHT - 3) : Math.min(H - LABEL_HEIGHT - 1, bbox.yMax + 3);
+          labelX = Math.max(2, Math.min(W - txtWidth - 2, bCx - txtWidth / 2));
+        }
+        // If still collides, keep nudging down
+        let t = 0;
+        while (t < 6 && collides(labelX, labelY, txtWidth, LABEL_HEIGHT)) {
+          labelY += LABEL_HEIGHT * 0.95;
+          if (labelY + LABEL_HEIGHT > H - 2) { labelY = Math.max(1, bCy - LABEL_HEIGHT / 2 - 8 - t * 4); labelX += toLeft ? -12 : 12; }
+          t++;
+        }
+        // Leader line from the nearest edge of the polygon bbox toward the label center
+        const lcX = labelX + txtWidth / 2;
+        const lcY = labelY + LABEL_HEIGHT / 2;
+        // Clamp leader origin to the polygon bbox edge nearest the label point
+        let ox = Math.max(bbox.xMin, Math.min(bbox.xMax, lcX));
+        let oy = Math.max(bbox.yMin, Math.min(bbox.yMax, lcY));
+        // Draw a 2-segment polyline: bbox-edge → midpoint → label edge
+        const midX = (ox + lcX) / 2;
+        const midY = (oy + lcY) / 2;
+        leaderLines += `<polyline points="${ox.toFixed(2)},${oy.toFixed(2)} ${midX.toFixed(2)},${midY.toFixed(2)} ${lcX.toFixed(2)},${lcY.toFixed(2)}"
+          fill="none" stroke="#0f172a" stroke-width="0.55" stroke-opacity="0.65" stroke-linejoin="round" stroke-dasharray="1.2 1"/>`;
+        // Small anchor dot at polygon side
+        leaderLines += `<circle cx="${ox.toFixed(2)}" cy="${oy.toFixed(2)}" r="0.9" fill="#0f172a" opacity="0.75"/>`;
+      }
+
+      placed.push({ x: labelX, y: labelY, w: txtWidth, h: LABEL_HEIGHT });
+
+      // Render name text with white outline halo via paint-order: stroke → fill
+      const tx = labelX + txtWidth / 2;
+      const ty = labelY + LABEL_HEIGHT * 0.8;
+      nameLabels += `<text x="${tx.toFixed(2)}" y="${ty.toFixed(2)}" text-anchor="middle"
+        font-size="${LABEL_FONT.toFixed(1)}" font-weight="700" fill="#0b132b"
+        font-family="Arial, Helvetica, sans-serif"
+        style="paint-order:stroke;stroke:#ffffff;stroke-width:1.6;stroke-linejoin:round;stroke-opacity:0.95;">
+        ${displayName}
+      </text>`;
+    }
+
+    // Scale bar (approx)
+    const kmPerDegLat = 111;
+    const kmHeight = dy * kmPerDegLat;
+    const barKm = Math.max(1, Math.round(kmHeight / 6));
+    const barPx = (barKm / kmPerDegLat) * s;
+    const barY = H - 8;
+    const barX = 8;
+
+    container.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">
+        <rect x="0" y="0" width="${W}" height="${H}" fill="#eff6ff"/>
+        ${polys}
+        ${leaderLines}
+        ${countLabels}
+        ${nameLabels}
+        <g transform="translate(${barX},${barY})">
+          <rect x="0" y="0" width="${barPx}" height="3" fill="#0f172a"/>
+          <rect x="0" y="0" width="${barPx}" height="1.5" fill="#fff" opacity="0.4"/>
+          <text x="${barPx/2}" y="11" text-anchor="middle" font-size="5.8" font-weight="700" fill="#1e3a8a" font-family="Arial, Helvetica, sans-serif">${barKm} km</text>
+        </g>
+      </svg>
+    `;
+  }
+
+  function ringSignedArea(ring) {
+    let a = 0; const n = ring.length - 1;
+    for (let i = 0; i < n; i++) {
+      const [x1, y1] = ring[i]; const [x2, y2] = ring[i+1];
+      a += x1 * y2 - x2 * y1;
+    }
+    return a / 2;
+  }
+  function polyCentroid(ring) {
+    let area = 0, cx = 0, cy = 0;
+    const n = ring.length - 1;
+    for (let i = 0; i < n; i++) {
+      const [x1, y1] = ring[i]; const [x2, y2] = ring[i+1];
+      const cross = x1 * y2 - x2 * y1;
+      area += cross;
+      cx += (x1 + x2) * cross;
+      cy += (y1 + y2) * cross;
+    }
+    area *= 0.5;
+    if (Math.abs(area) < 1e-14) return null;
+    return [cx / (6 * area), cy / (6 * area)];
+  }
+
+  function buildingIllustrationSvg() {
+    return `
+    <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#dbeafe"/>
+          <stop offset="1" stop-color="#f0fdf4"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="200" height="140" fill="url(#sky)"/>
+      <!-- ground -->
+      <rect x="0" y="115" width="200" height="25" fill="#bbf7d0"/>
+      <!-- building -->
+      <rect x="45" y="45" width="110" height="70" fill="#fff" stroke="#94a3b8" stroke-width="1.2"/>
+      <polygon points="45,45 100,15 155,45" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+      <!-- roof detail -->
+      <polygon points="80,30 100,15 120,30 100,38" fill="#94a3b8"/>
+      <!-- windows -->
+      ${[0,1,2].map(row =>
+        [0,1,2,3].map(col => {
+          const wx = 55 + col * 24;
+          const wy = 55 + row * 20;
+          return `<rect x="${wx}" y="${wy}" width="14" height="12" fill="#93c5fd" stroke="#4274D9" stroke-width="0.6"/>`;
+        }).join('')
+      ).join('')}
+      <!-- door -->
+      <rect x="90" y="95" width="20" height="20" fill="#4274D9"/>
+      <circle cx="106" cy="105" r="1" fill="#fff"/>
+      <!-- steps -->
+      <rect x="85" y="115" width="30" height="3" fill="#cbd5e1"/>
+      <!-- trees -->
+      <rect x="12" y="95" width="5" height="20" fill="#92400e"/>
+      <circle cx="14.5" cy="90" r="12" fill="#22c55e"/>
+      <circle cx="8" cy="95" r="8" fill="#16a34a"/>
+      <circle cx="21" cy="93" r="8" fill="#16a34a"/>
+      <rect x="183" y="92" width="5" height="23" fill="#92400e"/>
+      <circle cx="185.5" cy="87" r="13" fill="#22c55e"/>
+      <circle cx="179" cy="92" r="8" fill="#16a34a"/>
+      <circle cx="192" cy="90" r="8" fill="#16a34a"/>
+      <!-- cross -->
+      <line x1="100" y1="50" x2="100" y2="62" stroke="#ef4444" stroke-width="2"/>
+      <line x1="94" y1="56" x2="106" y2="56" stroke="#ef4444" stroke-width="2"/>
+      <!-- sun -->
+      <circle cx="170" cy="28" r="10" fill="#fde047" opacity="0.85"/>
+    </svg>`;
+  }
+
+  function attachReportSignatures() {
+    // Always use the currently logged-in nurse's name for Prepared By.
+    // Never fall back to a static name from reportSettings.
+    const nurseName = currentStaffInfo?.fullName || currentStaffInfo?.username || '';
+    const nurseDesig = currentStaffInfo?.designation || '';
+
+    // Rabies report signature block (if present)
+    const rabiesPrepName = document.getElementById('sigPreparedName');
+    if (rabiesPrepName) rabiesPrepName.textContent = nurseName;
+    const rabiesPrepDesc = document.getElementById('sigPreparedDesignation');
+    if (rabiesPrepDesc && nurseDesig) rabiesPrepDesc.innerHTML = `Designation: <strong>${nurseDesig}</strong>`;
+    const rabiesPrepDate = document.getElementById('sigPreparedDate');
+    if (rabiesPrepDate) rabiesPrepDate.textContent = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+    // Geo-AI footer signature block (if present)
+    const geoPrepName = document.getElementById('geoSigPreparedName');
+    if (geoPrepName) geoPrepName.textContent = nurseName;
+    const geoPrepDesc = document.getElementById('geoSigPreparedDesc');
+    if (geoPrepDesc) geoPrepDesc.textContent = nurseDesig;
+  }
+
+  /* ════════════════════════════════════════════════════════
+     PRINT — F4 / Folio only (Geo portrait, Rabies landscape)
+  ════════════════════════════════════════════════════════ */
+  function printReport() {
+    if (!currentData && !currentGeoData) {
+      showAlert('Please generate a report first.', 'error');
+      return;
+    }
+    const paperKey = defaultPaperKey();
+    try {
+      const period = currentReportType === 'quarterly'
+        ? (`Q${document.getElementById('selQuarterOld')?.value || '?'} ${document.getElementById('selYear')?.value || ''}`).trim()
+        : currentGeoData?.meta?.periodLabel || 'N/A';
+      logFrontendActivity({
+        action: 'View / Print',
+        module: 'Reports',
+        reference_id: `${currentReportType}-${Date.now()}`,
+        description: `Printed ${currentReportType === 'quarterly' ? 'Quarterly Rabies Report' : 'Geographic & AI Analytics Report'} — ${period}`,
+      });
+    } catch (e) { console.warn(e); }
+    triggerPrint(paperKey);
+  }
+
+  function triggerPrint(paperKey) {
+    const pKey = paperKey || defaultPaperKey();
+    const size = PAPER_KEYS[pKey] || PAPER_KEYS[defaultPaperKey()];
+    const pageSize = `${size.css} ${size.orient}`;
+
+    const old = document.getElementById('dynamic-page-style');
+    if (old) old.remove();
+    const styleEl = document.createElement('style');
+    styleEl.id = 'dynamic-page-style';
+    styleEl.textContent = `@media print { @page { size: ${pageSize}; margin: 0; } }`;
+    document.head.appendChild(styleEl);
+
+    window.print();
+  }
+  </script>
+</body>
+</html>

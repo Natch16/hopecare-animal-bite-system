@@ -1,0 +1,641 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – HopeCare Animal Bite Center</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/nurse-dashboard.css?v=1">
+  <script src="/js/shared/sidebar.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body data-nav="dashboard">
+<div class="main-wrapper">
+<script>initAppSidebar();</script>
+
+<div class="main-content">
+<div class="nd-page">
+
+  <!-- Header -->
+  <header class="nd-head">
+    <div class="nd-head-main">
+      <div class="nd-eyebrow"><i class="fa-solid fa-house-medical"></i> <span id="dbRoleLabel">Nurse Dashboard</span></div>
+      <h1 id="dbGreeting">Good Morning, Staff</h1>
+      <p id="dbSubtitle">HopeCare Animal Bite Center &mdash; Gingoog City</p>
+    </div>
+    <div class="nd-head-side">
+      <div class="nd-clock" id="dbClock">--:-- --</div>
+      <div class="nd-date" id="dbDate">Loading…</div>
+      <div class="nd-head-actions">
+        <a href="/nurse/patients.html?action=add" class="nd-btn light"><i class="fa-solid fa-user-plus"></i> Register Patient</a>
+        <button type="button" class="nd-btn glass" id="btnRefresh" onclick="loadDashboard()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+      </div>
+      <div class="nd-updated" id="dbUpdated" aria-live="polite"></div>
+    </div>
+  </header>
+
+  <div class="nd-banner" id="dbBanner" role="alert"><i class="fa-solid fa-circle-exclamation"></i><span>Could not load dashboard data. Please refresh.</span></div>
+
+  <!-- KPI cards -->
+  <div class="nd-section-title"><i class="fa-solid fa-chart-simple"></i> Patient Overview</div>
+  <div class="nd-kpis" id="statRow">
+    <a class="nd-kpi is-loading" href="/nurse/patients.html">
+      <div class="nd-kpi-icon"><i class="fa-solid fa-users"></i></div>
+      <div class="nd-kpi-body"><div class="nd-kpi-val" id="sc-total">—</div><div class="nd-kpi-lbl">Total Patients</div></div>
+    </a>
+    <a class="nd-kpi teal is-loading" href="/nurse/patients.html">
+      <div class="nd-kpi-icon"><i class="fa-solid fa-paw"></i></div>
+      <div class="nd-kpi-body"><div class="nd-kpi-val" id="sc-bites">—</div><div class="nd-kpi-lbl">Total Bite Cases</div></div>
+    </a>
+    <div class="nd-kpi indigo is-loading">
+      <div class="nd-kpi-icon"><i class="fa-solid fa-syringe"></i></div>
+      <div class="nd-kpi-body"><div class="nd-kpi-val" id="sc-treat">—</div><div class="nd-kpi-lbl">Under Treatment</div></div>
+    </div>
+    <div class="nd-kpi ok is-loading">
+      <div class="nd-kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+      <div class="nd-kpi-body"><div class="nd-kpi-val" id="sc-comp">—</div><div class="nd-kpi-lbl">Completed</div><div class="nd-kpi-sub">Full PEP schedule done</div></div>
+    </div>
+    <a class="nd-kpi warn is-loading" href="/nurse/followup.html">
+      <div class="nd-kpi-icon"><i class="fa-solid fa-calendar-day"></i></div>
+      <div class="nd-kpi-body"><div class="nd-kpi-val" id="sc-due">—</div><div class="nd-kpi-lbl">Due Today</div><div class="nd-kpi-sub">Needs attention</div></div>
+    </a>
+    <a class="nd-kpi warn is-loading" href="/nurse/followup.html">
+      <div class="nd-kpi-icon"><i class="fa-solid fa-calendar-plus"></i></div>
+      <div class="nd-kpi-body"><div class="nd-kpi-val" id="sc-tomorrow">—</div><div class="nd-kpi-lbl">Upcoming Tomorrow</div></div>
+    </a>
+    <a class="nd-kpi bad is-loading" href="/nurse/followup.html">
+      <div class="nd-kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="nd-kpi-body"><div class="nd-kpi-val" id="sc-over">—</div><div class="nd-kpi-lbl">Incomplete Treatments</div><div class="nd-kpi-sub">Missed dose — restart required</div></div>
+    </a>
+    <div class="nd-kpi bad admin-stat is-loading" style="display:none;">
+      <div class="nd-kpi-icon"><i class="fa-solid fa-virus-slash"></i></div>
+      <div class="nd-kpi-body"><div class="nd-kpi-val" id="sc-interrupted">—</div><div class="nd-kpi-lbl">Interrupted Treatments</div></div>
+    </div>
+    <div class="nd-kpi teal admin-stat is-loading" style="display:none;">
+      <div class="nd-kpi-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+      <div class="nd-kpi-body"><div class="nd-kpi-val" id="sc-stock">—</div><div class="nd-kpi-lbl">Vaccine Stock</div></div>
+    </div>
+    <div class="nd-kpi bad admin-stat is-loading" style="display:none;">
+      <div class="nd-kpi-icon"><i class="fa-solid fa-bell"></i></div>
+      <div class="nd-kpi-body"><div class="nd-kpi-val" id="sc-lowstock">—</div><div class="nd-kpi-lbl">Low Stock Alerts</div></div>
+    </div>
+  </div>
+
+  <!-- Today's work -->
+  <div class="nd-section-title"><i class="fa-solid fa-clipboard-list"></i> Today's Work</div>
+  <div class="nd-grid cols-main">
+    <section class="nd-panel">
+      <div class="nd-panel-hd">
+        <h3><i class="fa-solid fa-syringe" style="color:#4274D9;"></i> Today's Vaccination Schedule <span class="nd-count warn" id="todayScheduleCount"></span></h3>
+        <a class="nd-link" href="/nurse/followup.html">View Follow-up <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      <div class="nd-table-wrap">
+        <table class="nd-table nd-cards">
+          <thead>
+            <tr>
+              <th>Patient</th><th>Patient ID</th><th>Barangay</th><th>Contact</th>
+              <th>Vaccine Brand</th><th>Dose</th><th>Scheduled</th><th>Status</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="todayScheduleTbody">
+            <tr><td colspan="9"><div class="nd-empty"><i class="fa-solid fa-spinner fa-spin"></i>Loading…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="nd-panel">
+      <div class="nd-panel-hd">
+        <h3><i class="fa-solid fa-bell" style="color:#d97706;"></i> Notifications</h3>
+      </div>
+      <div class="nd-panel-bd">
+        <div class="nd-alerts" id="notifList">
+          <div class="nd-empty"><i class="fa-solid fa-spinner fa-spin"></i>Loading…</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Monitoring -->
+  <div class="nd-section-title"><i class="fa-solid fa-heart-pulse"></i> Patient Monitoring</div>
+  <div class="nd-grid">
+    <section class="nd-panel">
+      <div class="nd-panel-hd">
+        <h3><i class="fa-solid fa-person-rays" style="color:#6366f1;"></i> Current Active Cases</h3>
+        <a class="nd-link" href="/nurse/patients.html">View All <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      <div class="nd-table-wrap">
+        <table class="nd-table nd-cards">
+          <thead><tr><th>Patient</th><th>Animal</th><th>Category</th><th>Progress</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="activeCasesTbody">
+            <tr><td colspan="6"><div class="nd-empty"><i class="fa-solid fa-spinner fa-spin"></i>Loading…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="nd-grid cols-main">
+    <section class="nd-panel">
+      <div class="nd-panel-hd">
+        <h3><i class="fa-solid fa-bell" style="color:#ef4444;"></i> Patients Needing Immediate Attention</h3>
+        <a class="nd-link" href="/nurse/followup.html">Open Follow-up <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      <div class="nd-table-wrap">
+        <table class="nd-table nd-cards">
+          <thead><tr><th>Patient</th><th>Barangay</th><th>Contact</th><th>Vaccine</th><th>Next Schedule</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="attnTbody">
+            <tr><td colspan="7"><div class="nd-empty"><i class="fa-solid fa-spinner fa-spin"></i>Loading…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="nd-stack">
+      <section class="nd-panel">
+        <div class="nd-panel-hd">
+          <h3><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Quick Actions</h3>
+        </div>
+        <div class="nd-panel-bd">
+          <div class="nd-qa">
+            <a href="/nurse/patients.html?action=add"><span class="ico"><i class="fa-solid fa-user-plus"></i></span>Register Patient</a>
+            <a href="/nurse/patients.html"><span class="ico"><i class="fa-solid fa-paw"></i></span>Add New Case</a>
+            <a href="/nurse/patients.html"><span class="ico"><i class="fa-solid fa-syringe"></i></span>Record Vaccination</a>
+            <a href="/nurse/reports.html"><span class="ico"><i class="fa-solid fa-file-medical"></i></span>Generate Report</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="nd-panel">
+        <div class="nd-panel-hd">
+          <h3><i class="fa-solid fa-clock-rotate-left" style="color:#4274D9;"></i> Recent Registrations</h3>
+          <a class="nd-link" href="/nurse/patients.html">View All <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="nd-panel-bd">
+          <div class="nd-recent" id="recentList">
+            <div class="nd-empty"><i class="fa-solid fa-spinner fa-spin"></i>Loading…</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="nd-section-title"><i class="fa-solid fa-chart-pie"></i> Clinical Insights <small id="chartYear"></small></div>
+  <div class="nd-grid cols-4">
+    <section class="nd-panel">
+      <div class="nd-panel-hd"><h3><i class="fa-solid fa-paw" style="color:#4274D9;"></i> Animal Bite Distribution</h3></div>
+      <div class="nd-panel-bd"><div class="nd-chart"><canvas id="animalChart" aria-label="Animal bite distribution chart"></canvas></div></div>
+    </section>
+    <section class="nd-panel">
+      <div class="nd-panel-hd"><h3><i class="fa-solid fa-layer-group" style="color:#d97706;"></i> Case Category Distribution</h3></div>
+      <div class="nd-panel-bd"><div class="nd-chart"><canvas id="categoryChart" aria-label="Case category chart"></canvas></div></div>
+    </section>
+    <section class="nd-panel">
+      <div class="nd-panel-hd"><h3><i class="fa-solid fa-flask-vial" style="color:#6366f1;"></i> PEP Treatment Progress</h3></div>
+      <div class="nd-panel-bd">
+        <div class="nd-chart" style="height:150px;"><canvas id="pepChart" aria-label="PEP treatment progress chart"></canvas></div>
+        <div class="nd-pep-bars" id="pepBars"></div>
+      </div>
+    </section>
+    <section class="nd-panel">
+      <div class="nd-panel-hd"><h3><i class="fa-solid fa-chart-line" style="color:#4274D9;"></i> Monthly Bite Cases</h3></div>
+      <div class="nd-panel-bd"><div class="nd-chart"><canvas id="monthlyChart" aria-label="Monthly bite cases chart"></canvas></div></div>
+    </section>
+  </div>
+
+</div><!-- /nd-page -->
+</div><!-- /main-content -->
+</div><!-- /main-wrapper -->
+
+<script src="/js/shared/rbac.js"></script>
+<script src="/js/shared/app.js"></script>
+<script>
+/* Nurse Dashboard — all values come from the existing API endpoints. */
+let currentStaff = 'Nurse';
+let chartAnimal, chartMonthly, chartCategory, chartPep;
+let loading = false;
+
+function esc(v) {
+  if (v == null) return '—';
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function orDash(v) {
+  return v == null || v === '' ? '<span class="nd-muted">—</span>' : esc(v);
+}
+function plainText(html) {
+  const div = document.createElement('div');
+  div.innerHTML = String(html || '');
+  return div.textContent || '';
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  if (typeof formatDateShort === 'function') return formatDateShort(d, '—');
+  const s = String(d);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const [y,mo,da] = s.slice(0,10).split('-').map(Number);
+    return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][mo-1]+` ${da}, ${y}`;
+  }
+  return s;
+}
+function animalLabel(c) {
+  return ({D:'Pet Dog',SD:'Stray Dog',C:'Cat',O:'Others'})[c] || c || '—';
+}
+function initials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+function person(name) {
+  return `<div class="nd-person"><span class="nd-avatar" aria-hidden="true">${esc(initials(name))}</span><span class="nd-name">${esc(name)}</span></div>`;
+}
+function emptyRow(cols, icon, text, tone = '') {
+  return `<tr><td colspan="${cols}"><div class="nd-empty ${tone}"><i class="fa-solid ${icon}"></i>${esc(text)}</div></td></tr>`;
+}
+function statusBadge(s) {
+  if (!s || s === '—') return '<span class="nd-muted">—</span>';
+  const cls = s === 'Completed' ? 'ok' : s === 'Overdue' ? 'bad' : s === 'Due Today' ? 'warn' : '';
+  return `<span class="nd-badge ${cls}">${esc(s)}</span>`;
+}
+function viewBtn(id, icon, label) {
+  return `<a href="/nurse/patient-episodes.html?id=${encodeURIComponent(id)}" class="nd-btn soft sm"><i class="fa-solid ${icon}"></i> ${label}</a>`;
+}
+
+// Clock
+function tickClock() {
+  const now = new Date();
+  const h = now.getHours();
+  document.getElementById('dbClock').textContent =
+    now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dbDate').textContent =
+    now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('dbGreeting').textContent =
+    `${h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening'}, ${currentStaff}`;
+}
+setInterval(tickClock, 1000);
+
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('chartYear').textContent = String(new Date().getFullYear());
+  const auth = await checkAuth();
+  if (auth?.full_name || auth?.username) {
+    currentStaff = auth.full_name || auth.username;
+    if (auth.role === 'Administrator') {
+      document.querySelectorAll('.admin-stat').forEach(el => el.style.display = '');
+      document.getElementById('dbRoleLabel').textContent = 'Administrator Dashboard';
+    }
+  }
+  tickClock();
+  await loadDashboard();
+  setInterval(loadDashboard, 60000);
+});
+
+async function loadDashboard() {
+  if (loading) return;
+  loading = true;
+  const btn = document.getElementById('btnRefresh');
+  if (btn) { btn.disabled = true; btn.classList.add('is-spinning'); }
+  try {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    const hdrs = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+    const [dashRes, dueRes, overRes, widgetRes, interruptedRes, activeRes] = await Promise.all([
+      fetch('/api/analytics/dashboard',           { headers: hdrs }),
+      fetch('/api/analytics/dashboard/due-today', { headers: hdrs }),
+      fetch('/api/analytics/dashboard/overdue',   { headers: hdrs }),
+      fetch('/api/followup/widget/summary',       { headers: hdrs }).catch(() => ({ json: () => ({}) })),
+      fetch('/api/followup/interrupted',          { headers: hdrs }).catch(() => ({ json: () => ({}) })),
+      fetch('/api/patients/search/query',         { headers: hdrs }).catch(() => ({ json: () => ({}) })),
+    ]);
+
+    const dash        = await dashRes.json();
+    const dueD        = await dueRes.json();
+    const overD       = await overRes.json();
+    const widget      = await widgetRes.json().catch(() => ({}));
+    const interrupted = await interruptedRes.json().catch(() => ({}));
+    const activeData  = await activeRes.json().catch(() => ({}));
+
+    if (dash.success) {
+      const d = dash.data;
+      const s = id => document.getElementById(id);
+      s('sc-total').textContent    = d.stats.totalPatients  ?? 0;
+      s('sc-bites').textContent    = d.stats.totalBites     ?? 0;
+      s('sc-treat').textContent    = d.stats.underTreatment ?? 0;
+      s('sc-comp').textContent     = d.stats.completedVacc  ?? 0;
+      s('sc-due').textContent      = d.stats.dueToday       ?? 0;
+      s('sc-over').textContent     = d.stats.overdue        ?? 0;
+      s('sc-tomorrow').textContent = d.stats.dueTomorrow    ?? 0;
+      s('sc-interrupted').textContent = d.stats.interrupted ?? 0;
+      if (d.inventorySummary) {
+        s('sc-stock').textContent    = d.inventorySummary.total_stock     ?? 0;
+        s('sc-lowstock').textContent = d.inventorySummary.low_stock_count ?? 0;
+      }
+      document.querySelectorAll('.nd-kpi.is-loading').forEach(el => el.classList.remove('is-loading'));
+
+      renderRecent(d.recentPatients);
+      renderNotifications(d.notifications, d.stats, widget.data, interrupted.data);
+      renderAnimalChart(d.animalTypes);
+      renderMonthlyChart(d.monthlyTrend);
+      renderCategoryChart(d.categoryData);
+      renderPepChart(d.stats);
+    }
+
+    const due  = dueD.success  ? dueD.data  : [];
+    const over = overD.success ? overD.data : [];
+    renderAttentionTable(due, over);
+    renderTodaySchedule(due);
+    renderActiveCases(activeData.success ? (activeData.data || []) : []);
+
+    document.getElementById('dbBanner').classList.toggle('is-shown', !dash.success);
+    document.getElementById('dbUpdated').textContent =
+      `Updated ${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`;
+  } catch (e) {
+    console.error('Dashboard load error:', e);
+    document.getElementById('dbBanner').classList.add('is-shown');
+    const notifEl = document.getElementById('notifList');
+    if (notifEl) notifEl.innerHTML =
+      '<div class="nd-empty err"><i class="fa-solid fa-circle-exclamation"></i>Could not load dashboard data. Please refresh.</div>';
+  } finally {
+    loading = false;
+    if (btn) { btn.disabled = false; btn.classList.remove('is-spinning'); }
+  }
+}
+
+function renderTodaySchedule(due) {
+  const tbody = document.getElementById('todayScheduleTbody');
+  const countEl = document.getElementById('todayScheduleCount');
+  const rows = due || [];
+  countEl.textContent = rows.length ? `${rows.length} patient${rows.length > 1 ? 's' : ''}` : '';
+  if (!rows.length) {
+    tbody.innerHTML = emptyRow(9, 'fa-circle-check', 'No vaccinations scheduled for today.', 'ok');
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td data-label="Patient">${person(r.full_name)}</td>
+      <td data-label="Patient ID"><span class="nd-pid">${esc(r.patient_id_display || ('PAT-' + String(r.patient_id).padStart(6,'0')))}</span></td>
+      <td data-label="Barangay">${orDash(r.barangay)}</td>
+      <td data-label="Contact">${orDash(r.contact_number)}</td>
+      <td data-label="Vaccine Brand">${orDash(r.brand_name)}</td>
+      <td data-label="Dose"><strong>${esc(r.nextDoseLabel || r.nextVaccine || '—')}</strong></td>
+      <td data-label="Scheduled">${fmtDate(r.nextSchedule)}</td>
+      <td data-label="Status"><span class="nd-badge warn">Due Today</span></td>
+      <td data-label="Action">${viewBtn(r.patient_id, 'fa-timeline', 'View / Record')}</td>
+    </tr>`).join('');
+}
+
+function renderActiveCases(patients) {
+  const tbody = document.getElementById('activeCasesTbody');
+  const active = (patients || []).filter(p => {
+    const s = (p.treatment_status || '').toLowerCase();
+    return s !== 'completed' && s !== 'treatment interrupted' && s !== 'incomplete' && !p.schedule_suspended;
+  }).slice(0, 10);
+  if (!active.length) {
+    tbody.innerHTML = emptyRow(6, 'fa-clipboard-list', 'No active cases at the moment.');
+    return;
+  }
+  tbody.innerHTML = active.map(p => {
+    const cat = p.category;
+    const total = Number(p.required_dose_count || p.totalDoses) || 0;
+    const done = Number(p.completedDoses) || 0;
+    const pct = total ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    const prog = total
+      ? `<div class="nd-progress"><div class="nd-progress-bar"><span style="width:${pct}%"></span></div><span class="nd-progress-txt">${done} / ${total}</span></div>`
+      : `<span class="nd-muted">${p.vaccine_d0 ? '1+ doses' : '—'}</span>`;
+    const status = p.treatment_status || p.treatmentStatus || '—';
+    const catCls = ({1:'cat1',2:'cat2',3:'cat3'})[String(cat)] || '';
+    return `<tr>
+      <td data-label="Patient">${person(p.full_name)}</td>
+      <td data-label="Animal">${esc(animalLabel(p.type_of_animal))}</td>
+      <td data-label="Category"><span class="nd-badge ${catCls}">Cat ${esc(cat || '—')}</span></td>
+      <td data-label="Progress">${prog}</td>
+      <td data-label="Status">${statusBadge(status)}</td>
+      <td data-label="Action">${viewBtn(p.patient_id, 'fa-timeline', 'History')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAttentionTable(due, over) {
+  const tbody = document.getElementById('attnTbody');
+  const rows = [
+    ...(due || []).map(r => ({ ...r, _status: 'due' })),
+    ...(over || []).map(r => ({ ...r, _status: 'over' })),
+  ];
+  if (!rows.length) {
+    tbody.innerHTML = emptyRow(7, 'fa-circle-check', 'No patients needing attention right now.', 'ok');
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const isDue = r._status === 'due';
+    const badge = isDue
+      ? '<span class="nd-badge warn">Due Today</span>'
+      : `<span class="nd-badge bad">${esc(r.daysOverdue)}d Overdue</span>`;
+    const sched = isDue ? fmtDate(r.nextSchedule) : esc(r.nextVaccine || '—');
+    return `<tr class="${isDue ? '' : 'is-overdue'}">
+      <td data-label="Patient">${person(r.full_name)}</td>
+      <td data-label="Barangay">${orDash(r.barangay)}</td>
+      <td data-label="Contact">${orDash(r.contact_number)}</td>
+      <td data-label="Vaccine">${orDash(r.brand_name)}</td>
+      <td data-label="Next Schedule">${sched}</td>
+      <td data-label="Status">${badge}</td>
+      <td data-label="Action">${viewBtn(r.patient_id, 'fa-timeline', 'View')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderRecent(rows) {
+  const el = document.getElementById('recentList');
+  if (!rows || !rows.length) {
+    el.innerHTML = '<div class="nd-empty"><i class="fa-solid fa-user-clock"></i>No records yet.</div>';
+    return;
+  }
+  const icons = { D: 'fa-dog', SD: 'fa-dog', C: 'fa-cat', O: 'fa-paw' };
+  el.innerHTML = rows.map(r => `
+    <div class="nd-recent-item">
+      <span class="nd-avatar" aria-hidden="true"><i class="fa-solid ${icons[r.type_of_animal] || 'fa-user'}"></i></span>
+      <div class="nd-recent-info">
+        <div class="n">${esc(r.full_name)}</div>
+        <div class="s">${r.barangay ? esc(r.barangay) : '—'} · ${esc(animalLabel(r.type_of_animal))}</div>
+      </div>
+      <div class="nd-recent-date">${r.date_registered ? fmtDate(r.date_registered) : '—'}</div>
+    </div>`).join('');
+}
+
+function renderNotifications(notifs, stats, widget, interrupted) {
+  const el = document.getElementById('notifList');
+  const sys = [];
+  if (stats.dueToday > 0)
+    sys.push({ tone: 'warn', icon: 'fa-calendar-day', text: `<strong>${esc(stats.dueToday)}</strong> patient(s) due for vaccination today.` });
+  if (stats.dueTomorrow > 0)
+    sys.push({ tone: '', icon: 'fa-calendar-plus', text: `<strong>${esc(stats.dueTomorrow)}</strong> patient(s) scheduled for tomorrow.` });
+  if (stats.overdue > 0)
+    sys.push({ tone: 'bad', icon: 'fa-triangle-exclamation', text: `<strong>${esc(stats.overdue)}</strong> patient(s) have overdue vaccinations.` });
+  if (stats.interrupted > 0)
+    sys.push({ tone: 'bad', icon: 'fa-virus-slash', text: `<strong>${esc(stats.interrupted)}</strong> interrupted treatment(s) require review.` });
+
+  (interrupted || []).slice(0, 3).forEach(p => {
+    sys.push({
+      tone: 'bad', icon: 'fa-user-xmark',
+      text: `<strong>${esc(p.full_name)}</strong> — Missed ${esc(p.missed_dose || 'dose')} (${esc(p.days_overdue || 0)} days overdue)`,
+      time: p.missed_date,
+    });
+  });
+
+  const activity = (notifs || []).slice(0, 5).map(n => ({
+    tone: '', icon: 'fa-phone', text: esc(plainText(n.text)), time: n.time,
+  }));
+  const combined = [...sys, ...activity].slice(0, 10);
+
+  if (!combined.length) {
+    el.innerHTML = '<div class="nd-empty ok"><i class="fa-solid fa-bell-slash"></i>No new notifications.</div>';
+    return;
+  }
+  el.innerHTML = combined.map(n => `
+    <div class="nd-alert ${n.tone}">
+      <i class="fa-solid ${n.icon} ico" aria-hidden="true"></i>
+      <div>
+        <div class="nd-alert-text">${n.text}</div>
+        <div class="nd-alert-meta">${n.time
+          ? new Date(n.time).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
+          : 'Just now'}</div>
+      </div>
+    </div>`).join('');
+}
+
+function chartEmpty(canvas, icon, message) {
+  const box = canvas.closest('.nd-chart');
+  let empty = box.querySelector('.nd-empty');
+  if (!message) {
+    if (empty) empty.remove();
+    canvas.style.visibility = 'visible';
+    return;
+  }
+  canvas.style.visibility = 'hidden';
+  if (!empty) {
+    empty = document.createElement('div');
+    empty.className = 'nd-empty';
+    box.appendChild(empty);
+  }
+  empty.innerHTML = `<i class="fa-solid ${icon}"></i>${esc(message)}`;
+}
+
+const legendBottom = { position: 'bottom', labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'circle' } };
+
+function renderAnimalChart(data) {
+  const ctx = document.getElementById('animalChart');
+  if (chartAnimal) { chartAnimal.destroy(); chartAnimal = null; }
+  const rows = (data || []).map(r => ({ label: r.label, count: Number(r.count) || 0 }));
+  if (!rows.reduce((s, r) => s + r.count, 0)) {
+    chartEmpty(ctx, 'fa-paw', 'No bite cases recorded yet.');
+    return;
+  }
+  chartEmpty(ctx);
+  chartAnimal = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: rows.map(r => r.label),
+      datasets: [{ data: rows.map(r => r.count), backgroundColor: ['#4274D9', '#22c55e', '#f97316', '#95CCDD'], borderWidth: 2, borderColor: '#fff' }],
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: legendBottom } },
+  });
+}
+
+function renderMonthlyChart(data) {
+  const ctx = document.getElementById('monthlyChart');
+  if (chartMonthly) { chartMonthly.destroy(); chartMonthly = null; }
+  const rows = (data || []).map(r => ({ month: r.month, count: Number(r.count) || 0 }));
+  if (!rows.length) {
+    chartEmpty(ctx, 'fa-chart-line', 'No monthly case data yet.');
+    return;
+  }
+  chartEmpty(ctx);
+  chartMonthly = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: rows.map(r => r.month),
+      datasets: [{
+        label: 'Cases', data: rows.map(r => r.count),
+        borderColor: '#4274D9', backgroundColor: 'rgba(66,116,217,.12)',
+        fill: true, tension: .4, pointBackgroundColor: '#293681',
+        pointRadius: 3, pointHoverRadius: 6, borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(41,54,129,.06)' }, ticks: { font: { size: 11 }, precision: 0 } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      },
+    },
+  });
+}
+
+function renderCategoryChart(data) {
+  const ctx = document.getElementById('categoryChart');
+  if (chartCategory) { chartCategory.destroy(); chartCategory = null; }
+  const rows = (data || []).map(r => ({ label: `Category ${r.category}`, count: Number(r.count) || 0 }));
+  const total = rows.reduce((s, r) => s + r.count, 0);
+  if (!total) {
+    chartEmpty(ctx, 'fa-layer-group', 'No category data yet.');
+    return;
+  }
+  chartEmpty(ctx);
+  chartCategory = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: rows.map(r => r.label),
+      datasets: [{ data: rows.map(r => r.count), backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444'], borderWidth: 2, borderColor: '#fff' }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '58%',
+      plugins: {
+        legend: legendBottom,
+        tooltip: { callbacks: { label: c => `${c.label}: ${c.parsed} (${((c.parsed / total) * 100).toFixed(1)}%)` } },
+      },
+    },
+  });
+}
+
+function renderPepChart(stats) {
+  const ctx = document.getElementById('pepChart');
+  const barsEl = document.getElementById('pepBars');
+  if (!stats) return;
+  if (chartPep) { chartPep.destroy(); chartPep = null; }
+  const completed = Number(stats.completedVacc) || 0;
+  const ongoing = Number(stats.underTreatment) || 0;
+  const overdue = Number(stats.overdue) || 0;
+  const total = completed + ongoing + overdue;
+  if (!total) {
+    chartEmpty(ctx, 'fa-flask-vial', 'No treatment data yet.');
+    barsEl.innerHTML = '';
+    return;
+  }
+  chartEmpty(ctx);
+  chartPep = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Completed', 'Ongoing', 'Overdue'],
+      datasets: [{ data: [completed, ongoing, overdue], backgroundColor: ['#16a34a', '#4274D9', '#dc2626'], borderRadius: 6, borderSkipped: false, barThickness: 16 }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: 'rgba(41,54,129,.06)' }, ticks: { font: { size: 10 }, precision: 0 } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      },
+    },
+  });
+  const pct = v => Math.round((v / total) * 100);
+  barsEl.innerHTML = [
+    { label: 'Completed', val: completed, color: '#16a34a' },
+    { label: 'Ongoing', val: ongoing, color: '#4274D9' },
+    { label: 'Overdue', val: overdue, color: '#dc2626' },
+  ].map(({ label, val, color }) => `
+    <div class="nd-pep-row"><span>${label}</span><span style="color:${color};font-weight:700;">${val} · ${pct(val)}%</span></div>
+    <div class="nd-pep-track"><span style="width:${pct(val)}%;background:${color};"></span></div>`).join('');
+}
+</script>
+</body>
+</html>

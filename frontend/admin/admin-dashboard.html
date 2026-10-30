@@ -1,0 +1,168 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administrator Dashboard – HopeCare</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-dashboard.css?v=2">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/js/shared/sidebar.js"></script>
+</head>
+<body class="hc-admin" data-nav="admin-dashboard">
+<div class="main-wrapper"><script>initAppSidebar();</script>
+<div class="main-content">
+<div class="ad-page">
+
+  <header class="ad-head">
+    <div>
+      <h1><i class="fa-solid fa-gauge-high"></i> Administrator Dashboard</h1>
+      <p>HopeCare Animal Bite Center — clinic, vaccine inventory and AM/PM shift overview</p>
+    </div>
+    <div class="ad-head-meta">
+      <span class="ad-chip" id="adShift"><i class="fa-solid fa-clock"></i> —</span>
+      <span id="adClock" aria-live="off"></span>
+    </div>
+  </header>
+
+  <section class="ad-filter" aria-label="Dashboard date filter">
+    <div class="ad-seg" role="group" aria-label="Date range" id="adPeriods">
+      <button type="button" data-period="today" aria-pressed="true">Today</button>
+      <button type="button" data-period="week" aria-pressed="false">This Week</button>
+      <button type="button" data-period="month" aria-pressed="false">This Month</button>
+      <button type="button" data-period="quarter" aria-pressed="false">This Quarter</button>
+      <button type="button" data-period="custom" aria-pressed="false">Custom</button>
+    </div>
+    <div class="ad-custom" id="adCustom">
+      <label for="adFrom">From</label><input type="date" id="adFrom">
+      <label for="adTo">To</label><input type="date" id="adTo">
+      <button type="button" class="ad-btn" id="adApply"><i class="fa-solid fa-check"></i> Apply</button>
+    </div>
+    <div class="ad-filter-end">
+      <span class="ad-updated" id="adUpdated">Loading…</span>
+      <button type="button" class="ad-btn ghost" id="adRefresh"><i class="fa-solid fa-rotate"></i> Refresh</button>
+    </div>
+    <div class="ad-range-note" id="adRangeNote"></div>
+  </section>
+
+  <div class="ad-banner error" id="adBanner" role="alert"><i class="fa-solid fa-circle-exclamation"></i><span id="adBannerText"></span></div>
+
+  <h2 class="ad-section-title"><i class="fa-solid fa-signal"></i> Current Status <small>Live values — not affected by the date filter</small></h2>
+  <div class="ad-kpis" id="kpiCurrent"></div>
+
+  <h2 class="ad-section-title"><i class="fa-solid fa-calendar-day"></i> Today <small id="todayLabel"></small></h2>
+  <div class="ad-kpis" id="kpiToday"></div>
+
+  <div id="periodWrap" hidden>
+    <h2 class="ad-section-title"><i class="fa-solid fa-calendar-week"></i> Selected Period <small id="periodLabel"></small></h2>
+    <div class="ad-kpis" id="kpiPeriod"></div>
+  </div>
+
+  <h2 class="ad-section-title"><i class="fa-solid fa-sun"></i> AM &amp; PM Shift Inventory Status <small id="shiftLabel"></small></h2>
+  <div class="ad-grid cols-3" id="shiftGrid">
+    <div class="ad-panel"><div class="ad-panel-bd"><div class="ad-loading">Loading…</div></div></div>
+    <div class="ad-panel"><div class="ad-panel-bd"><div class="ad-loading">Loading…</div></div></div>
+    <div class="ad-panel ad-span-all"><div class="ad-panel-bd"><div class="ad-loading">Loading…</div></div></div>
+  </div>
+
+  <div class="ad-grid cols-3">
+    <div class="ad-panel ad-span-2" id="trendPanel">
+      <div class="ad-panel-hd">
+        <h3><i class="fa-solid fa-chart-line"></i> Vaccine Usage Trend</h3>
+        <label class="ad-sr" for="adGrain">Chart interval</label>
+        <select id="adGrain" class="ad-btn ghost" style="padding:6px 9px;">
+          <option value="">Auto interval</option>
+          <option value="day">Daily</option>
+          <option value="week">Weekly</option>
+          <option value="month">Monthly</option>
+        </select>
+      </div>
+      <div class="ad-panel-bd"><div class="ad-chart-box"><canvas id="chartTrend" aria-label="Vaccine usage trend chart" role="img"></canvas></div></div>
+    </div>
+    <div class="ad-panel">
+      <div class="ad-panel-hd"><h3><i class="fa-solid fa-syringe"></i> Usage by Vaccine Type</h3></div>
+      <div class="ad-panel-bd"><div class="ad-chart-box"><canvas id="chartByVaccine" aria-label="Vaccine usage by type chart" role="img"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="ad-panel" style="margin-bottom:16px;">
+    <div class="ad-panel-hd">
+      <h3><i class="fa-solid fa-boxes-stacked"></i> Vaccine Inventory Summary</h3>
+      <a class="ad-link" href="/admin/inventory.html">Open Vaccine Inventory <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+    <div class="ad-panel-bd">
+      <div class="ad-table-scroll">
+        <table class="ad-table ad-cards">
+          <thead><tr>
+            <th>Vaccine</th><th class="num">Available Stock</th><th class="num">Used (period)</th>
+            <th class="num">Additional (period)</th><th>Nearest Expiry</th><th>Status</th><th>Last Updated</th>
+          </tr></thead>
+          <tbody id="invBody"><tr><td colspan="7"><div class="ad-loading">Loading…</div></td></tr></tbody>
+        </table>
+      </div>
+      <p class="ad-note" id="invNote" style="margin-top:10px;"></p>
+    </div>
+  </div>
+
+  <div class="ad-grid cols-2">
+    <div class="ad-panel">
+      <div class="ad-panel-hd">
+        <h3><i class="fa-solid fa-bell"></i> Alerts &amp; Notifications <span class="ad-badge" id="alertCount">0</span></h3>
+      </div>
+      <div class="ad-panel-bd"><div class="ad-alerts" id="alertList"><div class="ad-loading">Loading…</div></div></div>
+    </div>
+    <div class="ad-panel">
+      <div class="ad-panel-hd">
+        <h3><i class="fa-solid fa-brain"></i> AI Inventory Analytics Summary</h3>
+        <a class="ad-link" href="/admin/ai-predictive.html">View Full AI Inventory Analytics <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      <div class="ad-panel-bd">
+        <div id="aiStats"><div class="ad-loading">Loading…</div></div>
+        <div id="aiResult"></div>
+        <div class="ad-ai-actions">
+          <button type="button" class="ad-btn" id="aiGenerate"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Analysis</button>
+        </div>
+        <div class="ad-ai-status" id="aiStatus" role="status"></div>
+        <p class="ad-disclaimer">AI-generated insights are based on aggregated system data and are intended to support data analysis. They should not be treated as a medical diagnosis or a replacement for professional clinical judgment.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ad-panel" style="margin-bottom:16px;">
+    <div class="ad-panel-hd">
+      <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Inventory Activities</h3>
+      <a class="ad-btn ghost" href="/admin/inventory-history.html"><i class="fa-solid fa-list"></i> View Inventory History</a>
+    </div>
+    <div class="ad-panel-bd">
+      <div class="ad-table-scroll">
+        <table class="ad-table ad-cards">
+          <thead><tr><th>Date &amp; Time</th><th>Activity</th><th>Vaccine</th><th class="num">Quantity</th><th>Shift</th><th>Staff</th><th>Status</th></tr></thead>
+          <tbody id="actBody"><tr><td colspan="7"><div class="ad-loading">Loading…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="ad-grid cols-main">
+    <div class="ad-panel">
+      <div class="ad-panel-hd"><h3><i class="fa-solid fa-bolt"></i> Quick Actions</h3></div>
+      <div class="ad-panel-bd"><div class="ad-qa">
+        <a href="/admin/inventory.html"><i class="fa-solid fa-boxes-stacked"></i> Vaccine Inventory</a>
+        <a href="/admin/inventory-history.html"><i class="fa-solid fa-clock-rotate-left"></i> Inventory History</a>
+        <a href="/admin/inventory-reports.html"><i class="fa-solid fa-file-pdf"></i> Reports</a>
+        <a href="/admin/inventory-analytics.html"><i class="fa-solid fa-chart-line"></i> Inventory Analytics</a>
+        <a href="/admin/staff-management.html"><i class="fa-solid fa-user-shield"></i> Staff Management</a>
+        <a href="/admin/patient-accounts.html"><i class="fa-solid fa-id-card"></i> Patient Accounts</a>
+        <a href="/shared/activity-logs.html"><i class="fa-solid fa-clipboard-check"></i> Activity Logs</a>
+      </div></div>
+    </div>
+  </div>
+
+</div>
+</div></div>
+<script src="/js/shared/rbac.js"></script><script src="/js/shared/app.js"></script>
+<script src="/js/admin/admin-dashboard.js?v=5"></script>
+</body>
+</html>

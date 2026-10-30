@@ -1,0 +1,663 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Record Card – HopeCare ABC System</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+      background: #e8e8e8;
+      color: #111;
+    }
+
+    /* ── Page shell (screen preview) ── */
+    .page-shell {
+      width: 8.5in;
+      min-height: 11in;
+      margin: 20px auto;
+      background: #fff;
+      padding: 0.45in 0.45in 0.4in;
+      box-shadow: 0 4px 24px rgba(0,0,0,.18);
+    }
+
+    /* ── Print: remove browser chrome, fit on one page ── */
+    @media print {
+      @page { size: letter portrait; margin: 0.35in 0.4in; }
+      body   { background: #fff; }
+      .page-shell { margin: 0; padding: 0; box-shadow: none; width: 100%; }
+      .no-print  { display: none !important; }
+    }
+
+    /* ── Loading / error states ── */
+    #loadingMsg { text-align: center; padding: 60px; font-size: 15px; color: #555; }
+    #cardWrap   { display: none; }
+
+    /* ══════════════════════════════════════════
+       HEADER
+    ══════════════════════════════════════════ */
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2.5px solid #293681;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .brand-block { display: flex; flex-direction: column; }
+    .brand-top   { display: flex; align-items: center; gap: 8px; }
+    .brand-name  { font-size: 22px; font-weight: 900; color: #293681; letter-spacing: -1px; }
+    .brand-name span { color: #4274D9; }
+    .brand-abc   { font-size: 30px; font-weight: 900; color: #111; letter-spacing: -2px; line-height: 1; }
+    .brand-abc span { color: #e53e3e; }
+    .brand-sub   { font-size: 9px; font-weight: 700; color: #293681; text-transform: uppercase; letter-spacing: .5px; margin-top: 1px; }
+    .city-badge  {
+      background: #e53e3e; color: #fff;
+      font-size: 10px; font-weight: 800; letter-spacing: 1px;
+      padding: 2px 10px; border-radius: 3px; margin-top: 3px; display: inline-block;
+    }
+    .doh-block { text-align: center; }
+    .doh-text  { font-size: 11px; font-weight: 800; color: #2d8a4e; letter-spacing: 2px; }
+    .doh-sub   { font-size: 8.5px; color: #555; }
+
+    .clinic-info { font-size: 8.5px; color: #333; margin: 4px 0 2px; line-height: 1.5; }
+    .clinic-info strong { color: #293681; }
+    .hours-bar {
+      background: #4274D9; color: #fff;
+      font-size: 9.5px; font-weight: 700;
+      padding: 2px 8px; border-radius: 3px;
+      display: inline-block; margin-top: 2px;
+    }
+
+    /* ══════════════════════════════════════════
+       TWO-COLUMN BODY
+    ══════════════════════════════════════════ */
+    .card-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .col-left  {}
+    .col-right {}
+
+    /* ── Section titles ── */
+    .sec-title {
+      font-size: 9px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .5px; color: #fff;
+      background: #293681; padding: 3px 7px;
+      border-radius: 3px; margin-bottom: 5px;
+    }
+    .sec-title.green  { background: #2d8a4e; }
+    .sec-title.orange { background: #c05621; }
+
+    /* ── Field rows ── */
+    .field-row {
+      display: flex; align-items: baseline;
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 4px; padding-bottom: 2px;
+      gap: 4px;
+    }
+    .field-lbl {
+      font-size: 8.5px; font-weight: 700; color: #555;
+      text-transform: uppercase; white-space: nowrap; min-width: 70px;
+    }
+    .field-val {
+      font-size: 10px; font-weight: 700; color: #111; flex: 1;
+      word-break: break-word;
+    }
+    .field-val.empty { color: #aaa; font-weight: 400; }
+
+    /* ── Two-col fields (Age | Sex) ── */
+    .field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
+    .field-row-2 .field-row { margin-bottom: 0; }
+
+    /* ── PEP dose table ── */
+    .pep-table {
+      width: 100%; border-collapse: collapse; font-size: 8.5px; margin-top: 4px;
+    }
+    .pep-table th {
+      background: #293681; color: #fff;
+      padding: 3px 4px; text-align: center; font-size: 8px;
+    }
+    .pep-table td {
+      padding: 3px 4px; text-align: center;
+      border-bottom: 1px solid #ddd; font-size: 8.5px;
+    }
+    .pep-table tr:nth-child(even) td { background: #f5f7ff; }
+    .pep-table .day-cell { font-weight: 700; color: #293681; text-align: left; }
+    .pep-table .given    { color: #2d8a4e; font-weight: 700; }
+    .pep-table .pending  { color: #aaa; }
+
+    /* ── Outcome badge ── */
+    .outcome-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 4px;
+      font-size: 9.5px; font-weight: 800; letter-spacing: .5px;
+    }
+    .outcome-c   { background: #dcfce7; color: #15803d; }
+    .outcome-inc { background: #fef9c3; color: #854d0e; }
+    .outcome-n   { background: #f1f5f9; color: #475569; }
+
+    /* ── Exposure detail grid ── */
+    .exp-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px;
+    }
+
+    /* ══════════════════════════════════════════
+       LOGIN GUIDE (bottom section)
+    ══════════════════════════════════════════ */
+    .login-section {
+      margin-top: 8px;
+      border: 1.5px solid #6d92e4;
+      border-radius: 8px;
+      padding: 8px 12px 10px;
+      background: #eef3ff;
+    }
+    .login-title {
+      font-size: 11px; font-weight: 800; color: #293681;
+      text-transform: uppercase; letter-spacing: .4px;
+      margin-bottom: 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .login-title i { color: #4274D9; font-size: 12px; }
+    .login-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2px 18px;
+    }
+    .login-item { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 5px; }
+    .login-step {
+      background: #293681; color: #fff;
+      font-size: 8px; font-weight: 800;
+      width: 15px; height: 15px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .login-text { font-size: 8.5px; color: #1e2a4a; line-height: 1.4; }
+    .login-text strong { color: #1e2a4a; }
+    .login-highlight {
+      color: #e11d2e; font-weight: 800; font-size: 10px;
+      overflow-wrap: break-word;
+    }
+    .login-note { color: #64748b; font-weight: 600; font-size: 8px; }
+    .login-qr {
+      margin-top: 2px;
+      padding-top: 6px;
+      border-top: 1px solid #c9d7f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .login-qr-title {
+      font-size: 9px; font-weight: 800; color: #293681;
+      letter-spacing: .4px; text-transform: uppercase;
+    }
+    .login-qr img {
+      width: 1.35in; height: 1.35in;
+      margin: 4px 0 2px;
+      background: #fff;
+      border: 1px solid #d5e0f6;
+    }
+    .login-qr-caption { font-size: 8px; color: #1e2a4a; font-weight: 600; }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px dashed #bbb; margin: 6px 0; }
+
+    /* ── Footer ── */
+    .card-footer {
+      margin-top: 6px; text-align: center;
+      font-size: 8px; color: #888; border-top: 1px solid #ddd; padding-top: 4px;
+    }
+
+    /* ── Print toolbar (screen only) ── */
+    .print-toolbar {
+      width: 8.5in; margin: 0 auto 12px;
+      display: flex; gap: 10px; align-items: center;
+    }
+    .btn-print {
+      background: #293681; color: #fff;
+      border: none; border-radius: 8px;
+      padding: 10px 22px; font-size: 14px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; gap: 7px;
+    }
+    .btn-print:hover { background: #4274D9; }
+    .btn-back {
+      background: #f1f5f9; color: #475569;
+      border: 1.5px solid #e2e8f0; border-radius: 8px;
+      padding: 10px 18px; font-size: 13px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Print toolbar — hidden when printing -->
+<div class="print-toolbar no-print" id="toolbar" style="display:none;">
+  <button class="btn-print" onclick="window.print()">
+    <i class="fa-solid fa-print"></i> Print / Save as PDF
+  </button>
+  <a class="btn-back" href="javascript:history.back()">
+    <i class="fa-solid fa-arrow-left"></i> Back
+  </a>
+</div>
+
+<div class="page-shell">
+  <div id="loadingMsg"><i class="fa-solid fa-spinner fa-spin"></i> Loading patient record…</div>
+  <div id="cardWrap"></div>
+</div>
+
+<script>
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function esc(v) {
+  if (v == null || v === '') return '';
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const s = String(d);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const [y,mo,da] = s.slice(0,10).split('-').map(Number);
+    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${m[mo-1]} ${da}, ${y}`;
+  }
+  return s;
+}
+function fmtDateShort(d) {
+  if (!d) return '—';
+  const s = String(d).slice(0,10);
+  const [y,mo,da] = s.split('-');
+  return `${mo}/${da}/${y}`;
+}
+function valOr(v, alt='—') { return (v==null||v===''||v===undefined) ? alt : esc(v); }
+function animalLabel(c) { return ({D:'Pet Dog',SD:'Stray Dog',C:'Cat',O:'Other'})[c]||c||'—'; }
+function typeLabel(c)   { return ({B:'Bite',NB:'Non-bite',S:'Scratch'})[c]||c||'—'; }
+function sexLabel(c)    { return ({M:'Male',F:'Female',O:'Other'})[c]||c||'—'; }
+function catLabel(c)    { return c ? `Category ${c}` : '—'; }
+function outcomeLabel(v){ return ({C:'Completed',Inc:'Incomplete',N:'None',D:'Died'})[v]||v||'Pending'; }
+function outcomeClass(v){ return ({C:'outcome-c',Inc:'outcome-inc',N:'outcome-n'})[v]||'outcome-inc'; }
+
+function pepRowForLabel(pepSchedule, episode, label) {
+  const rows = pepSchedule || [];
+  const cycle = Number(episode && episode.treatment_cycle) || 0;
+  if (cycle > 0) {
+    const current = rows.find((r) => Number(r.treatment_cycle) === cycle && r.day_label === label);
+    if (current) return current;
+  }
+  const matches = rows.filter((r) => r.day_label === label);
+  return matches.length ? matches[matches.length - 1] : {};
+}
+
+// ── Fetch data and render ─────────────────────────────────────────────────────
+async function loadAndRender() {
+  const params   = new URLSearchParams(location.search);
+  const patientId = params.get('patientId');
+  const caseId    = params.get('caseId');   // optional; if missing → use active/latest episode
+
+  if (!patientId) {
+    document.getElementById('loadingMsg').innerHTML =
+      '<span style="color:#dc2626">No patient specified.</span>';
+    return;
+  }
+
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+  const hdrs  = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+  try {
+    // Fetch full case history (returns patient + all episodes with pep_schedule)
+    const caseRes  = await fetch(`/api/cases/patient/${patientId}`, { headers: hdrs, cache: 'no-store' });
+    if (caseRes.status === 401 || caseRes.status === 403) {
+      window.location.href = '/shared/login.html'; return;
+    }
+    const caseData = await caseRes.json();
+    if (!caseData.success) throw new Error(caseData.message || 'Failed to load data');
+
+    const portalRes = await fetch(`/api/patients/${encodeURIComponent(patientId)}/portal-card`, { headers: hdrs, cache: 'no-store' });
+    if (portalRes.status === 401 || portalRes.status === 403) {
+      window.location.href = '/shared/login.html'; return;
+    }
+    const portalData = await portalRes.json().catch(() => ({}));
+    const loginGuide = portalData.data;
+    if (!portalRes.ok || !portalData.success || !loginGuide || !loginGuide.portal_url) {
+      throw new Error(portalData.message || 'PATIENT_PORTAL_URL is not configured. Set it in the backend environment before printing a patient card.');
+    }
+
+    const patient  = caseData.data.patient || {};
+    const episodes = caseData.data.episodes || [];
+
+    // Pick the episode to display:
+    //   • If caseId is provided (new case just saved) → use that episode
+    //   • Otherwise → use the active_episode (latest)
+    let targetEp = null;
+    if (caseId) {
+      targetEp = episodes.find(e => String(e.episode_id) === String(caseId))
+              || caseData.data.active_episode;
+    } else {
+      targetEp = caseData.data.active_episode
+              || episodes.slice(-1)[0]
+              || null;
+    }
+
+    // Matching exposure
+    const exposures  = caseData.data.exposures || [];
+    const targetExp  = exposures.find(e => String(e.exposure_id) === String(targetEp?.exposure_id))
+                    || exposures.slice(-1)[0]
+                    || {};
+
+    render(patient, targetEp || {}, targetExp, loginGuide);
+    document.getElementById('loadingMsg').style.display = 'none';
+    document.getElementById('cardWrap').style.display   = 'block';
+    document.getElementById('toolbar').style.display    = 'flex';
+  } catch(err) {
+    document.getElementById('loadingMsg').innerHTML =
+      `<span style="color:#dc2626">Error: ${esc(err.message)}</span>`;
+  }
+}
+
+// ── Build the card HTML ───────────────────────────────────────────────────────
+function render(p, ep, exp, loginGuide) {
+  const pepSched = ep.pep_schedule || [];
+  const cn       = exp.exposure_number || ep.episode_number || '—';
+  const outcome  = ep.outcome || 'Inc';
+
+  // PEP dose rows — only days required by this case's category
+  const CAT_DAYS = { '1':[0,3,7], '2':[0,3,7,14], '3':[0,3] };
+  const cat = String(ep.category || exp.category || '');
+  const reqDays = CAT_DAYS[cat] || [0,3,7,14,28];
+  const DAY_KEY  = { 0:'vaccine_d0',3:'vaccine_d3',7:'vaccine_d7',14:'vaccine_d14',28:'vaccine_d28' };
+  const DAY_LBL  = { 0:'Day 0',3:'Day 3',7:'Day 7',14:'Day 14',28:'Day 28' };
+
+  const pepRows = reqDays.map(d => {
+    const key    = DAY_KEY[d];
+    const label  = DAY_LBL[d];
+    const row    = pepRowForLabel(pepSched, ep, label);
+    const given  = ep[key] || row.date_given || null;
+    const due    = row.date_due || null;
+    const brand  = row.vaccine_brand || ep.brand_name || '';
+    const route  = row.route || ep.route || '';
+    const vacc   = row.vaccinated_by || '';
+    return `<tr>
+      <td class="day-cell">${label}</td>
+      <td class="${given?'given':'pending'}">${given ? fmtDateShort(given) : '—'}</td>
+      <td>${due  ? fmtDateShort(due)  : '—'}</td>
+      <td>${esc(brand)||'—'}</td>
+      <td>${esc(route)||'—'}</td>
+      <td>${esc(vacc) ||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const pid     = p.patient_id || '';
+  const patIdDisplay = (loginGuide && loginGuide.patient_id) || p.patient_id_display || ('PAT-' + String(pid).padStart(6,'0'));
+  const portalUrl = loginGuide && loginGuide.portal_url;
+  const tempPassword = loginGuide && loginGuide.temporary_password;
+  const qrSrc = loginGuide && String(loginGuide.qr_code || '').startsWith('data:image/png;base64,')
+    ? loginGuide.qr_code
+    : '';
+  let passwordLine;
+  if (tempPassword === 'hopecare') {
+    passwordLine = '<span class="login-highlight">hopecare</span> <span class="login-note">(lowercase, one word)</span>';
+  } else if (loginGuide && loginGuide.password_change_completed) {
+    passwordLine = '<span class="login-note">Already changed. Use the password you created after signing in.</span>';
+  } else {
+    passwordLine = '<span class="login-note">Ask the clinic to reset it, then print this card again.</span>';
+  }
+
+  const html = `
+    <!-- ══ HEADER ══ -->
+    <div class="card-header">
+      <div class="brand-block">
+        <div class="brand-top">
+          <div>
+            <div class="brand-name">HOPE<span>CARE</span></div>
+            <div class="brand-abc">ABC<span style="font-size:14px;font-weight:900;color:#4274D9;">🐾</span></div>
+            <div class="brand-sub">Animal Bite Center</div>
+          </div>
+        </div>
+        <div class="city-badge">GINGOOG CITY</div>
+      </div>
+      <div style="text-align:center;flex:1;padding:0 12px;">
+        <div class="clinic-info">
+          <strong>📍</strong> 2nd Floor Nadal Bldg, National Highway Brgy. 03, Gomez St.<br>
+          Beside Shell, Above EMCOR, Gingoog City, Misamis Oriental<br>
+          <strong>📞</strong> 0964-890-1339 &nbsp;|&nbsp; 0954-195-2241
+        </div>
+        <div class="hours-bar">MON–SAT 8AM–6PM &nbsp;|&nbsp; SUN 9AM–5PM</div>
+      </div>
+      <div class="doh-block">
+        <div class="doh-text">DOH</div>
+        <div class="doh-sub">CERTIFIED</div>
+        <div style="font-size:7.5px;color:#2d8a4e;font-weight:700;margin-top:2px;">Human Anti-Rabies<br>Vaccination Center</div>
+      </div>
+    </div>
+
+    <!-- ══ PATIENT INFO STRIP ══ -->
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:6px;align-items:start;">
+      <div>
+        <div class="sec-title">Patient Information</div>
+        <div class="field-row">
+          <span class="field-lbl">Date Registered</span>
+          <span class="field-val">${fmtDate(p.date_registered)}</span>
+          <span class="field-lbl" style="margin-left:12px;">Reg. No.</span>
+          <span class="field-val" style="color:#293681;">${esc(p.registration_number)||'—'}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-lbl">Patient Name</span>
+          <span class="field-val" style="font-size:12px;">${esc(p.full_name)||'—'}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-lbl">Patient ID</span>
+          <span class="field-val" style="color:#4274D9;font-weight:800;">${patIdDisplay}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-lbl">Address</span>
+          <span class="field-val">${esc(p.address)||'—'}</span>
+        </div>
+        <div class="field-row-2">
+          <div class="field-row">
+            <span class="field-lbl">Contact #</span>
+            <span class="field-val">${esc(p.contact_number)||'—'}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-lbl">Age / Sex</span>
+            <span class="field-val">${esc(p.age)||'—'} / ${sexLabel(p.sex)}</span>
+          </div>
+        </div>
+      </div>
+      <div style="border:2px solid #293681;border-radius:6px;padding:6px 10px;text-align:center;min-width:90px;">
+        <div style="font-size:8px;color:#555;font-weight:700;text-transform:uppercase;">Case #</div>
+        <div style="font-size:28px;font-weight:900;color:#293681;line-height:1;">${esc(cn)}</div>
+        <div style="margin-top:3px;">
+          <span class="outcome-badge ${outcomeClass(outcome)}">${outcomeLabel(outcome)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TWO-COLUMN BODY ══ -->
+    <div class="card-body">
+
+      <!-- LEFT: History of Exposure + PEP Details -->
+      <div class="col-left">
+        <div class="sec-title orange">History of Exposure — Case #${esc(cn)}</div>
+        <div class="field-row">
+          <span class="field-lbl">Date Exposed</span>
+          <span class="field-val">${fmtDate(exp.date_of_exposure||ep.date_of_exposure)}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-lbl">Place</span>
+          <span class="field-val">${valOr(exp.place_of_exposure||ep.place_of_exposure)}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-lbl">Barangay</span>
+          <span class="field-val">${valOr(exp.barangay)}</span>
+        </div>
+        <div class="field-row-2">
+          <div class="field-row">
+            <span class="field-lbl">Animal</span>
+            <span class="field-val">${animalLabel(exp.type_of_animal||ep.type_of_animal)}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-lbl">Type</span>
+            <span class="field-val">${typeLabel(exp.type_of_exposure||ep.type_of_exposure)}</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-lbl">Site / Body</span>
+          <span class="field-val">${valOr(exp.site_of_exposure||ep.site_of_exposure)}</span>
+        </div>
+        <div class="field-row-2">
+          <div class="field-row">
+            <span class="field-lbl">Category</span>
+            <span class="field-val">${catLabel(exp.category||ep.category)}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-lbl">Washing</span>
+            <span class="field-val">${(exp.washing_of_bite||ep.washing_of_bite)==='Y'?'Yes':'No'}</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-lbl">Animal Status</span>
+          <span class="field-val">${valOr(exp.biting_animal_status||ep.biting_animal_status)}</span>
+        </div>
+        ${exp.notes||ep.notes ? `
+        <div class="field-row">
+          <span class="field-lbl">Remarks</span>
+          <span class="field-val">${esc(exp.notes||ep.notes)}</span>
+        </div>` : ''}
+
+        <div class="sec-title" style="margin-top:7px;">PEP — Vaccine &amp; Route</div>
+        <div class="field-row-2">
+          <div class="field-row">
+            <span class="field-lbl">Brand</span>
+            <span class="field-val">${valOr(ep.brand_name)}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-lbl">Route</span>
+            <span class="field-val">${valOr(ep.route)}</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-lbl">RIG Date</span>
+          <span class="field-val">${ep.rig_date_given ? fmtDate(ep.rig_date_given) : '—'}</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: PEP Dose Schedule -->
+      <div class="col-right">
+        <div class="sec-title green">PEP Dose Schedule — Current Case</div>
+        <table class="pep-table">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Dose</th>
+              <th>Date Given</th>
+              <th>Date Due</th>
+              <th>Brand</th>
+              <th>Route</th>
+              <th>Vaccinator</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pepRows || '<tr><td colspan="6" style="text-align:center;color:#aaa;padding:6px;">No doses recorded</td></tr>'}
+          </tbody>
+        </table>
+
+        <div style="margin-top:8px;" class="sec-title green">Outcome</div>
+        <div style="padding:4px 0;">
+          <span class="outcome-badge ${outcomeClass(outcome)}" style="font-size:10px;">
+            ${outcomeLabel(outcome)}
+          </span>
+          ${outcome==='C' ? '<span style="font-size:8.5px;color:#15803d;margin-left:6px;">All required doses completed.</span>' :
+            '<span style="font-size:8.5px;color:#854d0e;margin-left:6px;">Treatment in progress.</span>'}
+        </div>
+
+        <div style="margin-top:8px;" class="sec-title">Nurse / Attending</div>
+        <div class="field-row">
+          <span class="field-lbl">Recorded by</span>
+          <span class="field-val">${valOr(ep.created_by||ep.updated_by)}</span>
+        </div>
+        <div class="field-row">
+          <span class="field-lbl">Date Printed</span>
+          <span class="field-val">${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ══ PATIENT ACCOUNT LOGIN GUIDE ══ -->
+    <div class="login-section">
+      <div class="login-title">
+        <i class="fa-solid fa-mobile-screen"></i>
+        Patient Account Login Guide
+      </div>
+      <div class="login-grid">
+        <div>
+          <div class="login-item">
+            <div class="login-step">1</div>
+            <div class="login-text">
+              Open your web browser and go to the HopeCare Patient Portal:<br>
+              <span class="login-highlight">${esc(portalUrl).replace(/\//g, '/<wbr>')}</span>
+            </div>
+          </div>
+          <div class="login-item">
+            <div class="login-step">2</div>
+            <div class="login-text">
+              Enter your <strong>Patient ID</strong> as your username:<br>
+              <span class="login-highlight">${esc(patIdDisplay)}</span>
+            </div>
+          </div>
+          <div class="login-item">
+            <div class="login-step">3</div>
+            <div class="login-text">
+              Enter your temporary password:<br>
+              ${passwordLine}
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="login-item">
+            <div class="login-step">4</div>
+            <div class="login-text">
+              Click <strong>Sign In</strong>. On your first login you will be prompted to <strong>change your password</strong>. Choose a new password you can remember.
+            </div>
+          </div>
+          <div class="login-item">
+            <div class="login-step">5</div>
+            <div class="login-text">
+              After logging in, you can view your <strong>vaccination schedule</strong>, upcoming dose dates, treatment history, and exposure records.
+            </div>
+          </div>
+          <div class="login-item">
+            <div class="login-step">6</div>
+            <div class="login-text">
+              If you forget your password, contact HopeCare Animal Bite Center at <strong>0964-890-1339</strong> so staff can reset it.
+            </div>
+          </div>
+        </div>
+      </div>
+      ${qrSrc ? `
+      <div class="login-qr">
+        <div class="login-qr-title">Scan to open Patient Portal</div>
+        <img src="${qrSrc}" alt="QR code that opens the HopeCare Patient Portal" width="132" height="132">
+        <div class="login-qr-caption">Scan this QR code using your phone camera.</div>
+      </div>` : ''}
+    </div>
+
+    <!-- ══ FOOTER ══ -->
+    <div class="card-footer">
+      HopeCare Animal Bite Center · Gingoog City, Misamis Oriental &nbsp;|&nbsp;
+      Patient ID: ${patIdDisplay} &nbsp;|&nbsp; Reg. No.: ${esc(p.registration_number)||'—'} &nbsp;|&nbsp;
+      Case #${esc(cn)} &nbsp;|&nbsp; Printed: ${new Date().toLocaleDateString()}
+    </div>
+  `;
+
+  document.getElementById('cardWrap').innerHTML = html;
+}
+
+// ── Entry point ───────────────────────────────────────────────────────────────
+loadAndRender();
+</script>
+</body>
+</html>

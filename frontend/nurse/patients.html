@@ -1,0 +1,2466 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Records - Animal Bite System</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/shared/sidebar.js"></script>
+  <script src="/js/shared/vaccine-catalog.js?v=cat3-layout-sync"></script>
+  <style>
+    /* ── Table container: only the table scrolls horizontally ── */
+    .medical-table-container {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: visible;
+      margin-bottom: 30px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      position: relative;
+      /* isolate stacking context so sticky works inside */
+      isolation: isolate;
+    }
+
+    /* ── Table base ── */
+    .medical-table {
+      border-collapse: collapse;
+      /* Do NOT use table-layout:fixed — let columns size to their content/min-width */
+      font-size: 12px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      /* Wide enough that no column ever shrinks below its min-width */
+      width: max-content;
+      min-width: 100%;
+    }
+
+    .medical-table th,
+    .medical-table td {
+      border: 1px solid #555;
+      padding: 6px 8px;
+      text-align: center;
+      vertical-align: middle;
+      /* Allow text to be seen fully — no clipping */
+      white-space: nowrap;
+    }
+
+    /* ── Header rows ── */
+    .medical-table thead th {
+      background: linear-gradient(180deg, #4274D9 0%, #293681 100%);
+      color: #fff;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    /* Group header row (row 1) */
+    .medical-table thead tr.group-row th {
+      background: #95CCDD;
+      color: #293681;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.3px;
+      top: 0;
+      z-index: 20;
+    }
+
+    /* Sub-header row (row 2) sticks below group row.
+       group row is ~32px tall; sub-row top = 32px */
+    .medical-table thead tr.sub-row th {
+      background: linear-gradient(180deg, #4274D9 0%, #293681 100%);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.3;
+      top: 32px;
+      z-index: 20;
+    }
+
+    /* ── Sticky left columns: No., Date, Name of Patient ──
+       Explicit widths ensure left offsets are always correct.
+       No., Date, Name cumulative: 0 → 70 → 160 → 310  */
+    .medical-table th.sc-no,
+    .medical-table td.sc-no {
+      position: sticky;
+      left: 0;
+      min-width: 70px;
+      width: 70px;
+      z-index: 15;
+    }
+    .medical-table th.sc-date,
+    .medical-table td.sc-date {
+      position: sticky;
+      left: 70px;
+      min-width: 90px;
+      width: 90px;
+      z-index: 15;
+    }
+    .medical-table th.sc-name,
+    .medical-table td.sc-name {
+      position: sticky;
+      left: 160px;
+      min-width: 180px;
+      width: 180px;
+      z-index: 15;
+      white-space: nowrap;
+    }
+    /* Higher z-index for sticky headers so they sit above sticky body cells */
+    .medical-table thead th.sc-no,
+    .medical-table thead th.sc-date,
+    .medical-table thead th.sc-name {
+      z-index: 35;
+    }
+    /* Sticky corners need max z-index */
+    .medical-table thead th.sc-action {
+      z-index: 35;
+    }
+
+    /* Solid background for sticky data cells */
+    .medical-table td.sc-no,
+    .medical-table td.sc-date,
+    .medical-table td.sc-name {
+      background: #f0f7ff;
+      font-weight: 600;
+    }
+    /* Sticky group header cell background */
+    .medical-table thead tr.group-row th.sc-no,
+    .medical-table thead tr.group-row th.sc-date,
+    .medical-table thead tr.group-row th.sc-name {
+      background: #95CCDD;
+    }
+    /* Sticky sub-header cell background */
+    .medical-table thead tr.sub-row th.sc-no,
+    .medical-table thead tr.sub-row th.sc-date,
+    .medical-table thead tr.sub-row th.sc-name {
+      background: linear-gradient(180deg, #4274D9 0%, #293681 100%);
+    }
+
+    /* Divider shadow after last sticky column */
+    .medical-table th.sc-name,
+    .medical-table td.sc-name {
+      box-shadow: 3px 0 6px rgba(0,0,0,0.18);
+    }
+
+    /* ── Sticky Actions column on right ── */
+    .medical-table th.sc-action,
+    .medical-table td.sc-action {
+      position: sticky;
+      right: 0;
+      min-width: 152px;
+      width: 152px;
+      z-index: 15;
+      box-shadow: -3px 0 6px rgba(0,0,0,0.14);
+      text-align: center;
+    }
+    .medical-table thead th.sc-action {
+      z-index: 30;
+      background: linear-gradient(180deg, #4274D9 0%, #293681 100%);
+    }
+    .medical-table td.sc-action {
+      background: #f0f7ff;
+    }
+    .medical-table thead tr.group-row th.sc-action {
+      background: #95CCDD;
+    }
+
+    /* ── Column widths for non-sticky cols ── */
+    .col-address   { min-width: 180px; }
+    .col-age       { min-width: 45px;  }
+    .col-sex       { min-width: 45px;  }
+    .col-contact   { min-width: 120px; }
+    .col-barangay  { min-width: 130px; }
+    .col-expdate   { min-width: 90px;  }
+    .col-place     { min-width: 170px; }
+    .col-animal    { min-width: 75px;  }
+    .col-exptype   { min-width: 80px;  }
+    .col-site      { min-width: 130px; }
+    .col-cat       { min-width: 70px;  }
+    .col-cases     { min-width: 60px; text-align: center; }
+    .col-wash      { min-width: 80px;  }
+    .col-rigdate   { min-width: 90px;  }
+    .col-route     { min-width: 55px;  }
+    .col-vax       { min-width: 90px;  }
+    .col-brand     { min-width: 110px; }
+    .col-outcome   { min-width: 90px;  }
+    .col-progress  { min-width: 90px; text-align: center; }
+    .col-bitstatus { min-width: 120px; }
+    .col-remarks   { min-width: 140px; width: 140px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Body row styles ── */
+    .medical-table tbody tr:nth-child(even) td {
+      background: #f8faff;
+    }
+    .medical-table tbody tr:nth-child(even) td.sc-no,
+    .medical-table tbody tr:nth-child(even) td.sc-date,
+    .medical-table tbody tr:nth-child(even) td.sc-name,
+    .medical-table tbody tr:nth-child(even) td.sc-action {
+      background: #e8f1ff;
+    }
+    .medical-table tbody tr:hover td {
+      background: #ddeeff !important;
+    }
+
+    /* ── Action cell — buttons stacked vertically ── */
+    .action-cell {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: stretch;
+      gap: 4px;
+      padding: 2px 0;
+      width: 100%;
+    }
+
+    /* ── Form layout (structure unchanged) ── */
+    .form-sections { display: flex; flex-direction: column; gap: 16px; }
+    .form-section {
+      border: 1px solid #dde4f5;
+      border-radius: 12px;
+      padding: 18px 20px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(41, 54, 129, 0.05);
+    }
+    .form-section h4 {
+      color: #293681;
+      margin: 0 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #4274D9;
+      font-size: 12.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    .form-row .form-group { margin-bottom: 0; }
+    .wide-field { grid-column: 1 / -1; }
+
+    /* ── Patient form modal — modern controls ── */
+    #patientModal .modal-content {
+      background: linear-gradient(180deg, #f0f4ff 0%, #ffffff 140px);
+      border: 1px solid #dde4f5;
+      padding: 24px 28px 28px;
+    }
+    #patientModal .modal-header {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #e8edf8;
+    }
+    #patientModal .modal-header h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #293681;
+      letter-spacing: -0.2px;
+    }
+    #patientModal .form-group label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      margin-bottom: 6px;
+    }
+    #patientModal .form-group input:not([type="checkbox"]):not([type="radio"]),
+    #patientModal .form-group select,
+    #patientModal .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #1e2a4a;
+      background: #f8faff;
+      border: 1.5px solid #dde4f5;
+      border-radius: 10px;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    #patientModal .form-group input:hover:not(:disabled):not([readonly]),
+    #patientModal .form-group select:hover,
+    #patientModal .form-group textarea:hover {
+      border-color: #95CCDD;
+      background: #fff;
+    }
+    #patientModal .form-group input:focus,
+    #patientModal .form-group select:focus,
+    #patientModal .form-group textarea:focus {
+      outline: none;
+      border-color: #4274D9;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(66, 116, 217, 0.15);
+    }
+    #patientModal .form-group input[readonly] {
+      background: #eef2f9;
+      color: #64748b;
+      cursor: default;
+    }
+    #patientModal .form-group select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23293681' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    #patientModal .form-group textarea {
+      min-height: 72px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    #patientModal .field-error {
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #b91c1c;
+      line-height: 1.35;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    #patientModal .field-error:empty { display: none; }
+    #patientModal .form-group input.is-invalid {
+      border-color: #dc2626;
+      background: #fff7f7;
+    }
+    #patientModal .form-group input.is-invalid:focus {
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+    }
+    #patientModal input[type="checkbox"],
+    #patientModal input[type="radio"] {
+      width: 17px;
+      height: 17px;
+      accent-color: #4274D9;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    #patientModal .cat3-route-row label,
+    #patientModal .cat3-inline-checks label,
+    #patientModal .cat3-check-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    /* ── Category III Treatment section ── */
+    .cat3-section {
+      border-color: #4274D9;
+      background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+      box-shadow: 0 2px 10px rgba(41, 54, 129, 0.08);
+    }
+    .cat3-section > h4 {
+      font-size: 14px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    .cat3-block {
+      border: 1px solid #c5d4f5;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+      background: #fff;
+    }
+    .cat3-block:last-child { margin-bottom: 0; }
+    .cat3-block-title {
+      color: #293681;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      margin: 0 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #dde4f5;
+    }
+    .cat3-subblock {
+      border: 1px dashed #b8c9ee;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      background: #fafcff;
+    }
+    .cat3-subblock:last-child { margin-bottom: 0; }
+    #dynamicTetanusVaccines .form-row {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    .cat3-subblock h6 {
+      margin: 0 0 10px;
+      color: #293681;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+    .cat3-check-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: #293681;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .cat3-check-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #4274D9;
+      cursor: pointer;
+    }
+    .cat3-inline-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    .cat3-inline-checks label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+    }
+    .cat3-route-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #dde4f5;
+    }
+    .cat3-route-row > span {
+      font-weight: 700;
+      color: #293681;
+      font-size: 13px;
+    }
+    .cat3-route-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .cat3-rig-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 768px) {
+      .cat3-rig-grid { grid-template-columns: 1fr; }
+    }
+    .cat3-rig-col {
+      border: 1px solid #c5d4f5;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fafcff;
+    }
+    .cat3-rig-col h6 {
+      margin: 0 0 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #293681;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .cat3-rig-col h6 em {
+      font-style: italic;
+      font-weight: 700;
+      text-transform: none;
+    }
+
+    /* ══════════════════════════════════════════
+       MODERN BUTTON SYSTEM — patients page only
+       Table styles above are untouched.
+    ══════════════════════════════════════════ */
+
+    /* ── Base button reset ── */
+    .px-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-weight: 600;
+      font-size: 13.5px;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      white-space: nowrap;
+      text-decoration: none;
+      outline: none;
+      position: relative;
+      overflow: hidden;
+      transition:
+        background 0.22s ease,
+        transform  0.15s ease,
+        box-shadow 0.22s ease,
+        opacity    0.22s ease;
+    }
+    .px-btn:active {
+      transform: scale(0.96);
+    }
+    .px-btn:focus-visible {
+      box-shadow: 0 0 0 3px rgba(66,116,217,0.35);
+    }
+    .px-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Ripple effect on click */
+    .px-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.18);
+      opacity: 0;
+      transition: opacity 0.25s;
+      border-radius: inherit;
+    }
+    .px-btn:active::after { opacity: 1; }
+
+    /* ── Sizes ── */
+    .px-btn-lg  { padding: 11px 22px; font-size: 14px;   border-radius: 12px; min-height: 44px; }
+    .px-btn-md  { padding: 9px  18px; font-size: 13.5px; border-radius: 10px; min-height: 38px; }
+    .px-btn-sm  { padding: 5px  11px; font-size: 11.5px; border-radius: 8px;  min-height: 30px; }
+
+    /* ── Primary — Blue (Add Patient, Search, Save/Update) ── */
+    .px-btn-primary {
+      background: linear-gradient(135deg, #4274D9 0%, #293681 100%);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(66,116,217,0.30);
+    }
+    .px-btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #3563c8 0%, #1e296b 100%);
+      box-shadow: 0 5px 16px rgba(66,116,217,0.40);
+      transform: translateY(-1px);
+    }
+
+    /* ── Edit — table row action ── */
+    .px-btn-edit {
+      background: linear-gradient(135deg, #4274D9 0%, #293681 100%);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(66, 116, 217, 0.28);
+      padding: 7px 14px;
+      min-height: 32px;
+      font-size: 12px;
+      border-radius: 9px;
+      gap: 6px;
+    }
+    .px-btn-edit:hover:not(:disabled) {
+      background: linear-gradient(135deg, #3563c8 0%, #1e286e 100%);
+      box-shadow: 0 4px 12px rgba(66, 116, 217, 0.38);
+      transform: translateY(-1px);
+    }
+    .px-btn-edit i { font-size: 12px; }
+
+    /* ── Secondary — Gray (Reset) ── */
+    .px-btn-secondary {
+      background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(100,116,139,0.22);
+    }
+    .px-btn-secondary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #56657a 0%, #384255 100%);
+      box-shadow: 0 5px 14px rgba(100,116,139,0.32);
+      transform: translateY(-1px);
+    }
+
+    /* ── SVG icon sizing inside button ── */
+    .px-btn svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .px-btn-sm svg { width: 13px; height: 13px; }
+    .px-btn i { font-size: 13px; line-height: 1; }
+
+    /* ── Header area layout ── */
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Filter section layout ── */
+    .filter-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .filter-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .filter-group input[type="text"],
+    .filter-group select {
+      padding: 10px 14px;
+      border: 1.5px solid #dde4f5;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      min-width: 200px;
+      background: #f8faff;
+      color: #1e2a4a;
+    }
+    .filter-group select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23293681' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    .filter-group input[type="text"]:hover,
+    .filter-group select:hover {
+      border-color: #95CCDD;
+      background: #fff;
+    }
+    .filter-group input[type="text"]:focus,
+    .filter-group select:focus {
+      outline: none;
+      border-color: #4274D9;
+      box-shadow: 0 0 0 3px rgba(66,116,217,0.15);
+      background: #fff;
+    }
+    .filter-actions {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      padding-bottom: 1px;
+    }
+
+    /* ── Save / Update submit button ── */
+    #saveBtn {
+      width: 100%;
+      margin-top: 20px;
+      min-height: 48px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 12px;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 16px rgba(66, 116, 217, 0.32);
+    }
+    #saveBtn:hover:not(:disabled) {
+      box-shadow: 0 6px 22px rgba(66, 116, 217, 0.42);
+    }
+
+    /* ── Close modal button ── */
+    #patientModal .close-modal {
+      border-radius: 10px;
+    }
+    .close-modal {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      background: #f1f5f9;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      cursor: pointer;
+      color: #64748b;
+      transition: background 0.2s, color 0.2s;
+      line-height: 1;
+    }
+    .close-modal:hover {
+      background: #fee2e2;
+      color: #ef4444;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      #patientModal .modal-content { padding: 18px 16px 22px; }
+      #patientModal .form-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .px-btn-lg { padding: 10px 16px; font-size: 13px; }
+      .user-info  { gap: 7px; }
+      .filter-group input[type="text"] { min-width: 150px; }
+    }
+  </style>
+</head>
+<body data-nav="patients">
+  <div class="main-wrapper">
+    <script>initAppSidebar();</script>
+
+    <div class="main-content">
+      <div class="header">
+        <h1><i class="fa-solid fa-user-injured"></i> Patient Records - Animal Bite Treatment Center</h1>
+        <div class="user-info">
+          <button class="px-btn px-btn-primary px-btn-lg" onclick="openAddModal()">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Add Patient
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Search (Name / Patient ID / Reg. No.)</label>
+            <input type="text" id="searchName" placeholder="PAT-000001, ABC-2026-000001, or name">
+          </div>
+          <div class="filter-group">
+            <label>Date (Exposure / Vaccination)</label>
+            <input type="date" id="searchDate" placeholder="Search by date">
+          </div>
+          <div class="filter-group">
+            <label>Barangay</label>
+            <select id="searchBarangay">
+              <option value="">All barangays</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button class="px-btn px-btn-primary px-btn-md" onclick="searchPatients()">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              Search
+            </button>
+            <button class="px-btn px-btn-secondary px-btn-md" onclick="loadPatients()">
+              <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TABLE ── -->
+      <div class="medical-table-container">
+        <table class="medical-table">
+          <thead>
+            <!-- ROW 1: Group headers -->
+            <tr class="group-row">
+              <th colspan="3" class="sc-no">Registration</th>
+              <th class="sc-name"></th>
+              <th class="col-address"></th>
+              <th class="col-age"></th>
+              <th class="col-sex"></th>
+              <th class="col-contact"></th>
+              <th class="col-barangay"></th>
+              <th class="col-cases">Cases</th>
+              <th colspan="5">History of Exposure</th>
+              <th colspan="3">Post Exposure Prophylaxis (PEP)</th>
+              <th colspan="6">Tissue Culture Vaccine (Dates Given)</th>
+              <th class="col-progress">Progress</th>
+              <th class="col-outcome">Outcome</th>
+              <th class="col-bitstatus">Animal Status</th>
+              <th class="col-remarks">Remarks</th>
+              <th class="sc-action">Actions</th>
+            </tr>
+            <!-- ROW 2: Column headers -->
+            <tr class="sub-row">
+              <th class="sc-no">Reg. No.</th>
+              <th class="sc-no">Patient ID</th>
+              <th class="sc-date">Date</th>
+              <th class="sc-name">Name of Patient</th>
+              <th class="col-address">Address</th>
+              <th class="col-age">Age</th>
+              <th class="col-sex">Sex</th>
+              <th class="col-contact">Contact Number</th>
+              <th class="col-barangay">Barangay</th>
+              <th class="col-cases" title="Total exposure cases for this patient">Cases</th>
+              <th class="col-expdate">Date</th>
+              <th class="col-place">Place (Where Biting Occurred)</th>
+              <th class="col-animal">Type of Animal</th>
+              <th class="col-exptype">Type of Exposure (B/NB)</th>
+              <th class="col-site">Site (Body Parts)</th>
+              <th class="col-cat">Category (1, 2, 3)</th>
+              <th class="col-wash">Washing of Bite (Y/N)</th>
+              <th class="col-route">Route</th>
+              <th class="col-vax">D0</th>
+              <th class="col-vax">D3</th>
+              <th class="col-vax">D7</th>
+              <th class="col-vax">D14 (IM)</th>
+              <th class="col-vax">D28</th>
+              <th class="col-brand">Brand Name</th>
+              <th class="col-progress">Progress</th>
+              <th class="col-outcome">Outcome<br>(Auto)</th>
+              <th class="col-bitstatus">After 14 Days<br>(Alive/Dead/Lost)</th>
+              <th class="col-remarks">Remarks</th>
+              <th class="sc-action">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="patientsTable"></tbody>
+        </table>
+      </div>
+      <!-- ── END TABLE ── -->
+
+    </div><!-- /main-content -->
+  </div><!-- /main-wrapper -->
+
+  <!-- ── ADD/EDIT MODAL ── -->
+  <div class="modal" id="patientModal">
+    <div class="modal-content" style="max-width:1200px;width:95%;max-height:90vh;overflow-y:auto;">
+      <div class="modal-header">
+        <h3 id="modalTitle">Add Patient Record</h3>
+        <button class="close-modal" onclick="closeModal('patientModal')" title="Close">&times;</button>
+      </div>
+      <form id="patientForm">
+        <input type="hidden" id="patientId">
+        <div class="form-sections">
+
+          <!-- REGISTRATION -->
+          <div class="form-section">
+            <h4>REGISTRATION</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Registration Number</label>
+                <input type="text" id="registrationNumber" readonly placeholder="Auto-generated on save">
+              </div>
+              <div class="form-group">
+                <label>Date Registered</label>
+                <input type="date" id="dateRegistered" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Patient Name</label>
+                <input type="text" id="fullName" required>
+              </div>
+              <div class="form-group">
+                <label>Age <span style="color:#dc2626;">*</span></label>
+                <input type="text" id="age" inputmode="numeric" autocomplete="off" maxlength="3" aria-describedby="ageError">
+                <div id="ageError" class="field-error" role="alert"></div>
+              </div>
+              <div class="form-group">
+                <label>Sex</label>
+                <select id="sex" required>
+                  <option value="">Select</option>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                  <option value="O">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group wide-field">
+                <label>Address</label>
+                <textarea id="address" rows="2" required></textarea>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Barangay</label>
+                <select id="barangay" required>
+                  <option value="">Select barangay</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Contact Number <span style="color:#dc2626;">*</span></label>
+                <input type="text" id="contactNumber" inputmode="numeric" autocomplete="tel" placeholder="09XXXXXXXXX" aria-describedby="contactError">
+                <div id="contactError" class="field-error" role="alert"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>HISTORY OF EXPOSURE</h4>
+
+            <!-- Row 1: Date of Exposure | Place (Where Biting Occurred) -->
+            <div class="form-row">
+              <div class="form-group">
+                <label>Date of Exposure <span style="color:#dc2626;">*</span></label>
+                <input type="date" id="dateOfExposure">
+              </div>
+              <div class="form-group">
+                <label>Place (Where Biting Occurred)</label>
+                <input type="text" id="placeOfExposure" placeholder="e.g., House, Farm, Street">
+              </div>
+            </div>
+
+            <!-- Row 2: Type of Animal | Type of Exposure (B/NB) -->
+            <div class="form-row">
+              <div class="form-group">
+                <label>Type of Animal</label>
+                <select id="typeOfAnimal">
+                  <option value="">Select</option>
+                  <option value="D">PD – Pet Dog</option>
+                  <option value="SD">SD – Stray Dog</option>
+                  <option value="C">C – Cat</option>
+                  <option value="O">O – Others</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Type of Exposure (B/NB)</label>
+                <select id="typeOfExposure">
+                  <option value="">Select</option>
+                  <option value="B">B – Bite</option>
+                  <option value="NB">NB – Non-Bite</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 3: Site (Body Parts) — full width textarea -->
+            <div class="form-row">
+              <div class="form-group wide-field">
+                <label>Site (Body Parts)</label>
+                <textarea id="siteOfExposure" rows="2" placeholder="e.g., Left palm, Right index finger, Left foot"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- PEP -->
+          <div class="form-section">
+            <h4>RABIES EXPOSURE CATEGORY</h4>
+
+            <!-- Row 1: Category | Washing of Bite | Route -->
+            <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
+              <div class="form-group">
+                <label>Category (1, 2, 3)</label>
+                <select id="category" onchange="toggleCat3Section(); updateSchedulePreview(); updateEditDoseVisibility()">
+                  <option value="">Select</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Washing of Bite (Y/N)</label>
+                <select id="washingOfBite">
+                  <option value="">Select</option>
+                  <option value="Y">Y</option>
+                  <option value="N">N</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Route</label>
+                <select id="route">
+                  <option value="">Select</option>
+                  <option value="ID">ID</option>
+                  <option value="IM">IM</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 2: D0 | D3 | D7 | D14 (IM) | D28 — matches reference image -->
+            <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr;">
+              <div class="form-group">
+                <label>Day 0 (D0)</label>
+                <input type="date" id="vaccineD0" oninput="updateSchedulePreview()">
+              </div>
+              <div class="form-group">
+                <label>Day 3 (D3)</label>
+                <input type="date" id="vaccineD3" oninput="updateSchedulePreview()">
+              </div>
+              <div class="form-group">
+                <label>Day 7 (D7)</label>
+                <input type="date" id="vaccineD7" oninput="updateSchedulePreview()">
+              </div>
+              <div class="form-group">
+                <label>Day 14 (D14 IM)</label>
+                <input type="date" id="vaccineD14" oninput="updateSchedulePreview()">
+              </div>
+              <div class="form-group">
+                <label>Day 28 (D28)</label>
+                <input type="date" id="vaccineD28">
+              </div>
+            </div>
+
+            <!-- Row 2b: Vaccinator Name per dose — manually entered by nurse, shown/hidden with dose date row -->
+            <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr;">
+              <div class="form-group" id="vaccinatorD0Wrap">
+                <label>Day 0 Vaccinator</label>
+                <input type="text" id="vaccinatorD0" placeholder="Name of nurse" autocomplete="off">
+              </div>
+              <div class="form-group" id="vaccinatorD3Wrap">
+                <label>Day 3 Vaccinator</label>
+                <input type="text" id="vaccinatorD3" placeholder="Name of nurse" autocomplete="off">
+              </div>
+              <div class="form-group" id="vaccinatorD7Wrap">
+                <label>Day 7 Vaccinator</label>
+                <input type="text" id="vaccinatorD7" placeholder="Name of nurse" autocomplete="off">
+              </div>
+              <div class="form-group" id="vaccinatorD14Wrap">
+                <label>Day 14 Vaccinator</label>
+                <input type="text" id="vaccinatorD14" placeholder="Name of nurse" autocomplete="off">
+              </div>
+              <div class="form-group" id="vaccinatorD28Wrap">
+                <label>Day 28 Vaccinator</label>
+                <input type="text" id="vaccinatorD28" placeholder="Name of nurse" autocomplete="off">
+              </div>
+            </div>
+
+            <!-- Row 3: Brand Name -->
+            <div class="form-row" style="grid-template-columns:1fr 2fr;">
+              <div class="form-group">
+                <label>Brand Name</label>
+                <select id="brandName">
+                  <option value="">Select</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Auto-calculated schedule preview (shown when D0 is entered) -->
+            <div id="schedulePreview" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;margin-top:8px;font-size:12px;">
+              <div style="font-weight:700;color:#15803d;margin-bottom:6px;"><i class="fa-solid fa-calendar-check"></i> Auto-Calculated Schedule</div>
+              <div id="schedulePreviewBody" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;"></div>
+            </div>
+          </div>
+
+          <div id="mdPatientBanner"></div>
+
+          <!-- OUTCOME -->
+          <div class="form-section">
+            <h4>OUTCOME</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Outcome (Auto-calculated)</label>
+                <!-- Task 5.2 — Read-only; value shown via JS after form load. Hidden input preserves value for any legacy code. -->
+                <div id="outcomeDisplay" style="padding:10px 14px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;font-size:13px;font-weight:700;color:#15803d;min-height:42px;display:flex;align-items:center;gap:8px;">
+                  <i class="fa-solid fa-lock" style="font-size:11px;"></i> <span id="outcomeDisplayText">Calculated after saving doses</span>
+                </div>
+                <input type="hidden" id="outcome">
+              </div>
+              <div class="form-group">
+                <label>Biting Animal Status After 14 Days (A/D/L)</label>
+                <select id="bitingAnimalStatus">
+                  <option value="">Select</option>
+                  <option value="A">Alive (A)</option>
+                  <option value="D">Dead (D)</option>
+                  <option value="L">Lost (L)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group wide-field">
+                <label>Remarks</label>
+                <textarea id="remarks" rows="2"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- CATEGORY III TREATMENT (visible only for Category 3) -->
+          <div class="form-section cat3-section" id="cat3Section" style="display:none;">
+            <h4>Category III Treatment Information</h4>
+
+            <!-- 1. TETANUS PROPHYLAXIS -->
+            <div class="cat3-block">
+              <div class="cat3-block-title">1. Tetanus Prophylaxis</div>
+
+              <div class="cat3-subblock" id="ttBlock">
+                <label class="cat3-check-label"><input type="checkbox" id="ttGiven"> Tetanus-Toxoid</label>
+                <div class="form-row">
+                  <div class="form-group"><label>Dose (mL)</label><input type="number" id="ttDoseMl" min="0" step="0.01" placeholder="0.00"></div>
+                  <div class="form-group"><label>Injection Site</label><input type="text" id="ttInjectionSite" placeholder="e.g. deltoid"></div>
+                  <div class="form-group"><label>Date Given</label><input type="date" id="ttDateGiven"></div>
+                  <div class="form-group"><label>Given By</label><input type="text" id="ttGivenBy" placeholder="Staff name"></div>
+                </div>
+                <div class="cat3-route-row" id="ttRouteRow" style="display:none;">
+                  <span>Route:</span>
+                  <label><input type="radio" name="ttRoute" id="ttRouteId" value="ID"> ID</label>
+                  <label><input type="radio" name="ttRoute" id="ttRouteIm" value="IM"> IM</label>
+                </div>
+                <div class="cat3-route-row" id="ttAnstRow" style="display:none;">
+                  <span>ANST Result:</span>
+                  <label><input type="radio" name="ttAnst" id="ttAnstPositive" value="Positive"> Positive (+)</label>
+                  <label><input type="radio" name="ttAnst" id="ttAnstNegative" value="Negative"> Negative (−)</label>
+                </div>
+              </div>
+
+              <div class="cat3-subblock" id="atsBlock">
+                <label class="cat3-check-label"><input type="checkbox" id="atsGiven"> ATS</label>
+                <div class="form-row">
+                  <div class="form-group"><label>Dose (mL)</label><input type="number" id="atsDoseMl" min="0" step="0.01" placeholder="0.00"></div>
+                  <div class="form-group"><label>Injection Site</label><input type="text" id="atsInjectionSite" placeholder="e.g. deltoid"></div>
+                  <div class="form-group"><label>Date Given</label><input type="date" id="atsDateGiven"></div>
+                  <div class="form-group"><label>Given By</label><input type="text" id="atsGivenBy" placeholder="Staff name"></div>
+                </div>
+                <div class="cat3-route-row" id="atsRouteRow" style="display:none;">
+                  <span>Route:</span>
+                  <label><input type="radio" name="atsRoute" id="atsRouteId" value="ID"> ID</label>
+                  <label><input type="radio" name="atsRoute" id="atsRouteIm" value="IM"> IM</label>
+                </div>
+                <div class="cat3-route-row" id="atsAnstRow" style="display:none;">
+                  <span>ANST Result:</span>
+                  <label><input type="radio" name="atsAnst" id="atsAnstPositive" value="Positive"> Positive (+)</label>
+                  <label><input type="radio" name="atsAnst" id="atsAnstNegative" value="Negative"> Negative (−)</label>
+                </div>
+              </div>
+
+              <div class="cat3-subblock" id="htigBlock">
+                <label class="cat3-check-label"><input type="checkbox" id="htigGiven"> HTIG</label>
+                <div class="form-row">
+                  <div class="form-group"><label>Dose (mL)</label><input type="number" id="htigDoseMl" min="0" step="0.01" placeholder="0.00"></div>
+                  <div class="form-group"><label>Injection Site</label><input type="text" id="htigInjectionSite" placeholder="e.g. deltoid"></div>
+                  <div class="form-group"><label>Date Given</label><input type="date" id="htigDateGiven"></div>
+                  <div class="form-group"><label>Given By</label><input type="text" id="htigGivenBy" placeholder="Staff name"></div>
+                </div>
+                <div class="cat3-route-row" id="htigRouteRow" style="display:none;">
+                  <span>Route:</span>
+                  <label><input type="radio" name="htigRoute" id="htigRouteId" value="ID"> ID</label>
+                  <label><input type="radio" name="htigRoute" id="htigRouteIm" value="IM"> IM</label>
+                </div>
+                <div class="cat3-route-row" id="htigAnstRow" style="display:none;">
+                  <span>ANST Result:</span>
+                  <label><input type="radio" name="htigAnst" id="htigAnstPositive" value="Positive"> Positive (+)</label>
+                  <label><input type="radio" name="htigAnst" id="htigAnstNegative" value="Negative"> Negative (−)</label>
+                </div>
+              </div>
+              <!-- Extra Tetanus Prophylaxis vaccines from Vaccine Management -->
+              <div id="dynamicTetanusVaccines"></div>
+            </div>
+
+            <!-- 2. RIG INFILTRATION -->
+            <div class="cat3-block">
+              <div class="cat3-block-title">2. RIG Infiltration</div>
+              <div class="cat3-rig-grid">
+                <div class="cat3-rig-col">
+                  <h6><em>Equine Rabies Immunoglobulin</em></h6>
+                  <div class="cat3-inline-checks" id="erigBrandChecks">
+                    <label><input type="checkbox" id="rigEquirab"> Equirab (200 IU/mL)</label>
+                    <label><input type="checkbox" id="rigVinrab"> Vinrab (200 IU/mL)</label>
+                    <span id="dynamicErigVaccines" style="display:contents;"></span>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group"><label>Up to (mL) infiltrated on bite sites</label><input type="number" id="rigEquineUpToMl" min="0" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Date Given</label><input type="date" id="rigEquineDate"></div>
+                    <div class="form-group"><label>Given By</label><input type="text" id="rigEquineGivenBy" placeholder="Staff name"></div>
+                  </div>
+                  <div class="cat3-route-row" id="rigEquineAnstRow">
+                    <span>ANST Result:</span>
+                    <label><input type="radio" name="rigEquineAnst" id="rigEquineAnstPositive" value="Positive"> Positive (+)</label>
+                    <label><input type="radio" name="rigEquineAnst" id="rigEquineAnstNegative" value="Negative"> Negative (−)</label>
+                  </div>
+                </div>
+                <div class="cat3-rig-col">
+                  <h6><em>Human Rabies Immunoglobulin</em></h6>
+                  <div class="cat3-inline-checks" id="hrigBrandChecks">
+                    <label><input type="checkbox" id="rigBerirab"> Berirab (300 IU/mL)</label>
+                    <span id="dynamicHrigVaccines" style="display:contents;"></span>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group"><label>Up to (mL) infiltrated on bite sites</label><input type="number" id="rigHumanUpToMl" min="0" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Date Given</label><input type="date" id="rigHumanDate"></div>
+                    <div class="form-group"><label>Given By</label><input type="text" id="rigHumanGivenBy" placeholder="Staff name"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. MEDS GIVEN -->
+            <div class="cat3-block">
+              <div class="cat3-block-title">3. Meds Given</div>
+              <label class="cat3-check-label"><input type="checkbox" id="medsGiven"> Meds Given</label>
+              <div class="form-group wide-field">
+                <label>Prescribed Medicines</label>
+                <textarea id="medsDescription" rows="4" placeholder="List prescribed medicines, dosage, and instructions…"></textarea>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /form-sections -->
+
+        <!-- ═══ AUDIT / STAFF INFO ═══ -->
+        <div id="patientAuditBox" style="display:none;margin-top:18px;padding:16px 20px;background:linear-gradient(135deg,#f8faff,#f5f3ff);border:1.5px solid #e0e7ff;border-radius:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed #c7d2fe;">
+            <i class="fa-solid fa-shield-halved" style="color:#4274D9;font-size:13px;"></i>
+            <span style="font-size:12px;font-weight:700;color:#3730a3;letter-spacing:.3px;">Record Audit Trail</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Created By</div>
+              <div id="auditCreatedBy" style="font-size:12.5px;font-weight:700;color:#1e293b;">—</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Created At</div>
+              <div id="auditCreatedAt" style="font-size:12.5px;font-weight:600;color:#475569;">—</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Last Updated By</div>
+              <div id="auditUpdatedBy" style="font-size:12.5px;font-weight:700;color:#1e293b;">—</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Last Updated At</div>
+              <div id="auditUpdatedAt" style="font-size:12.5px;font-weight:600;color:#475569;">—</div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="saveBtn" class="px-btn px-btn-primary">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Patient Record
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/nurse/gingoog-barangays.js"></script>
+  <script src="/js/shared/rbac.js"></script>
+  <script src="/js/shared/app.js"></script>
+  <script src="/js/nurse/treatment-restart.js"></script>
+  <script>
+    /* ─────────────────────────────────────────
+       INIT
+    ───────────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', async () => {
+      fillBarangaySelect('barangay', 'Select barangay');
+      fillBarangaySelect('searchBarangay', 'All barangays');
+
+      const auth = await checkAuth();
+      if (auth && auth.username) {
+      }
+
+      bindPatientNumberFields();
+      loadVaccineCatalogForForms();
+
+      const params = new URLSearchParams(window.location.search);
+      const barangayParam = params.get('barangay');
+      const actionParam   = params.get('action');
+
+      if (barangayParam) {
+        document.getElementById('searchBarangay').value = barangayParam;
+        searchPatients();
+      } else {
+        loadPatients();
+      }
+
+      // If linked from dashboard with ?action=add, open the Add Patient modal automatically
+      if (actionParam === 'add') {
+        // Small delay to let the page finish rendering first
+        setTimeout(() => openAddModal(), 300);
+      } else if (actionParam === 'edit') {
+        const editId = params.get('id');
+        if (editId) setTimeout(() => editPatient(editId), 300);
+      }
+    });
+
+    function fillBarangaySelect(selectId, placeholder) {
+      const sel = document.getElementById(selectId);
+      if (!sel) return;
+      sel.innerHTML = '';
+      const first = document.createElement('option');
+      first.value = '';
+      first.textContent = placeholder;
+      sel.appendChild(first);
+      (window.GINGOOG_BARANGAYS || []).forEach((name) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      });
+      // "Others" at the bottom — for locations outside Gingoog City
+      const othersOpt = document.createElement('option');
+      othersOpt.value = 'Others';
+      othersOpt.textContent = 'Others (Outside Gingoog City)';
+      sel.appendChild(othersOpt);
+    }
+
+    /* ─────────────────────────────────────────
+       HELPERS
+    ───────────────────────────────────────── */
+
+    /**
+     * Format a date string (ISO or YYYY-MM-DD) to MM-DD-YY for display.
+     */
+    function fmt(dateStr) {
+      if (!dateStr) return '';
+      const iso = dateOnlyIso(dateStr);
+      if (!iso) return '';
+      const [y, mo, d] = iso.split('-');
+      return `${mo}-${d}-${String(y).slice(-2)}`;
+    }
+
+    function toInputDate(dateStr) {
+      return dateOnlyIso(dateStr) || '';
+    }
+
+    /** Escape HTML to prevent XSS in innerHTML. */
+    function esc(v) {
+      if (v == null) return '';
+      return String(v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /* ── Logbook label helpers ── */
+    // Task 4.3 — Read-only outcome badge (replaces editable text)
+    function outcomeLabel(v) {
+      if (v === 'C')   return '<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#15803d;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;"><i class="fa-solid fa-circle-check" style="font-size:9px;"></i> Completed</span>';
+      if (v === 'Inc') return '<span style="display:inline-flex;align-items:center;gap:4px;background:#fef9c3;color:#854d0e;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;"><i class="fa-solid fa-circle-xmark" style="font-size:9px;"></i> Incomplete</span>';
+      if (v === 'N')   return '<span style="display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;color:#64748b;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;">N</span>';
+      if (v === 'D')   return '<span style="display:inline-flex;align-items:center;gap:4px;background:#fee2e2;color:#b91c1c;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;">Died</span>';
+      return v ? esc(v) : '—';
+    }
+
+    // Task 4.2 — Dose progress text (e.g. "2 / 3 doses")
+    function doseProgressText(p) {
+      const schedule = { '1': 3, '2': 4, '3': 2 };
+      const total = schedule[String(p.category)] || 0;
+      if (!total) return '—';
+      const keys = ['vaccine_d0','vaccine_d3','vaccine_d7','vaccine_d14','vaccine_d28'];
+      const done = keys.filter(k => p[k]).length;
+      const capped = Math.min(done, total);
+      const color = capped === total ? '#15803d' : '#d97706';
+      return `<span style="font-size:11px;font-weight:700;color:${color};">${capped} / ${total} doses</span>`;
+    }
+
+
+    function bitingStatusLabel(v) {
+      const map = {
+        A:     '<span style="color:#15803d;font-weight:700;" title="Alive">A</span>',
+        D:     '<span style="color:#dc2626;font-weight:700;" title="Dead">D</span>',
+        L:     '<span style="color:#d97706;font-weight:700;" title="Lost">L</span>',
+        Alive: '<span style="color:#15803d;font-weight:700;" title="Alive">A</span>',
+        Dead:  '<span style="color:#dc2626;font-weight:700;" title="Dead">D</span>',
+        Lost:  '<span style="color:#d97706;font-weight:700;" title="Lost">L</span>',
+      };
+      return map[v] || (v ? esc(v) : '');
+    }
+    function animalLabel(v) {
+      return ({D:'PD',SD:'SD',C:'C',O:'O'})[v] || (v || '');
+    }
+
+    function toggleCat3Section() {
+      const sec = document.getElementById('cat3Section');
+      if (!sec) return;
+      sec.style.display = document.getElementById('category').value === '3' ? '' : 'none';
+    }
+
+    // Task 5.1 — category-based dose field show/hide in the Edit/Add form
+    function updateEditDoseVisibility() {
+      const cat = document.getElementById('category').value;
+      // Category → which optional dose fields to show
+      // D0 and D3 always shown; D7 for Cat1+2, D14 for Cat2 only, D28 never shown in standard workflow
+      // Backend PEP_SCHEDULE_BY_CATEGORY: '1':[0,3,7], '2':[0,3,7,14], '3':[0,3]
+      const SCHEDULE = { '1': ['vaccineD7'], '2': ['vaccineD7','vaccineD14'], '3': [] };
+      const shown = new Set(SCHEDULE[String(cat)] || []);
+      const optional = ['vaccineD7','vaccineD14','vaccineD28'];
+      optional.forEach(id => {
+        // Hide/show the date input's form-group
+        const el = document.getElementById(id);
+        if (el) {
+          const wrap = el.closest('.form-group');
+          if (wrap) wrap.style.display = shown.has(id) ? '' : 'none';
+        }
+        // Hide/show the matching vaccinator form-group using its wrapper ID
+        // e.g. vaccineD7 → vaccinatorD7Wrap
+        const vaccWrapId = id.replace('vaccineD', 'vaccinatorD') + 'Wrap';
+        const vaccWrap = document.getElementById(vaccWrapId);
+        if (vaccWrap) vaccWrap.style.display = shown.has(id) ? '' : 'none';
+      });
+    }
+
+    /* ── Auto-calculate PEP schedule preview ── */
+    // Configurable schedule per category (days from D0).
+    // The clinic can adjust these without touching core logic.
+    const PEP_SCHEDULE_CONFIG = {
+      '1': [0, 3, 7],        // Cat I: 3 vaccine sessions
+      '2': [0, 3, 7, 14],    // Cat II: 4 vaccine sessions
+      '3': [0, 3],           // Cat III: 2 vaccine sessions (matches backend PEP_SCHEDULE_BY_CATEGORY)
+      'default': [0, 3, 7, 14, 28],
+    };
+    const DOSE_LABELS = { 0: 'Day 0', 3: 'Day 3', 7: 'Day 7', 14: 'Day 14', 28: 'Day 28' };
+
+    function updateSchedulePreview() {
+      const preview = document.getElementById('schedulePreview');
+      const body    = document.getElementById('schedulePreviewBody');
+      if (!preview || !body) return;
+
+      const d0Val   = document.getElementById('vaccineD0')?.value;
+      const catVal  = document.getElementById('category')?.value;
+      if (!d0Val || !catVal) { preview.style.display = 'none'; return; }
+
+      const schedule = PEP_SCHEDULE_CONFIG[catVal] || PEP_SCHEDULE_CONFIG['default'];
+      if (!schedule.length) {
+        preview.style.display = 'none';
+        return;
+      }
+
+      const parts = String(d0Val).slice(0, 10).split('-').map(Number);
+      const d0 = new Date(parts[0], parts[1] - 1, parts[2]);
+      if (isNaN(d0.getTime())) { preview.style.display = 'none'; return; }
+
+      const today = new Date(); today.setHours(0,0,0,0);
+      
+      // Check which doses have dates entered
+      const doseInputs = {
+        0: document.getElementById('vaccineD0')?.value,
+        3: document.getElementById('vaccineD3')?.value,
+        7: document.getElementById('vaccineD7')?.value,
+        14: document.getElementById('vaccineD14')?.value,
+        28: document.getElementById('vaccineD28')?.value
+      };
+      
+      body.innerHTML = schedule.map(days => {
+        const dueDate = new Date(d0);
+        dueDate.setDate(d0.getDate() + days);
+        dueDate.setHours(0,0,0,0);
+        const isOverdue = dueDate < today && days > 0;
+        const isToday   = dueDate.getTime() === today.getTime();
+        const fmtD = dueDate.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+        
+        // Check if this dose has been entered (has a date value)
+        const hasDate = !!doseInputs[days];
+        
+        // Determine icon and color based on whether date is entered
+        let icon, color;
+        if (hasDate) {
+          icon = '✓';  // Checkmark if date entered
+          color = '#15803d';  // Green
+        } else if (days === 0) {
+          icon = '✓';
+          color = '#15803d';
+        } else if (isToday) {
+          icon = '●';
+          color = '#1d4ed8';  // Blue
+        } else if (isOverdue) {
+          icon = '○';
+          color = '#dc2626';  // Red
+        } else {
+          icon = '○';
+          color = '#475569';  // Gray
+        }
+        
+        return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:6px 10px;font-size:11px;">
+          <div style="font-weight:800;color:${color};">${icon} ${DOSE_LABELS[days] || 'Day ' + days}</div>
+          <div style="color:#64748b;margin-top:2px;">${fmtD}</div>
+        </div>`;
+      }).join('');
+
+      // Display scheduled dates as reference only — do NOT auto-fill dose inputs.
+      // The nurse must manually enter the actual Date Given for each dose.
+
+      preview.style.display = 'block';
+    }
+
+    function setChk(id, v) {
+      const el = document.getElementById(id);
+      if (el) el.checked = !!v;
+    }
+
+    function clearCat3Fields() {
+      document.querySelectorAll('#cat3Section input[type="checkbox"]').forEach((el) => { el.checked = false; });
+      document.querySelectorAll('#cat3Section input[type="radio"]').forEach((el) => { el.checked = false; });
+      document.querySelectorAll('#cat3Section input[type="number"], #cat3Section input[type="text"], #cat3Section input[type="date"], #cat3Section textarea').forEach((el) => { el.value = ''; });
+    }
+
+    function populateCat3Fields(p) {
+      if (!p) return;
+      setChk('ttGiven', p.tt_given);
+      document.getElementById('ttDoseMl').value = p.tt_dose_ml ?? '';
+      document.getElementById('ttInjectionSite').value = p.tt_injection_site || '';
+      document.getElementById('ttDateGiven').value = toInputDate(p.tt_date_given);
+      document.getElementById('ttGivenBy').value = p.tt_given_by || '';
+      if (p.tt_route === 'ID') document.getElementById('ttRouteId').checked = true;
+      else if (p.tt_route === 'IM') document.getElementById('ttRouteIm').checked = true;
+      if (p.tt_anst_result === 'Positive') document.getElementById('ttAnstPositive').checked = true;
+      else if (p.tt_anst_result === 'Negative') document.getElementById('ttAnstNegative').checked = true;
+
+      setChk('atsGiven', p.ats_given);
+      document.getElementById('atsDoseMl').value = p.ats_dose_ml ?? '';
+      document.getElementById('atsInjectionSite').value = p.ats_injection_site || '';
+      const atsDateEl = document.getElementById('atsDateGiven');
+      if (atsDateEl) atsDateEl.value = toInputDate(p.ats_date_given);
+      const atsByEl = document.getElementById('atsGivenBy');
+      if (atsByEl) atsByEl.value = p.ats_given_by || '';
+      if (p.ats_anst_result === 'Positive') document.getElementById('atsAnstPositive').checked = true;
+      else if (p.ats_anst_result === 'Negative') document.getElementById('atsAnstNegative').checked = true;
+      if (p.ats_route === 'ID') document.getElementById('atsRouteId').checked = true;
+      else if (p.ats_route === 'IM') document.getElementById('atsRouteIm').checked = true;
+
+      setChk('htigGiven', p.htig_given);
+      document.getElementById('htigDoseMl').value = p.htig_dose_ml ?? '';
+      document.getElementById('htigInjectionSite').value = p.htig_injection_site || '';
+      const htigDateEl = document.getElementById('htigDateGiven');
+      if (htigDateEl) htigDateEl.value = toInputDate(p.htig_date_given);
+      const htigByEl = document.getElementById('htigGivenBy');
+      if (htigByEl) htigByEl.value = p.htig_given_by || '';
+      if (p.htig_route === 'ID') document.getElementById('htigRouteId').checked = true;
+      else if (p.htig_route === 'IM') document.getElementById('htigRouteIm').checked = true;
+      if (p.htig_anst_result === 'Positive') document.getElementById('htigAnstPositive').checked = true;
+      else if (p.htig_anst_result === 'Negative') document.getElementById('htigAnstNegative').checked = true;
+
+      setChk('rigEquirab', p.rig_equirab);
+      setChk('rigVinrab', p.rig_vinrab);
+      document.getElementById('rigEquineUpToMl').value = p.rig_equine_up_to_ml ?? '';
+      const equineAnst = String(p.rig_equine_anst || '').trim().toLowerCase();
+      if (equineAnst.startsWith('pos') || equineAnst === '+') document.getElementById('rigEquineAnstPositive').checked = true;
+      else if (equineAnst.startsWith('neg') || equineAnst === '-' || equineAnst === '−') document.getElementById('rigEquineAnstNegative').checked = true;
+      document.getElementById('rigEquineDate').value = toInputDate(p.rig_equine_date);
+      document.getElementById('rigEquineGivenBy').value = p.rig_equine_given_by || '';
+
+      setChk('rigBerirab', p.rig_berirab);
+      document.getElementById('rigHumanUpToMl').value = p.rig_human_up_to_ml ?? '';
+      document.getElementById('rigHumanDate').value = toInputDate(p.rig_human_date);
+      document.getElementById('rigHumanGivenBy').value = p.rig_human_given_by || '';
+
+      setChk('medsGiven', p.meds_given);
+      document.getElementById('medsDescription').value = p.meds_description || '';
+      toggleCat3Section();
+      updateEditDoseVisibility();
+    }
+
+    function chk(id) {
+      const el = document.getElementById(id);
+      return el && el.checked ? 1 : 0;
+    }
+
+    function fieldVal(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const v = el.value.trim();
+      return v === '' ? null : v;
+    }
+
+    function valNum(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const v = el.value.trim();
+      if (!v) return null;
+      const n = parseFloat(v);
+      return Number.isNaN(n) ? null : n;
+    }
+
+    function getNamedRadio(name) {
+      const el = document.querySelector(`input[name="${name}"]:checked`);
+      return el ? el.value : null;
+    }
+
+    function getAtsAnst() {
+      return getNamedRadio('atsAnst');
+    }
+
+    function getHtigRoute() {
+      return getNamedRadio('htigRoute');
+    }
+
+    function collectCat3Payload(isCat3) {
+      if (!isCat3) {
+        return {
+          tt_given: 0, tt_dose_ml: null, tt_injection_site: null, tt_date_given: null, tt_given_by: null, tt_route: null, tt_anst_result: null,
+          ats_given: 0, ats_dose_ml: null, ats_injection_site: null, ats_date_given: null, ats_given_by: null, ats_route: null, ats_anst_result: null,
+          htig_given: 0, htig_dose_ml: null, htig_injection_site: null, htig_date_given: null, htig_given_by: null, htig_route: null, htig_anst_result: null,
+          rig_equine_given: 0, rig_equirab: 0, rig_vinrab: 0, rig_equine_up_to_ml: null,
+          rig_equine_anst: null, rig_equine_date: null, rig_equine_given_by: null,
+          rig_human_given: 0, rig_berirab: 0, rig_human_up_to_ml: null, rig_human_date: null, rig_human_given_by: null,
+          meds_given: 0, meds_description: null,
+          dynamic_tetanus: [],
+          dynamic_rig: [],
+        };
+      }
+      const equineGiven = chk('rigEquirab') || chk('rigVinrab');
+      const humanGiven = chk('rigBerirab');
+      return {
+        tt_given: chk('ttGiven'),
+        tt_dose_ml: valNum('ttDoseMl'),
+        tt_injection_site: fieldVal('ttInjectionSite'),
+        tt_date_given: fieldVal('ttDateGiven'),
+        tt_given_by: fieldVal('ttGivenBy'),
+        tt_route: getNamedRadio('ttRoute'),
+        tt_anst_result: getNamedRadio('ttAnst'),
+        ats_given: chk('atsGiven'),
+        ats_dose_ml: valNum('atsDoseMl'),
+        ats_injection_site: fieldVal('atsInjectionSite'),
+        ats_date_given: fieldVal('atsDateGiven'),
+        ats_given_by: fieldVal('atsGivenBy'),
+        ats_route: getNamedRadio('atsRoute'),
+        ats_anst_result: getAtsAnst(),
+        htig_given: chk('htigGiven'),
+        htig_dose_ml: valNum('htigDoseMl'),
+        htig_injection_site: fieldVal('htigInjectionSite'),
+        htig_date_given: fieldVal('htigDateGiven'),
+        htig_given_by: fieldVal('htigGivenBy'),
+        htig_route: getHtigRoute(),
+        htig_anst_result: getNamedRadio('htigAnst'),
+        rig_equine_given: equineGiven,
+        rig_equirab: chk('rigEquirab'),
+        rig_vinrab: chk('rigVinrab'),
+        rig_equine_up_to_ml: valNum('rigEquineUpToMl'),
+        rig_equine_anst: getNamedRadio('rigEquineAnst'),
+        rig_equine_date: fieldVal('rigEquineDate'),
+        rig_equine_given_by: fieldVal('rigEquineGivenBy'),
+        rig_human_given: humanGiven,
+        rig_berirab: chk('rigBerirab'),
+        rig_human_up_to_ml: valNum('rigHumanUpToMl'),
+        rig_human_date: fieldVal('rigHumanDate'),
+        rig_human_given_by: fieldVal('rigHumanGivenBy'),
+        meds_given: chk('medsGiven'),
+        meds_description: fieldVal('medsDescription'),
+        dynamic_tetanus: (window.VaccineCatalog && VaccineCatalog.collectDynamicTetanus('')) || [],
+        dynamic_rig: (window.VaccineCatalog && VaccineCatalog.collectDynamicRig('', {
+          equineMl: valNum('rigEquineUpToMl'),
+          equineDate: fieldVal('rigEquineDate'),
+          equineBy: fieldVal('rigEquineGivenBy'),
+          humanMl: valNum('rigHumanUpToMl'),
+          humanDate: fieldVal('rigHumanDate'),
+          humanBy: fieldVal('rigHumanGivenBy'),
+        })) || [],
+      };
+    }
+
+    async function loadVaccineCatalogForForms(currentBrand) {
+      if (!window.VaccineCatalog) return;
+      await VaccineCatalog.load();
+      VaccineCatalog.applyToPatientForm(currentBrand || '');
+    }
+
+    function validateCat3Doses() {
+      const fields = [
+        { id: 'ttDoseMl', label: 'Tetanus-Toxoid dose' },
+        { id: 'atsDoseMl', label: 'ATS dose' },
+        { id: 'htigDoseMl', label: 'HTIG dose' },
+        { id: 'rigEquineUpToMl', label: 'Equine RIG mL' },
+        { id: 'rigHumanUpToMl', label: 'Human RIG mL' },
+      ];
+      for (const f of fields) {
+        const el = document.getElementById(f.id);
+        const raw = el.value.trim();
+        if (!raw) continue;
+        const n = parseFloat(raw);
+        if (Number.isNaN(n) || n < 0) {
+          showAlert(`Invalid numeric value for ${f.label}.`, 'error');
+          el.focus();
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function sortByRegistration(patients) {
+      return [...patients].sort((a, b) => {
+        const parseReg = (r) => {
+          const s = String(r.registration_number || '');
+          const parts = s.split('-');
+          if (parts.length >= 3 && parts[0] === 'ABC') {
+            return { year: parseInt(parts[1], 10) || 0, seq: parseInt(parts[2], 10) || 0 };
+          }
+          return { year: 0, seq: parseInt(s, 10) || 0 };
+        };
+        const ra = parseReg(a);
+        const rb = parseReg(b);
+        if (ra.year !== rb.year) return rb.year - ra.year;
+        if (ra.seq !== rb.seq) return ra.seq - rb.seq;
+        return (a.patient_id || 0) - (b.patient_id || 0);
+      });
+    }
+
+    /* ─────────────────────────────────────────
+       DATA LOADING
+    ───────────────────────────────────────── */
+    async function loadPatients() {
+      try {
+        // Clear search filters
+        document.getElementById('searchName').value = '';
+        document.getElementById('searchDate').value = '';
+        document.getElementById('searchBarangay').value = '';
+        
+        // Use the enriched search endpoint so total_cases is always included
+        const res  = await fetch('/api/patients/search/query');
+        const data = await res.json();
+        if (data.success) {
+          renderPatients(sortByRegistration(data.data));
+        } else {
+          showAlert('Failed to load patient records.', 'error');
+        }
+      } catch (e) {
+        console.error('Error loading patients:', e);
+        showAlert('Network error while loading patients.', 'error');
+      }
+    }
+
+    async function searchPatients() {
+      try {
+        const name     = document.getElementById('searchName').value.trim();
+        const date     = document.getElementById('searchDate').value.trim();
+        const barangay = document.getElementById('searchBarangay').value.trim();
+        const p = new URLSearchParams();
+        if (name)     p.append('name', name);
+        if (date)     p.append('date', date);
+        if (barangay) p.append('barangay', barangay);
+        const res  = await fetch(`/api/patients/search/query?${p}`);
+        const data = await res.json();
+        if (data.success) {
+          renderPatients(sortByRegistration(data.data));
+        } else {
+          showAlert('Search failed.', 'error');
+        }
+      } catch (e) {
+        console.error('Error searching patients:', e);
+        showAlert('Network error while searching.', 'error');
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       RENDER TABLE
+    ───────────────────────────────────────── */
+    function renderPatients(patients) {
+      const tbody = document.getElementById('patientsTable');
+      if (!patients || patients.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="29" style="text-align:center;padding:20px;color:#666;">No patient records found.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = patients.map(p => {
+        const caseCount = Number(p.total_cases) || 0;
+        const caseBadge = caseCount > 1
+          ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#dbeafe;color:#1d4ed8;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:700;">${caseCount} cases</span>`
+          : `<span style="color:#64748b;font-size:12px;">${caseCount}</span>`;
+        return `
+        <tr>
+          <td class="sc-no">${esc(p.registration_number)}</td>
+          <td class="sc-no" style="font-weight:700;color:#293681;">${esc(p.patient_id_display || ('PAT-' + String(p.patient_id).padStart(6,'0')))}</td>
+          <td class="sc-date">${fmt(p.date_registered)}</td>
+          <td class="sc-name" style="text-align:left;">${esc(p.full_name)}</td>
+          <td class="col-address" style="text-align:left;">${esc(p.address)}</td>
+          <td class="col-age">${esc(p.age)}</td>
+          <td class="col-sex">${esc(p.sex)}</td>
+          <td class="col-contact">${esc(p.contact_number)}</td>
+          <td class="col-barangay" style="text-align:left;">${esc(p.barangay)}</td>
+          <td class="col-cases" style="text-align:center;">${caseBadge}</td>
+          <td class="col-expdate">${fmt(p.date_of_exposure)}</td>
+          <td class="col-place" style="text-align:left;">${esc(p.place_of_exposure)}</td>
+          <td class="col-animal">${animalLabel(p.type_of_animal)}</td>
+          <td class="col-exptype">${esc(p.type_of_exposure)}</td>
+          <td class="col-site" style="text-align:left;">${esc(p.site_of_exposure)}</td>
+          <td class="col-cat">${esc(p.category)}</td>
+          <td class="col-wash">${esc(p.washing_of_bite)}</td>
+          <td class="col-route">${esc(p.route)}</td>
+          <td class="col-vax">${fmt(p.vaccine_d0)}</td>
+          <td class="col-vax">${fmt(p.vaccine_d3)}</td>
+          <td class="col-vax">${fmt(p.vaccine_d7)}</td>
+          <td class="col-vax">${fmt(p.vaccine_d14)}</td>
+          <td class="col-vax">${fmt(p.vaccine_d28)}</td>
+          <td class="col-brand">${esc(p.brand_name)}</td>
+          <td class="col-progress" style="text-align:center;">${doseProgressText(p)}</td>
+          <td class="col-outcome">${outcomeLabel(p.outcome)}</td>
+          <td class="col-bitstatus">${bitingStatusLabel(p.biting_animal_status)}</td>
+          <td class="col-remarks" style="text-align:left;">${esc(p.remarks)}</td>
+          <td class="sc-action">
+            <div class="action-cell" style="flex-direction:column;gap:4px;align-items:stretch;">
+              <button type="button" class="px-btn px-btn-edit" onclick="editPatient(${p.patient_id})" title="Edit patient record" style="width:100%;white-space:nowrap;">
+                <i class="fa-solid fa-pen-to-square"></i> Edit
+              </button>
+              <a href="/nurse/patient-episodes.html?id=${p.patient_id}" class="px-btn" style="background:#eff6ff;color:#293681;border:1px solid #bfdbfe;text-decoration:none;white-space:nowrap;font-size:11px;padding:5px 10px;width:100%;box-sizing:border-box;text-align:center;display:block;" title="View Treatment &amp; Exposure History">
+                <i class="fa-solid fa-timeline"></i> Treatment History
+              </a>
+            </div>
+          </td>
+        </tr>
+      `}).join('');
+    }
+
+    /* ─────────────────────────────────────────
+       MODAL HELPERS
+    ───────────────────────────────────────── */
+
+    /** Open modal in ADD mode — always resets the form first. */
+    async function openAddModal() {
+      resetForm();
+      document.getElementById('modalTitle').textContent = 'Add Patient Record';
+      const btn = document.getElementById('saveBtn');
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Patient Record`;
+      document.getElementById('dateRegistered').valueAsDate = new Date();
+      try {
+        const res = await fetch('/api/patients/next/registration-number');
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('registrationNumber').value = data.data.registration_number;
+        }
+      } catch (e) {
+        console.error('Failed to fetch next registration number:', e);
+      }
+      openModal('patientModal');
+    }
+
+    /** Reset every form field and clear the hidden patient ID. */
+    function resetForm() {
+      document.getElementById('patientForm').reset();
+      document.getElementById('patientId').value = '';
+      clearCat3Fields();
+      if (window.VaccineCatalog) {
+        VaccineCatalog.applyToPatientForm('');
+        VaccineCatalog.resetDynamic('');
+      }
+      toggleCat3Section();
+      updateEditDoseVisibility();
+      clearPatientFieldErrors();
+      const ab = document.getElementById('patientAuditBox');
+      if (ab) ab.style.display = 'none';
+    }
+
+    /* ─────────────────────────────────────────
+       PRINT PATIENT CARD PROMPT
+    ───────────────────────────────────────── */
+    function showPrintCardPrompt(patientId, patientIdDisplay, registrationNumber, mode) {
+      // Remove any existing prompt
+      const existing = document.getElementById('printCardPrompt');
+      if (existing) existing.remove();
+
+      const isUpdate = mode === 'update';
+      const modal = document.createElement('div');
+      modal.id = 'printCardPrompt';
+      modal.style.cssText = `
+        position:fixed;inset:0;z-index:99999;
+        background:rgba(10,18,50,.55);backdrop-filter:blur(4px);
+        display:flex;align-items:center;justify-content:center;padding:20px;
+      `;
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:18px;width:100%;max-width:420px;
+             padding:28px 26px;box-shadow:0 24px 64px rgba(10,18,50,.25);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;
+               padding-bottom:14px;border-bottom:1.5px solid #e8edf8;">
+            <i class="fa-solid fa-circle-check" style="font-size:22px;color:#15803d;"></i>
+            <h3 style="font-size:16px;font-weight:800;color:#293681;margin:0;">
+              ${isUpdate ? 'Patient Updated Successfully' : 'Patient Registered Successfully'}
+            </h3>
+          </div>
+          <p style="font-size:13px;color:#475569;margin-bottom:6px;line-height:1.6;">
+            <strong style="color:#1e2a4a;">${escHtml(patientIdDisplay)}</strong> has been ${isUpdate ? 'updated' : 'created'}.<br>
+            Reg. No.: <strong style="color:#293681;">${escHtml(registrationNumber||'')}</strong>
+          </p>
+          <p style="font-size:12.5px;color:#475569;margin-bottom:18px;">
+            ${isUpdate
+              ? 'Would you like to print the Patient Record Card now?'
+              : 'Print the Patient Card and give it to the patient. It contains the Patient Portal login guide and temporary password. SMS is only used for vaccination reminders.'}
+          </p>
+          <div style="display:flex;gap:10px;">
+            <button id="btnPrintCard"
+              style="flex:1;padding:11px 16px;
+              background:linear-gradient(135deg,#4274D9,#293681);color:#fff;
+              border:none;border-radius:10px;font-size:13px;font-weight:700;
+              cursor:pointer;font-family:inherit;display:flex;align-items:center;
+              justify-content:center;gap:7px;">
+              <i class="fa-solid fa-print"></i> Print Patient Card
+            </button>
+            <button onclick="document.getElementById('printCardPrompt').remove()"
+              style="flex:1;padding:11px 16px;background:#f1f5f9;color:#64748b;
+              border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-weight:700;
+              cursor:pointer;font-family:inherit;">
+              Skip
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      document.getElementById('btnPrintCard').addEventListener('click', () => {
+        modal.remove();
+        const url = `/patient/patient-card.html?patientId=${encodeURIComponent(patientId)}`;
+        window.open(url, '_blank', 'width=900,height=700,scrollbars=yes');
+      });
+    }
+
+    // Helper used inside showPrintCardPrompt to safely escape strings
+    function escHtml(v) {
+      if (v == null) return '';
+      return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    /* ─────────────────────────────────────────
+       AGE + CONTACT NUMBER
+    ───────────────────────────────────────── */
+    const AGE_MESSAGE = 'Please enter a valid age between 0 and 120.';
+    const CONTACT_MESSAGE = 'Invalid contact number. Please enter a valid 11-digit Philippine mobile number (e.g., 09123456789).';
+
+    function digitsOnly(value) {
+      return String(value || '').replace(/\D/g, '');
+    }
+
+    function toLocalPhMobile(value) {
+      let digits = digitsOnly(value);
+      if (!digits || digits.startsWith('630')) return null;
+      if (digits.startsWith('63') && digits.length === 12) {
+        /* already 639XXXXXXXXX */
+      } else if (digits.startsWith('0') && digits.length === 11) {
+        digits = `63${digits.slice(1)}`;
+      } else if (digits.length === 10 && digits.startsWith('9')) {
+        digits = `63${digits}`;
+      } else {
+        return null;
+      }
+      if (!/^639\d{9}$/.test(digits)) return null;
+      return `0${digits.slice(2)}`;
+    }
+
+    function sanitizeContactTyping(value) {
+      let digits = digitsOnly(value);
+      if (digits.startsWith('63')) return digits.slice(0, 12);
+      if (digits.startsWith('9')) return digits.slice(0, 10);
+      return digits.slice(0, 11);
+    }
+
+    function setFieldError(inputId, errorId, message) {
+      const input = document.getElementById(inputId);
+      const err = document.getElementById(errorId);
+      if (!input || !err) return;
+      if (message) {
+        input.classList.add('is-invalid');
+        input.setAttribute('aria-invalid', 'true');
+        err.textContent = message;
+      } else {
+        input.classList.remove('is-invalid');
+        input.removeAttribute('aria-invalid');
+        err.textContent = '';
+      }
+    }
+
+    function clearPatientFieldErrors() {
+      setFieldError('age', 'ageError', '');
+      setFieldError('contactNumber', 'contactError', '');
+    }
+
+    function focusInvalidField(inputId, errorId, message) {
+      setFieldError(inputId, errorId, message);
+      showAlert(message, 'error');
+      const el = document.getElementById(inputId);
+      if (!el) return;
+      el.focus();
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+
+    function bindPatientNumberFields() {
+      const age = document.getElementById('age');
+      const contact = document.getElementById('contactNumber');
+
+      age.addEventListener('input', () => {
+        const next = digitsOnly(age.value).slice(0, 3);
+        if (age.value !== next) {
+          const pos = age.selectionStart || next.length;
+          age.value = next;
+          age.setSelectionRange(Math.min(pos, next.length), Math.min(pos, next.length));
+        }
+        if (next !== '' && Number(next) > 120) setFieldError('age', 'ageError', AGE_MESSAGE);
+        else setFieldError('age', 'ageError', '');
+      });
+
+      age.addEventListener('blur', () => {
+        const raw = age.value.trim();
+        if (!raw) return;
+        if (!/^\d+$/.test(raw) || Number(raw) > 120) {
+          setFieldError('age', 'ageError', AGE_MESSAGE);
+          return;
+        }
+        age.value = String(Number(raw));
+        setFieldError('age', 'ageError', '');
+      });
+
+      contact.addEventListener('input', () => {
+        const next = sanitizeContactTyping(contact.value);
+        if (contact.value !== next) {
+          const pos = contact.selectionStart || next.length;
+          contact.value = next;
+          contact.setSelectionRange(Math.min(pos, next.length), Math.min(pos, next.length));
+        }
+        if (!next || toLocalPhMobile(next) || next.length < (next.startsWith('63') ? 12 : next.startsWith('9') ? 10 : 11)) {
+          setFieldError('contactNumber', 'contactError', '');
+        } else {
+          setFieldError('contactNumber', 'contactError', CONTACT_MESSAGE);
+        }
+      });
+
+      contact.addEventListener('blur', () => {
+        const raw = contact.value.trim();
+        if (!raw) return;
+        const local = toLocalPhMobile(raw);
+        if (!local) {
+          setFieldError('contactNumber', 'contactError', CONTACT_MESSAGE);
+          return;
+        }
+        contact.value = local;
+        setFieldError('contactNumber', 'contactError', '');
+      });
+
+      ['ttDoseMl', 'atsDoseMl', 'htigDoseMl', 'rigEquineUpToMl', 'rigHumanUpToMl'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.setAttribute('inputmode', 'decimal');
+        el.addEventListener('input', () => {
+          const cleaned = String(el.value).replace(/[^\d.]/g, '');
+          const dot = cleaned.indexOf('.');
+          const next = dot === -1 ? cleaned : `${cleaned.slice(0, dot + 1)}${cleaned.slice(dot + 1).replace(/\./g, '')}`;
+          if (el.value !== next) el.value = next;
+        });
+      });
+    }
+
+    /* ─────────────────────────────────────────
+       SAVE (CREATE or UPDATE)
+    ───────────────────────────────────────── */
+    document.getElementById('patientForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById('patientId').value.trim();
+
+      // Build payload — send empty strings as null so optional fields don't break DB ENUMs
+      function val(id) {
+        const v = document.getElementById(id).value.trim();
+        return v === '' ? null : v;
+      }
+
+      const payload = {
+        full_name:            val('fullName'),
+        age:                  val('age'),
+        sex:                  val('sex'),
+        address:              val('address'),
+        barangay:             val('barangay'),
+        contact_number:       val('contactNumber'),
+        date_registered:      val('dateRegistered'),
+        // Exposure
+        date_of_exposure:     val('dateOfExposure'),
+        place_of_exposure:    val('placeOfExposure'),
+        type_of_animal:       val('typeOfAnimal'),
+        type_of_exposure:     val('typeOfExposure'),
+        site_of_exposure:     val('siteOfExposure'),
+        // PEP
+        category:             val('category'),
+        washing_of_bite:      val('washingOfBite'),
+        route:                val('route'),
+        vaccine_d0:           val('vaccineD0'),
+        vaccine_d3:           val('vaccineD3'),
+        vaccine_d7:           val('vaccineD7'),
+        vaccine_d14:          val('vaccineD14'),
+        vaccine_d28:          val('vaccineD28'),
+        vaccinator_d0:        val('vaccinatorD0'),
+        vaccinator_d3:        val('vaccinatorD3'),
+        vaccinator_d7:        val('vaccinatorD7'),
+        vaccinator_d14:       val('vaccinatorD14'),
+        vaccinator_d28:       val('vaccinatorD28'),
+        brand_name:           val('brandName'),
+        // Outcome
+        outcome:              val('outcome'),
+        biting_animal_status: val('bitingAnimalStatus'),
+        remarks:              val('remarks'),
+      };
+
+      const ageRaw = document.getElementById('age').value.trim();
+      if (!/^\d+$/.test(ageRaw) || Number(ageRaw) > 120) {
+        focusInvalidField('age', 'ageError', AGE_MESSAGE);
+        return;
+      }
+      payload.age = Number(ageRaw);
+      setFieldError('age', 'ageError', '');
+
+      const contactLocal = toLocalPhMobile(document.getElementById('contactNumber').value);
+      if (!contactLocal) {
+        focusInvalidField('contactNumber', 'contactError', CONTACT_MESSAGE);
+        return;
+      }
+      document.getElementById('contactNumber').value = contactLocal;
+      payload.contact_number = contactLocal;
+      setFieldError('contactNumber', 'contactError', '');
+
+      // Basic client-side validation
+      if (!payload.full_name)           { showAlert('Patient Name is required.', 'error'); document.getElementById('fullName').focus(); return; }
+      if (!payload.sex)                 { showAlert('Sex is required.', 'error'); document.getElementById('sex').focus(); return; }
+      if (!payload.address)             { showAlert('Address is required.', 'error'); document.getElementById('address').focus(); return; }
+      if (!payload.barangay)            { showAlert('Barangay is required.', 'error'); document.getElementById('barangay').focus(); return; }
+      if (!payload.date_registered)     { showAlert('Date Registered is required.', 'error'); document.getElementById('dateRegistered').focus(); return; }
+
+      // ── Additional required fields for NEW patients only ──────────────────
+      // Edit mode (id is set) preserves existing data — no forced re-validation.
+      if (!id) {
+        // History of Exposure
+        if (!payload.date_of_exposure)  { showAlert('History of Exposure: Date of Exposure is required.', 'error'); document.getElementById('dateOfExposure').focus(); return; }
+        if (!payload.place_of_exposure) { showAlert('History of Exposure: Place (Where Biting Occurred) is required.', 'error'); document.getElementById('placeOfExposure').focus(); return; }
+        if (!payload.type_of_animal)    { showAlert('History of Exposure: Type of Animal is required.', 'error'); document.getElementById('typeOfAnimal').focus(); return; }
+        if (!payload.type_of_exposure)  { showAlert('History of Exposure: Type of Exposure (B/NB) is required.', 'error'); document.getElementById('typeOfExposure').focus(); return; }
+        if (!payload.site_of_exposure)  { showAlert('History of Exposure: Site (Body Parts) is required.', 'error'); document.getElementById('siteOfExposure').focus(); return; }
+        // PEP
+        if (!payload.category)          { showAlert('PEP: Category (1, 2, 3) is required.', 'error'); document.getElementById('category').focus(); return; }
+        if (!payload.washing_of_bite)   { showAlert('PEP: Washing of Bite (Y/N) is required.', 'error'); document.getElementById('washingOfBite').focus(); return; }
+        if (!payload.route)             { showAlert('PEP: Route is required.', 'error'); document.getElementById('route').focus(); return; }
+        if (!payload.brand_name)        { showAlert('PEP: Vaccine Brand Name is required.', 'error'); document.getElementById('brandName').focus(); return; }
+      }
+
+      const isCat3 = payload.category === '3';
+      if (isCat3 && !validateCat3Doses()) return;
+      Object.assign(payload, collectCat3Payload(isCat3));
+
+      // ── Duplicate check (new patients only) ──
+      if (!id) {
+        try {
+          const qp = new URLSearchParams();
+          if (payload.full_name)     qp.append('full_name', payload.full_name);
+          if (payload.contact_number) qp.append('contact_number', payload.contact_number);
+          const dupRes = await fetch(`/api/episodes/search/duplicate?${qp}`);
+          const dupData = await dupRes.json();
+          if (dupData.success && dupData.found) {
+            const existing = dupData.data;
+            const confirmed = await showDuplicateWarning(existing);
+            if (!confirmed) return; // nurse chose to view existing patient
+          }
+        } catch (_) { /* ignore duplicate check errors — don't block save */ }
+      }
+
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = id ? '⏳ Updating…' : '⏳ Saving…';
+
+      try {
+        const url    = id ? `/api/patients/${id}` : '/api/patients';
+        const method = id ? 'PUT' : 'POST';
+        const res    = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          closeModal('patientModal');
+          await loadPatients();          // refresh table
+          const saved = data.data || {};
+          const savedId = id || data.patientId || saved.patient_id;
+          const display = data.patient_id_display || saved.patient_id_display || '';
+          const regNo = data.registration_number || saved.registration_number || '';
+          if (savedId) {
+            showPrintCardPrompt(savedId, display, regNo, id ? 'update' : 'create');
+          } else {
+            showAlert(data.message || (id ? 'Patient updated successfully.' : 'Patient added successfully.'));
+          }
+        } else {
+          if (data.field === 'age') focusInvalidField('age', 'ageError', data.message || AGE_MESSAGE);
+          else if (data.field === 'contact_number') focusInvalidField('contactNumber', 'contactError', data.message || CONTACT_MESSAGE);
+          else showAlert(data.message || 'Failed to save patient record.', 'error');
+        }
+      } catch (err) {
+        console.error('Error saving patient:', err);
+        showAlert('Network error. Please try again.', 'error');
+      } finally {
+        saveBtn.disabled = false;
+        const icon = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
+        saveBtn.innerHTML = id ? `${icon} Update Patient Record` : `${icon} Save Patient Record`;
+      }
+    });
+
+    /* ─────────────────────────────────────────
+       EDIT — load patient data into form
+    ───────────────────────────────────────── */
+    async function editPatient(id) {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+        const authHdr = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res  = await fetch(`/api/patients/${id}`, { headers: authHdr });
+        const data = await res.json();
+
+        if (!data.success) {
+          showAlert('Could not load patient record.', 'error');
+          return;
+        }
+
+        const p = data.data;
+
+        // Populate all fields
+        document.getElementById('patientId').value            = p.patient_id;
+        document.getElementById('registrationNumber').value   = p.registration_number  || '';
+        document.getElementById('fullName').value             = p.full_name             || '';
+        document.getElementById('age').value                  = p.age == null || p.age === '' ? '' : String(p.age);
+        document.getElementById('sex').value                  = p.sex                  || '';
+        document.getElementById('address').value              = p.address               || '';
+        document.getElementById('barangay').value             = p.barangay              || '';
+        document.getElementById('contactNumber').value        = toLocalPhMobile(p.contact_number) || p.contact_number || '';
+        clearPatientFieldErrors();
+        // Dates must be converted to YYYY-MM-DD for <input type="date">
+        document.getElementById('dateRegistered').value       = toInputDate(p.date_registered);
+        document.getElementById('dateOfExposure').value       = toInputDate(p.date_of_exposure);
+        document.getElementById('vaccineD0').value            = toInputDate(p.vaccine_d0);
+        document.getElementById('vaccineD3').value            = toInputDate(p.vaccine_d3);
+        document.getElementById('vaccineD7').value            = toInputDate(p.vaccine_d7);
+        document.getElementById('vaccineD14').value           = toInputDate(p.vaccine_d14);
+        document.getElementById('vaccineD28').value           = toInputDate(p.vaccine_d28);
+        // Clear vaccinator fields first — no auto-fill
+        ['vaccinatorD0','vaccinatorD3','vaccinatorD7','vaccinatorD14','vaccinatorD28'].forEach(elId => {
+          const el = document.getElementById(elId);
+          if (el) el.value = '';
+        });
+        // Load per-dose vaccinator names AND Category III treatment data from the patient's
+        // LATEST (current) episode. GET /api/cases/patient/:id returns episodes
+        // ORDER BY episode_number ASC; active_episode is the highest-numbered one.
+        try {
+          await loadVaccineCatalogForForms(p.brand_name || '');
+          const caseRes  = await fetch(`/api/cases/patient/${p.patient_id}`, { headers: authHdr });
+          const caseData = await caseRes.json();
+          if (caseData.success && caseData.data) {
+            // Prefer active_episode (already the latest), fall back to last element of episodes array
+            const latestEp  = caseData.data.active_episode
+              || (caseData.data.episodes || []).slice(-1)[0]
+              || null;
+
+            // ── Vaccinator names ──────────────────────────────────────────────
+            const pepSched  = (latestEp && latestEp.pep_schedule) || [];
+            const activeCycle = Number(latestEp && latestEp.treatment_cycle) || 0;
+            const currentSched = activeCycle
+              ? pepSched.filter((row) => Number(row.treatment_cycle) === activeCycle)
+              : pepSched;
+            const dayToInput = {
+              'Day 0' : 'vaccinatorD0',
+              'Day 3' : 'vaccinatorD3',
+              'Day 7' : 'vaccinatorD7',
+              'Day 14': 'vaccinatorD14',
+              'Day 28': 'vaccinatorD28',
+            };
+            (currentSched.length ? currentSched : pepSched).forEach(row => {
+              const inputId = dayToInput[row.day_label];
+              if (inputId) {
+                const el = document.getElementById(inputId);
+                if (el && row.vaccinated_by) el.value = row.vaccinated_by;
+              }
+            });
+
+            // ── Category III treatment data ───────────────────────────────────
+            // Build a flat object from the current episode's sub-table records so
+            // populateCat3Fields() can fill the form.  Falls back to the flat
+            // patients columns (p.*) when no sub-table rows exist (Case #1 legacy).
+            if (latestEp) {
+              const tetRecs = latestEp.tetanus_records || [];
+              const rigRecs = latestEp.rig_records     || [];
+              const medRecs = latestEp.medication_records || [];
+
+              const tt   = tetRecs.find(r => r.type === 'TT')   || {};
+              const ats  = tetRecs.find(r => r.type === 'ATS')  || {};
+              const htig = tetRecs.find(r => r.type === 'HTIG') || {};
+              const rigEq  = rigRecs.find(r => (r.rig_type || '').toLowerCase() === 'equine') || {};
+              const rigHum = rigRecs.find(r => (r.rig_type || '').toLowerCase() === 'human')  || {};
+              const meds   = medRecs[0] || {};
+
+              // If any sub-table rows exist, use them; otherwise fall back to flat p columns.
+              const hasSub = tetRecs.length || rigRecs.length || medRecs.length;
+              const cat3Data = hasSub ? {
+                tt_given:           tt.given    || 0,
+                tt_dose_ml:         tt.dose_ml  ?? '',
+                tt_injection_site:  tt.injection_site || '',
+                tt_date_given:      tt.date_given || null,
+                tt_given_by:        tt.given_by  || '',
+                tt_route:           tt.route || null,
+                tt_anst_result:     tt.anst_result || null,
+                ats_given:          ats.given   || 0,
+                ats_dose_ml:        ats.dose_ml ?? '',
+                ats_injection_site: ats.injection_site || '',
+                ats_date_given:     ats.date_given || null,
+                ats_given_by:       ats.given_by || '',
+                ats_route:          ats.route || null,
+                ats_anst_result:    ats.anst_result || null,
+                htig_given:         htig.given  || 0,
+                htig_dose_ml:       htig.dose_ml ?? '',
+                htig_injection_site:htig.injection_site || '',
+                htig_date_given:    htig.date_given || null,
+                htig_given_by:      htig.given_by || '',
+                htig_route:         htig.route  || null,
+                htig_anst_result:   htig.anst_result || null,
+                rig_equirab:  (rigEq.rig_brand || '').toLowerCase() === 'equirab' ? 1 : 0,
+                rig_vinrab:   (rigEq.rig_brand || '').toLowerCase() === 'vinrab'  ? 1 : 0,
+                rig_equine_up_to_ml: rigEq.volume_ml ?? '',
+                rig_equine_anst:     rigEq.anst_result || '',
+                rig_equine_date:     rigEq.date_given || null,
+                rig_equine_given_by: rigEq.given_by   || '',
+                rig_berirab:         rigHum.rig_brand ? 1 : 0,
+                rig_human_up_to_ml:  rigHum.volume_ml ?? '',
+                rig_human_date:      rigHum.date_given || null,
+                rig_human_given_by:  rigHum.given_by   || '',
+                meds_given:       meds.medication_name ? 1 : 0,
+                meds_description: meds.remarks || '',
+              } : p; // fall back to flat patients row for legacy / single-case patients
+              populateCat3Fields(cat3Data);
+              if (window.VaccineCatalog) {
+                VaccineCatalog.populateDynamicTetanus('', tetRecs);
+              }
+            } else {
+              // No episode data — fall back to flat patients row
+              populateCat3Fields(p);
+            }
+          } else {
+            console.warn('[editPatient] Could not load case data:', caseData.message);
+            populateCat3Fields(p); // best-effort fallback
+          }
+        } catch (vaccErr) {
+          console.error('[editPatient] Failed to load case data:', vaccErr);
+          populateCat3Fields(p); // best-effort fallback
+          // Non-fatal — show a subtle inline note so nurse knows vaccinators need re-entry
+          const note = document.createElement('p');
+          note.style.cssText = 'color:#b45309;font-size:11px;margin:4px 0 0;font-weight:600;';
+          note.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Could not load saved vaccinator names. Please re-enter them if needed.';
+          const vaccWrap = document.getElementById('vaccinatorD0Wrap');
+          if (vaccWrap && vaccWrap.parentElement && !document.getElementById('vaccinatorLoadWarn')) {
+            note.id = 'vaccinatorLoadWarn';
+            vaccWrap.parentElement.insertBefore(note, vaccWrap.parentElement.firstChild);
+          }
+        }
+        // Text / select fields
+        document.getElementById('placeOfExposure').value      = p.place_of_exposure     || '';
+        document.getElementById('typeOfAnimal').value         = p.type_of_animal        || '';
+        document.getElementById('typeOfExposure').value       = p.type_of_exposure      || '';
+        document.getElementById('siteOfExposure').value       = p.site_of_exposure      || '';
+        document.getElementById('category').value             = p.category              || '';
+        document.getElementById('washingOfBite').value        = p.washing_of_bite       || '';
+        document.getElementById('route').value                = p.route                 || '';
+        if (window.VaccineCatalog) {
+          VaccineCatalog.fillBrandSelect('brandName', p.brand_name || '');
+        } else {
+          document.getElementById('brandName').value = p.brand_name || '';
+        }
+        document.getElementById('outcome').value              = p.outcome               || '';
+        // Task 5.2 — Update read-only outcome display
+        (function updateOutcomeDisplay() {
+          const v = p.outcome;
+          const txt = document.getElementById('outcomeDisplayText');
+          const box = document.getElementById('outcomeDisplay');
+          if (!txt || !box) return;
+          if (v === 'C') { txt.textContent = 'Completed'; box.style.cssText = 'padding:10px 14px;background:#dcfce7;border:1.5px solid #86efac;border-radius:10px;font-size:13px;font-weight:700;color:#15803d;min-height:42px;display:flex;align-items:center;gap:8px;'; }
+          else if (v === 'Inc') { txt.textContent = 'Incomplete'; box.style.cssText = 'padding:10px 14px;background:#fef9c3;border:1.5px solid #fde047;border-radius:10px;font-size:13px;font-weight:700;color:#854d0e;min-height:42px;display:flex;align-items:center;gap:8px;'; }
+          else { txt.textContent = 'Calculated after saving doses'; box.style.cssText = 'padding:10px 14px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;font-size:13px;font-weight:700;color:#15803d;min-height:42px;display:flex;align-items:center;gap:8px;'; }
+        })();
+        document.getElementById('bitingAnimalStatus').value   = p.biting_animal_status  || '';
+        document.getElementById('remarks').value              = p.remarks               || '';
+        toggleCat3Section();
+        updateEditDoseVisibility();
+        updateSchedulePreview();
+        (function showMissedBanner() {
+          const box = document.getElementById('mdPatientBanner');
+          if (!box || !window.TreatmentRestart) return;
+          box.innerHTML = TreatmentRestart.renderBanner(p, {
+            episodeId: p.current_case_id,
+            patientId: p.patient_id,
+            missedDose: p.missed_dose,
+            missedDate: p.missed_date,
+          });
+        })();
+
+        // ═══ Audit trail info (created/updated by staff) ═══
+        const ab = document.getElementById('patientAuditBox');
+        if (ab) {
+          const fmtAudit = (ts) => {
+            if (!ts) return '—';
+            const d = new Date(ts);
+            if (isNaN(d.getTime())) return String(ts);
+            return d.toLocaleString('en-US', { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+          };
+          const setEl = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val || '—'; };
+          setEl('auditCreatedBy', p.created_by);
+          setEl('auditUpdatedBy', p.updated_by);
+          setEl('auditCreatedAt', fmtAudit(p.created_at));
+          setEl('auditUpdatedAt', fmtAudit(p.updated_at));
+          // Show audit box only if there's a created_by or it's an existing record
+          if (p.created_by || p.created_at) ab.style.display = 'block';
+        }
+
+        document.getElementById('modalTitle').textContent  =
+          `Edit Patient Record — ${p.patient_id_display || ('PAT-' + String(p.patient_id).padStart(6,'0'))}`;
+        const icon = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
+        document.getElementById('saveBtn').innerHTML = `${icon} Update Patient Record`;
+        openModal('patientModal');
+
+      } catch (err) {
+        console.error('Error loading patient for edit:', err);
+        showAlert('Network error. Could not load patient.', 'error');
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       DUPLICATE PATIENT WARNING
+    ───────────────────────────────────────── */
+    /**
+     * Shows a modal-style warning if possible duplicate patients are found.
+     * Returns a Promise<boolean>:
+     *   true  — nurse confirmed they want to create a new patient anyway
+     *   false — nurse chose to view an existing patient (cancel the new save)
+     */
+    function showDuplicateWarning(existingPatients) {
+      return new Promise(resolve => {
+        // Remove any previous duplicate modal
+        const prev = document.getElementById('dupWarningModal');
+        if (prev) prev.remove();
+
+        const rows = existingPatients.map(p => `
+          <div style="display:flex;align-items:center;justify-content:space-between;
+               padding:8px 12px;background:#fff;border-radius:8px;
+               border:1px solid #fdba74;margin-bottom:6px;gap:10px;">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#1e2a4a;">${escHtml(p.full_name)}</div>
+              <div style="font-size:11px;color:#64748b;">
+                ${escHtml(p.patient_id_display || 'PAT-' + String(p.patient_id).padStart(6,'0'))} ·
+                ${escHtml(p.barangay)} · ${escHtml(p.contact_number || '—')}
+              </div>
+            </div>
+            <a href="/nurse/patient-episodes.html?id=${p.patient_id}"
+               style="font-size:12px;font-weight:700;color:#4274D9;background:#eff6ff;
+                      border:none;border-radius:7px;padding:5px 12px;text-decoration:none;white-space:nowrap;"
+               title="View treatment &amp; exposure history"
+               onclick="document.getElementById('dupWarningModal').remove();">
+              View Patient →
+            </a>
+          </div>
+        `).join('');
+
+        const modal = document.createElement('div');
+        modal.id = 'dupWarningModal';
+        modal.style.cssText = `
+          position:fixed;inset:0;z-index:99999;
+          background:rgba(10,18,50,.52);backdrop-filter:blur(4px);
+          display:flex;align-items:center;justify-content:center;padding:20px;
+        `;
+        modal.innerHTML = `
+          <div style="background:#fff;border-radius:18px;width:100%;max-width:500px;
+               padding:28px 26px;box-shadow:0 24px 64px rgba(10,18,50,.22);">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;
+                 padding-bottom:14px;border-bottom:1.5px solid #e8edf8;">
+              <i class="fa-solid fa-triangle-exclamation" style="font-size:20px;color:#d97706;"></i>
+              <h3 style="font-size:16px;font-weight:800;color:#293681;margin:0;">
+                Possible Existing Patient Found
+              </h3>
+            </div>
+            <p style="font-size:13px;color:#64748b;margin-bottom:14px;line-height:1.5;">
+              The system found patient(s) with a similar name or contact number.
+              Please review before creating a new record to avoid duplicates.
+            </p>
+            <div style="margin-bottom:16px;">${rows}</div>
+            <div style="display:flex;gap:10px;">
+              <button id="dupCancelBtn" style="flex:1;padding:10px 16px;background:#f1f5f9;
+                color:#64748b;border:1.5px solid #e2e8f0;border-radius:9px;
+                font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
+                Cancel
+              </button>
+              <button id="dupConfirmBtn" style="flex:1;padding:10px 16px;
+                background:linear-gradient(135deg,#ea580c,#c2410c);color:#fff;
+                border:none;border-radius:9px;font-size:14px;font-weight:700;
+                cursor:pointer;font-family:inherit;">
+                Create New Patient Anyway
+              </button>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        document.getElementById('dupCancelBtn').addEventListener('click', () => {
+          modal.remove();
+          resolve(false);
+        });
+        document.getElementById('dupConfirmBtn').addEventListener('click', () => {
+          modal.remove();
+          resolve(true);
+        });
+        modal.addEventListener('click', e => {
+          if (e.target === modal) { modal.remove(); resolve(false); }
+        });
+      });
+    }
+
+    function escHtml(v) {
+      if (v == null) return '—';
+      return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  </script>
+</body>
+</html>

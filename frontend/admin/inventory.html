@@ -1,0 +1,1237 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vaccine Inventory – HopeCare Admin</title>
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="/js/shared/sidebar.js"></script>
+  <style>
+    .lot-filter-hint { font-size:12px; color:#64748b; margin:-4px 0 10px; }
+    #lotDateFilters { align-items:flex-end; }
+    #lotFilterMeta { font-size:12px; color:#64748b; margin:0 0 10px; }
+    .inv-scroll {
+      max-height: min(52vh, 560px);
+      overflow: auto;
+      scrollbar-gutter: stable;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fff;
+    }
+    .inv-scroll table.adm-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 0;
+    }
+    .inv-scroll thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f8faff;
+      box-shadow: inset 0 -1px 0 #e2e8f0;
+    }
+    .inv-scroll tbody td { background: #fff; }
+    .inv-scroll tbody tr:hover td { background: #f8faff; }
+    .sortable-header {
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s;
+    }
+    .sortable-header:hover {
+      color: #293681;
+    }
+    .sort-icon {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 10px;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+    .sortable-header:hover .sort-icon {
+      opacity: 1;
+    }
+    @media (max-width: 1024px) {
+      .inv-scroll { max-height: min(58vh, 480px); }
+    }
+    @media (max-width: 760px) {
+      #lotDateFilters { gap:8px; }
+      #lotDateFilters > div { flex:1 1 calc(50% - 8px); min-width:140px; }
+      #lotDateFilters input[type="date"] { width:100%; min-width:0; }
+      .inv-scroll { max-height: min(62vh, 420px); }
+    }
+  </style>
+</head>
+<body class="hc-admin" data-nav="inventory">
+<div class="main-wrapper"><script>initAppSidebar();</script>
+<div class="main-content">
+  <div class="adm-header">
+    <div>
+      <h1><i class="fa-solid fa-boxes-stacked"></i> Vaccine Inventory Management</h1>
+      <p>Record AM Shift and PM Shift inventory. The physical count verified by an administrator is the Current Verified Stock, including when it differs from Expected Stock. Total Used = verified AM count − PM count.</p>
+    </div>
+    <div class="adm-header-actions">
+      <a class="adm-btn adm-btn-secondary" href="/admin/inventory-history.html"><i class="fa-solid fa-clock-rotate-left"></i> History</a>
+      <button class="adm-btn adm-btn-primary" onclick="openStockModal()"><i class="fa-solid fa-plus"></i> Add Stock</button>
+    </div>
+  </div>
+  <div class="adm-cards" id="summaryCards"></div>
+
+  <div class="adm-panel">
+    <div class="adm-panel-hd">
+      <h3><i class="fa-solid fa-table"></i> Vaccine Inventory Sheet</h3>
+      <span id="sheetMeta" style="font-size:12px;color:#64748b;"></span>
+    </div>
+    <div class="adm-panel-bd">
+      <div class="adm-filters">
+        <div><label>Date</label><input type="date" id="fDate"></div>
+        <div><label>Vaccine</label><select id="fVaccine"><option value="">All vaccines</option></select></div>
+        <div><label>Search</label><input id="fSearch" placeholder="Vaccine or remarks"></div>
+        <button class="adm-btn adm-btn-primary" onclick="loadSheet()"><i class="fa-solid fa-filter"></i> Apply</button>
+      </div>
+      <div class="adm-table-wrap inv-sheet-wrap inv-scroll">
+        <table class="adm-table inv-sheet-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Vaccine Name</th>
+              <th>Inventory<br>AM Shift</th>
+              <th>Additional<br>Vaccine</th>
+              <th>Inventory<br>PM Shift</th>
+              <th>Total Used</th>
+              <th>Current Verified<br>Stock</th>
+              <th>Expiration Date</th>
+              <th>Status</th>
+              <th>AM Difference</th>
+              <th class="col-remarks">Remarks</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="sheetBody"><tr><td colspan="12" class="adm-empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="adm-panel">
+    <div class="adm-panel-hd"><h3 id="vaccineLotRecordsHeading"><i class="fa-solid fa-vials"></i> Vaccine Lot Records</h3></div>
+    <div class="adm-panel-bd">
+      <div class="adm-filters" id="lotDateFilters">
+        <div><label for="lotDateFrom">Date From</label><input type="date" id="lotDateFrom" autocomplete="off"></div>
+        <div><label for="lotDateTo">Date To</label><input type="date" id="lotDateTo" autocomplete="off"></div>
+        <button type="button" class="adm-btn adm-btn-primary" id="lotDateApply" onclick="applyLotDateFilter()"><i class="fa-solid fa-filter"></i> Apply Filter</button>
+        <button type="button" class="adm-btn adm-btn-secondary" id="lotDateReset" onclick="resetLotDateFilter()">Clear Filter</button>
+      </div>
+      <p class="lot-filter-hint">These records show the quantity received for each lot. They are not the current remaining balance. The date filter uses <strong>stock received / date added</strong>, not expiration date, AM/PM count date, or correction date.</p>
+      <p id="lotFilterMeta"></p>
+      <div class="adm-table-wrap inv-scroll">
+      <table class="adm-table" aria-labelledby="vaccineLotRecordsHeading">
+        <thead><tr>
+          <th>Vaccine</th>
+          <th class="sortable-header" onclick="toggleBatchSort()" title="Click to sort">
+            Batch<span class="sort-icon" id="batchSortIcon">▼</span>
+          </th>
+          <th class="num-cell">Additional Stock</th>
+          <th>Expiry</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr></thead>
+        <tbody id="invBody"><tr><td colspan="6" class="adm-empty">Loading…</td></tr></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<div class="adm-modal" id="stockModal"><div class="adm-modal-box">
+  <h3 style="margin:0 0 16px;color:#293681;"><i class="fa-solid fa-plus"></i> Add Stock</h3>
+  <div id="sEntryBanner" class="inv-compare">Select a vaccine to see whether this entry is an initial opening balance or additional stock received.</div>
+  <div class="adm-form-row"><label>Transaction Type</label><input id="sTxnType" readonly value="—"></div>
+  <div class="adm-form-row"><label>Vaccine Name</label><select id="sVaccine" onchange="refreshStockEntryMode()"></select></div>
+  <div class="adm-form-row"><label id="sQtyLabel">Quantity</label><input type="number" id="sQty" min="1"></div>
+  <div class="adm-form-row"><label>Expiration Date</label><input type="date" id="sExp"></div>
+  <div class="adm-form-row"><label>Date Received</label><input type="date" id="sDate"></div>
+  <div class="adm-form-row"><label>Staff Account</label><input id="sStaff" readonly></div>
+  <div class="adm-form-row"><label>Remarks / reason for this addition</label><textarea id="sRemarks" rows="2" placeholder="Required. Example: PHO delivery, 10 vials"></textarea></div>
+  <div style="display:flex;gap:10px;margin-top:16px;">
+    <button class="adm-btn adm-btn-secondary" onclick="closeStockModal()">Cancel</button>
+    <button class="adm-btn adm-btn-primary" id="saveStockBtn" onclick="saveStock()"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+  </div>
+</div></div>
+
+<div class="adm-modal" id="rowModal"><div class="adm-modal-box inv-row-box">
+  <h3 style="margin:0 0 16px;color:#293681;" id="rowModalTitle">Record Inventory</h3>
+  <input type="hidden" id="rVaccineId">
+  <div class="adm-form-row"><label>Vaccine Name</label><input id="rVaccine" readonly></div>
+  <div id="rCompare" class="inv-compare"></div>
+  <div class="adm-form-row"><label>Date</label><input type="date" id="rDate"></div>
+  <input type="hidden" id="rShift" value="Morning Shift">
+  <div class="adm-form-row"><label>Previous PM Ending Stock</label><input id="rPrevStock" readonly></div>
+  <div class="adm-form-row"><label>Initial Opening Balance</label><input id="rOpening" readonly></div>
+  <div class="adm-form-row" id="rStartWrap"><label id="rStartLabel">AM Starting Stock</label><input id="rStartStock" readonly></div>
+  <div class="adm-form-row" id="rAddWrap"><label>AM Additional Stock</label><input type="number" id="rAdd" min="0" value="0" readonly placeholder="From Add Stock receipts"></div>
+  <div class="adm-form-row" id="rExpectedWrap"><label id="rExpectedLabel">Expected AM Stock</label><input id="rExpected" readonly></div>
+  <div class="adm-form-row" id="rAmWrap"><label>AM Count</label><input type="number" id="rPhysical" min="0" oninput="previewReconcile()" placeholder="Enter the actual morning count"></div>
+  <div class="adm-form-row" id="rDiffWrap"><label>AM Difference</label><input id="rDiff" readonly></div>
+  <div class="adm-form-row"><label>Current Verified Stock</label><input id="rVerified" readonly></div>
+  <div class="adm-form-row" id="rStatusWrap"><label>Verification Status</label><input id="rDiffStatus" readonly></div>
+  <div class="adm-form-row" id="rRemarksWrap"><label>Remarks</label>
+    <textarea id="rRemarks" rows="3" maxlength="500" placeholder="Required when there is an AM Difference. Example: 1 vial damaged, Missing 1 vial, Counting error, Expired vial"></textarea>
+  </div>
+  <div class="adm-form-row" id="rPmWrap" style="display:none;"><label>PM Count</label><input type="number" id="rPm" min="0" oninput="previewReconcile()"></div>
+  <div class="adm-form-row" id="rPmAddWrap" style="display:none;"><label>PM Additional Stock <span style="font-size:11px;color:#64748b;font-weight:400;">(stock added during PM shift)</span></label><input type="number" id="rPmAdd" min="0" value="0" oninput="previewReconcile()" placeholder="0"></div>
+  <div class="adm-form-row" id="rUsedWrap"><label>Total Used</label><input id="rUsed" readonly placeholder="Verified AM count − PM count"></div>
+  <div class="adm-form-row" id="rExpWrap"><label>Expiration Date</label><input type="date" id="rExp"></div>
+  <p id="rowHint" style="font-size:12px;color:#64748b;margin:0 0 12px;">AM available stock is previous verified stock plus AM additional stock. The AM count verifies that total. PM stock starts from the verified AM count. Total Used = verified AM count − PM count.</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <button type="button" class="adm-btn adm-btn-secondary" onclick="closeRowModal()">Cancel</button>
+    <button type="button" class="adm-btn adm-btn-primary" id="rSaveBtn" onclick="saveRow()"><i class="fa-solid fa-floppy-disk"></i> Save AM Inventory</button>
+  </div>
+</div></div>
+
+<div class="adm-modal" id="correctModal"><div class="adm-modal-box inv-row-box">
+  <h3 style="margin:0 0 8px;color:#293681;"><i class="fa-solid fa-pen-to-square"></i> Correct Added Stock</h3>
+  <p style="font-size:13px;color:#334155;margin:0 0 12px;">Correct the quantity received, the lot expiration date, or both. Expiration date is the vaccine expiry, not the inventory date. This does not replace the remaining balance or add stock again.</p>
+  <input type="hidden" id="cTxnId">
+  <div class="adm-form-row"><label>Vaccine</label><input id="cVaccine" readonly></div>
+  <div class="adm-form-row"><label>Original additional stock</label><input id="cOriginal" readonly></div>
+  <div class="adm-form-row"><label>Current additional stock</label><input id="cCurrent" readonly></div>
+  <div class="adm-form-row"><label>Corrected additional stock</label><input type="number" id="cQty" min="0" oninput="previewCorrection()" placeholder="Leave blank to keep the current quantity"></div>
+  <div class="adm-form-row"><label>Original Expiration Date</label><input id="cExpOriginal" readonly></div>
+  <div class="adm-form-row"><label>Current Expiration Date</label><input id="cExpCurrent" readonly></div>
+  <div class="adm-form-row"><label>Corrected Expiration Date</label><input type="date" id="cExp" oninput="previewCorrection()"></div>
+  <div class="adm-form-row"><label>Correction reason</label>
+    <select id="cReason" onchange="previewCorrection()">
+      <option value="">Select a reason</option>
+      <option>Incorrect expiration date</option>
+      <option>Incorrect added stock</option>
+      <option>Incorrect added stock and expiration date</option>
+      <option>Typographical Error</option>
+      <option>Quantity Miscount</option>
+      <option>Duplicate Entry Correction</option>
+      <option>Wrong Vaccine or Batch</option>
+      <option>Other</option>
+    </select>
+  </div>
+  <div class="adm-form-row" id="cOtherWrap" style="display:none;"><label>Reason details</label><textarea id="cOther" rows="2" oninput="previewCorrection()" placeholder="Describe the correction"></textarea></div>
+  <div id="cSummary" class="inv-compare">Enter a corrected quantity, a corrected expiration date, or both, then choose a reason.</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+    <button class="adm-btn adm-btn-secondary" onclick="closeCorrectModal()">Cancel</button>
+    <button class="adm-btn adm-btn-primary" id="cSaveBtn" onclick="saveCorrection()">Save correction</button>
+  </div>
+</div></div>
+
+<div class="adm-modal" id="physModal"><div class="adm-modal-box inv-row-box">
+  <h3 id="pTitle" style="margin:0 0 8px;color:#293681;"><i class="fa-solid fa-pen-to-square"></i> Correct AM Count</h3>
+  <p style="font-size:13px;color:#9a3412;background:#fff4e5;border-radius:8px;padding:8px 10px;">Correction changes the verified inventory record. It does not add new vaccine stock.</p>
+  <input type="hidden" id="pRecordId">
+  <input type="hidden" id="pToken">
+  <div class="adm-form-row"><label>Vaccine Name</label><input id="pVaccine" readonly></div>
+  <div class="adm-form-row"><label>Expiration Date</label><input id="pExp" readonly></div>
+  <div class="adm-form-row"><label>Inventory Date</label><input id="pDate" readonly></div>
+  <div class="adm-form-row"><label>Shift</label><input id="pShift" readonly></div>
+  <div class="adm-form-row"><label>Previous Verified Stock</label><input id="pPrev" readonly></div>
+  <div class="adm-form-row"><label>Additional Stock</label><input id="pAdd" readonly></div>
+  <div class="adm-form-row"><label>Expected Stock</label><input id="pExpected" readonly></div>
+  <div class="adm-form-row"><label id="pOriginalLabel">Original AM Count</label><input id="pOriginal" readonly></div>
+  <div class="adm-form-row"><label>Original Difference</label><input id="pOldDiff" readonly></div>
+  <div class="adm-form-row"><label>Verification Status</label><input id="pOldStatus" readonly></div>
+  <div class="adm-form-row"><label id="pQtyLabel">Corrected AM Count</label><input type="number" id="pQty" min="0" oninput="previewPhysicalCorrection()"></div>
+  <div class="adm-form-row"><label>Correction Reason</label>
+    <select id="pReason" onchange="previewPhysicalCorrection()">
+      <option value="">Select a reason</option>
+      <option>Encoding error</option>
+      <option id="pReasonCount">Incorrect AM count entered</option>
+      <option>Recount verified by staff</option>
+    </select>
+  </div>
+  <div id="pSummary" class="inv-compare">Enter the corrected AM count and a reason.</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+    <button type="button" class="adm-btn adm-btn-secondary" onclick="closePhysicalCorrection()">Cancel</button>
+    <button type="button" class="adm-btn adm-btn-primary" id="pSaveBtn" onclick="savePhysicalCorrection()">Save correction</button>
+  </div>
+</div></div>
+
+<div id="invToast" class="adm-toast" role="status" aria-live="polite"></div>
+<script src="/js/shared/rbac.js"></script><script src="/js/shared/app.js"></script><script src="/js/shared/notify.js"></script>
+<script>
+let inventory=[], brands=[], sheetRows=[], invStaffName='Staff';
+let saveRowBusy=false;
+let batchSortOrder='desc'; // 'desc' is default, 'asc' for ascending
+function currentShift(){
+  const h=new Date().getHours();
+  return (h>=6 && h<14) ? 'Morning Shift' : 'Afternoon Shift';
+}
+document.addEventListener('DOMContentLoaded',async()=>{
+  const auth=await checkAuth();
+  invStaffName = auth?.fullName || auth?.full_name || auth?.username
+    || document.getElementById('staffName')?.textContent?.trim()
+    || 'Staff';
+  const sStaff=document.getElementById('sStaff');
+  if(sStaff) sStaff.value=invStaffName;
+  const today=new Date();
+  const ymdLocal=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const params=new URLSearchParams(location.search);
+  document.getElementById('fDate').value=params.get('date')||ymdLocal;
+  document.getElementById('sDate').value=ymdLocal;
+  document.getElementById('sStaff').value=invStaffName;
+  document.getElementById('lotDateFrom').value=params.get('date_from')||params.get('lot_from')||'';
+  document.getElementById('lotDateTo').value=params.get('date_to')||params.get('lot_to')||'';
+  document.getElementById('fDate').addEventListener('change', loadSheet);
+  const lotFilters=document.getElementById('lotDateFilters');
+  if(lotFilters){
+    lotFilters.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'){ e.preventDefault(); applyLotDateFilter(); }
+    });
+  }
+  await loadAll();
+  const sn=document.getElementById('staffName');
+  if(sn && sn.textContent && sn.textContent!=='Loading…') invStaffName=sn.textContent.trim();
+  if(sStaff) sStaff.value=invStaffName;
+});
+function toast(msg,ok=true){
+  const type = ok===false?'error':(ok==='warning'?'warning':(ok==='info'?'info':'success'));
+  if (window.RemisNotify) RemisNotify.toast(msg, type);
+}
+function ymd(v){ if(!v) return '—'; const s=String(v); return s.slice(0,10); }
+function lotRecordBadge(status){
+  const label = status || 'Received';
+  const map = { Received: 'badge-normal', Corrected: 'badge-low', Expired: 'badge-exp-expired' };
+  return `<span class="badge ${map[label] || 'badge-normal'}" aria-label="Lot record status: ${label}">${label}</span>`;
+}
+function expBadge(ex){
+  if(!ex) return '<span class="badge badge-exp-unknown">No expiry</span>';
+  const cls=ex.class==='exp-expired'?'badge-exp-expired':ex.class==='exp-valid'?'badge-exp-valid':'badge-exp';
+  return `<span class="badge ${cls}">${ex.status}</span>`;
+}
+function statusBadge(st){
+  const label=st||'Pending';
+  const map={
+    Verified:'badge-recorded',     Recorded:'badge-recorded', Closed:'badge-recorded', Completed:'badge-recorded', Open:'badge-recorded',
+    Pending:'badge-pending','Pending Inventory':'badge-pending','Pending PM Count':'badge-pending',
+    'Pending Verification':'badge-late','Pending Initial Setup':'badge-pending',
+    Matched:'badge-recorded', Verified:'badge-recorded','Initial Setup':'badge-recorded',
+    'Not Recorded':'badge-missed','Not Yet Recorded':'badge-missed',
+    Variance:'badge-late', Matched:'badge-recorded',
+  };
+  return `<span class="badge ${map[st]||map[label]||'badge-pending'}">${label}</span>`;
+}
+function countOrStatus(value, status){
+  if(value!==null && value!==undefined && value!=='') return String(value);
+  return statusBadge(status || 'Not Recorded');
+}
+function remainCell(r){
+  if(r.opening_recorded && r.remaining_pm_shift!==null && r.remaining_pm_shift!=='') return r.remaining_pm_shift;
+  if(r.inventory_status==='Recorded' || r.inventory_status==='Late Entry'){
+    if(r.remaining_pm_shift!==null && r.remaining_pm_shift!=='') return r.remaining_pm_shift;
+  }
+  if(r.inventory_status==='Pending' || r.inventory_status==='Not Recorded' || r.inventory_status==='Open' && (r.remaining_pm_shift===null||r.remaining_pm_shift==='')){
+    if(r.needs_reconciliation) return '<span class="inv-recon">Needs reconciliation</span>';
+    if(r.inventory_status==='Open' || r.inventory_status==='Pending') return '<span class="inv-missing">Pending</span>';
+    return '<span class="inv-missing">Not Recorded</span>';
+  }
+  if(r.remaining_pm_shift===null || r.remaining_pm_shift==='') return '<span class="inv-missing">Not Recorded</span>';
+  return r.remaining_pm_shift;
+}
+function brandLabel(v){ return v.name || v.sheet_label || ''; }
+async function loadAll(){
+  let s={};
+  try {
+    const [sum,br]=await Promise.all([
+      fetch('/api/inventory/summary'), fetch('/api/inventory/brands')
+    ]);
+    s=(await sum.json()).data||{};
+    const bj=await br.json();
+    brands=bj.success?(bj.data||[]):[];
+  } catch(e) {
+    console.warn(e);
+    toast('The system is temporarily unavailable. Please try again later.', false);
+  }
+  const opts=brands.map(v=>`<option value="${v.vaccine_id}">${brandLabel(v)}</option>`).join('');
+  document.getElementById('sVaccine').innerHTML=opts || '<option value="">No active vaccines</option>';
+  document.getElementById('fVaccine').innerHTML='<option value="">All vaccines</option>'+opts;
+  document.getElementById('summaryCards').innerHTML=`
+    <div class="adm-card c-green"><div class="val">${s.total_stock||0}</div><div class="lbl">Current Available Stock</div></div>
+    <div class="adm-card c-orange"><div class="val">${s.low_stock_count||0}</div><div class="lbl">Low Stock</div></div>
+    <div class="adm-card c-red"><div class="val">${s.critical_stock_count||0}</div><div class="lbl">Critical</div></div>
+    <div class="adm-card c-red"><div class="val">${s.expired_count||0}</div><div class="lbl">Expired</div></div>
+    <div class="adm-card c-orange"><div class="val">${(s.expiring_30||0)+(s.expiring_15||0)+(s.expiring_7||0)}</div><div class="lbl">Near Expiry</div></div>`;
+  await loadLots();
+  await loadSheet();
+}
+function lotDateQuery(){
+  const from=document.getElementById('lotDateFrom').value;
+  const to=document.getElementById('lotDateTo').value;
+  return { from, to };
+}
+function syncLotFilterUrl(){
+  const { from, to }=lotDateQuery();
+  const params=new URLSearchParams(location.search);
+  if(from) params.set('date_from', from); else params.delete('date_from');
+  if(to) params.set('date_to', to); else params.delete('date_to');
+  params.delete('lot_from');
+  params.delete('lot_to');
+  const qs=params.toString();
+  history.replaceState({}, '', location.pathname+(qs?('?'+qs):''));
+}
+function lotFilterMetaText(count){
+  const n=`${count} vaccine lot record${count===1?'':'s'}`;
+  const { from, to }=lotDateQuery();
+  if(!from && !to) return count?n:'';
+  if(from && to && from===to) return `Received on ${from} · ${n}`;
+  if(from && to) return `Received ${from} to ${to} · ${n}`;
+  if(from) return `Received from ${from} · ${n}`;
+  return `Received through ${to} · ${n}`;
+}
+async function loadLots(){
+  const tb=document.getElementById('invBody');
+  const meta=document.getElementById('lotFilterMeta');
+  const applyBtn=document.getElementById('lotDateApply');
+  const { from, to }=lotDateQuery();
+  if(from && to && from>to){
+    toast('The end date cannot be earlier than the start date.', 'warning');
+    tb.innerHTML='<tr><td colspan="6"><div class="adm-empty"><i class="fa-solid fa-calendar-xmark"></i>The end date cannot be earlier than the start date.</div></td></tr>';
+    if(meta) meta.textContent='';
+    return;
+  }
+  tb.innerHTML='<tr><td colspan="6" class="adm-empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading vaccine lot records…</td></tr>';
+  if(applyBtn) applyBtn.disabled=true;
+  const p=new URLSearchParams();
+  if(from) p.set('date_from', from);
+  if(to) p.set('date_to', to);
+  try{
+    const r=await fetch('/api/inventory'+(p.toString()?('?'+p):''));
+    const result=await RemisNotify.parseApi(r,{
+      validation:'Please review the selected dates before applying the filter.',
+      server:'The system is temporarily unavailable. Please try again later.',
+      forbidden:'You do not have permission to complete this action.',
+    });
+    if(!result.ok){
+      toast(result.message, false);
+      inventory=[];
+      tb.innerHTML='<tr><td colspan="6"><div class="adm-empty">Unable to load vaccine lot records for the selected dates.</div></td></tr>';
+      if(meta) meta.textContent='';
+      return;
+    }
+    inventory=(result.body && result.body.data)||[];
+    if(meta) meta.textContent=lotFilterMetaText(inventory.length);
+    syncLotFilterUrl();
+    renderLots();
+  } catch(e){
+    console.warn(e);
+    toast('The system is temporarily unavailable. Please try again later.', false);
+    inventory=[];
+    tb.innerHTML='<tr><td colspan="6"><div class="adm-empty">Unable to load vaccine lot records for the selected dates.</div></td></tr>';
+  } finally {
+    if(applyBtn) applyBtn.disabled=false;
+  }
+}
+function applyLotDateFilter(){ loadLots(); }
+function resetLotDateFilter(){
+  document.getElementById('lotDateFrom').value='';
+  document.getElementById('lotDateTo').value='';
+  loadLots();
+}
+async function loadSheet(){
+  const tb=document.getElementById('sheetBody');
+  tb.innerHTML='<tr><td colspan="12" class="adm-empty">Loading inventory sheet…</td></tr>';
+  const p=new URLSearchParams();
+  p.set('date', document.getElementById('fDate').value);
+  p.set('shift', 'daily');
+  const vid=document.getElementById('fVaccine').value;
+  if(vid) p.set('vaccine_id', vid);
+  try{
+    const r=await fetch('/api/inventory/sheet?'+p);
+    const result=await RemisNotify.parseApi(r,{
+      success:'Inventory sheet loaded.',
+      server:'The system is temporarily unavailable. Please try again later.',
+      forbidden:'You do not have permission to complete this action.',
+    });
+    if(!result.ok){
+      toast(result.message, false);
+    tb.innerHTML='<tr><td colspan="12"><div class="adm-empty">Unable to load the inventory sheet.</div></td></tr>';
+      return;
+    }
+    const j=result.body||{};
+    sheetRows=j.success?(j.data.rows||[]):[];
+    const pending=sheetRows.filter(x=>['Pending','Not Recorded','Pending PM Count','Pending Verification','Pending Initial Setup'].includes(x.inventory_status||x.sheet_status)||['Pending','Not Recorded','Pending Initial Setup'].includes(x.morning_status)||['Pending','Not Recorded','Pending PM Count'].includes(x.remaining_status)).length;
+    const shiftLabel=j.data&&j.data.shift?j.data.shift:'All';
+    document.getElementById('sheetMeta').textContent=j.data?`Date ${j.data.date} · ${shiftLabel} · ${pending} pending`:'';
+    renderSheet();
+  } catch(e){
+    console.warn(e);
+    toast('The system is temporarily unavailable. Please try again later.', false);
+    tb.innerHTML='<tr><td colspan="12"><div class="adm-empty">Unable to load the inventory sheet.</div></td></tr>';
+  }
+}
+function renderSheet(){
+  const q=(document.getElementById('fSearch').value||'').toLowerCase();
+  const rows=sheetRows.filter(r=>!q || String(r.vaccine_name||r.sheet_label||'').toLowerCase().includes(q) || String(r.remarks||'').toLowerCase().includes(q) || String(r.inventory_status||'').toLowerCase().includes(q));
+  const tb=document.getElementById('sheetBody');
+  if(!rows.length){
+    tb.innerHTML='<tr><td colspan="12"><div class="adm-empty"><i class="fa-solid fa-box-open"></i>No inventory rows for this date and filter.</div></td></tr>';
+    return;
+  }
+  tb.innerHTML=rows.map((r,idx)=>{
+    const amVal=countOrStatus(r.inventory_am!=null?r.inventory_am:r.morning_shift_inventory, r.am_recorded?'Recorded':'Pending');
+    // FIX: Show total_additional instead of am_additional to match Report page
+    const addShown=r.am_recorded ? (r.total_additional!=null?r.total_additional:(r.additional_vaccine||0)) : countOrStatus(null,'Pending');
+    const pmExtra=Number(r.pm_additional||0);
+    const amAddN=Number(r.total_additional!=null?r.total_additional:(r.additional_vaccine||0));
+    const baselineN=r.previous_verified_stock!=null&&r.previous_verified_stock!==''?Number(r.previous_verified_stock):Number(r.opening_balance||0);
+    const amCountN=Number(r.inventory_am!=null?r.inventory_am:r.morning_shift_inventory);
+    const included=r.am_recorded&&Number.isFinite(amCountN)&&Number.isFinite(baselineN)&&amAddN>0&&amCountN===baselineN+amAddN;
+    const addNote=included?'<div style="font-size:11px;color:#475569;">Included in AM count</div>':'';
+    const pmNote=pmExtra>0?`<div style="font-size:11px;color:#475569;">PM +${pmExtra}</div>`:'';
+    const addVal=r.am_recorded?`${addShown}${addNote}${pmNote}`:addShown;
+    const pmCount=r.inventory_pm!=null?r.inventory_pm:r.remaining_pm_shift;
+    const pmDone=!!r.pm_recorded && pmCount!=null && pmCount!=='';
+    const pmVal=countOrStatus(pmDone?pmCount:null, 'Pending PM Count');
+    const usedVal=pmDone && r.vaccine_used!=null ? r.vaccine_used : '<span class="inv-missing">Pending PM Count</span>';
+    const st=r.sheet_status||r.inventory_status||(r.am_recorded?(pmDone?'Completed':'Pending PM Count'):'Pending');
+    const expectedN=r.expected_am_stock!=null&&r.expected_am_stock!==''?Number(r.expected_am_stock):(r.am_starting_stock!=null&&r.am_starting_stock!==''?Number(r.am_starting_stock):null);
+    const amDiff=r.am_difference!=null&&r.am_difference!==''?Number(r.am_difference):(r.am_recorded&&Number.isFinite(amCountN)&&Number.isFinite(expectedN)?amCountN-expectedN:null);
+    // Use PM stock difference (includes PM Additional) when PM is recorded, otherwise use AM difference
+    const diff=pmDone&&r.stock_difference!=null&&r.stock_difference!==''?Number(r.stock_difference):(r.am_difference!=null&&r.am_difference!==''?Number(r.am_difference):(r.am_recorded&&Number.isFinite(amCountN)&&Number.isFinite(expectedN)?amCountN-expectedN:null));
+    const diffLabel=diff==null?'—':(diff>0?('+'+diff):String(diff));
+    const diffSt=diff==null?'Pending':(diff===0?'Matched':(r.difference_status&&r.difference_status!=='Matched'?r.difference_status:'Variance'));
+    const verifiedStock=r.current_verified_stock!=null&&r.current_verified_stock!==''?r.current_verified_stock:(pmDone?pmCount:(r.am_recorded&&Number.isFinite(amCountN)?amCountN:null));
+    return `<tr>
+    <td>${ymd(r.record_date)}</td>
+    <td><strong>${r.vaccine_name||r.sheet_label}</strong><div style="font-size:11px;color:#64748b;">${r.lot_status_label||''}${r.expired_stock?` · Expired lots: ${r.expired_stock}`:''}</div></td>
+    <td class="num-cell">${amVal}</td>
+    <td class="num-cell">${addVal}</td>
+    <td class="num-cell">${pmVal}</td>
+    <td class="num-cell">${usedVal}</td>
+    <td class="num-cell">${verifiedStock==null?'—':verifiedStock}</td>
+    <td>${ymd(r.expiration_date)}<div>${expBadge(r.expiry_status)}</div></td>
+    <td>${statusBadge(st)}</td>
+    <td class="num-cell">${r.am_recorded?diffLabel+'<div style="font-size:11px;">'+statusBadge(diffSt||'Pending')+'</div>':'—'}</td>
+    <td class="col-remarks"><span class="inv-remarks">${r.remarks||'—'}</span></td>
+    <td style="white-space:nowrap;">
+      <button class="adm-btn adm-btn-secondary" onclick="openRow(${idx},'Morning Shift')">AM</button>
+      <button class="adm-btn adm-btn-secondary" onclick="openRow(${idx},'Afternoon Shift')">PM</button>
+      ${r.am_recorded && r.am_record_id ? `<button class="adm-btn adm-btn-secondary" onclick="openPhysicalCorrection(${idx},'Morning Shift')">Correct AM Count</button>` : ''}
+      ${r.pm_recorded && r.pm_record_id ? `<button class="adm-btn adm-btn-secondary" onclick="openPhysicalCorrection(${idx},'Afternoon Shift')">Correct PM Count</button>` : ''}
+    </td>
+  </tr>`;
+  }).join('');
+}
+document.getElementById('fSearch').addEventListener('input', renderSheet);
+function renderLots(){
+  const tb=document.getElementById('invBody');
+  if(!inventory.length){
+    const { from, to }=lotDateQuery();
+    const filtered=!!(from||to);
+    tb.innerHTML=filtered
+      ? '<tr><td colspan="6"><div class="adm-empty"><i class="fa-solid fa-calendar-xmark"></i>No vaccine lots were received in the selected date range.</div></td></tr>'
+      : '<tr><td colspan="6"><div class="adm-empty"><i class="fa-solid fa-vial"></i>No vaccine lot records yet. Use Add Stock to receive a new delivery under an existing vaccine.</div></td></tr>';
+    return;
+  }
+  tb.innerHTML=inventory.map(i=>{
+    const added=i.additional_stock;
+    const addedLabel=added==null||added===''?'—':`${added} vials`;
+    return `<tr>
+    <td><strong>${i.vaccine_name||i.sheet_label}</strong></td>
+    <td>${i.batch_number || ('#' + i.inventory_id)}</td>
+    <td class="num-cell">${addedLabel}</td>
+    <td>${ymd(i.expiry_date)}</td>
+    <td>${lotRecordBadge(i.record_status)}</td>
+    <td class="inv-lot-actions"><button type="button" class="adm-btn adm-btn-secondary" onclick="openLotReceipts('${(i.inventory_ids&&i.inventory_ids.length?i.inventory_ids:[i.inventory_id]).join(',')}')">Correct added stock</button></td></tr>`;
+  }).join('');
+}
+function toggleBatchSort(){
+  // Toggle between descending (default) and ascending
+  batchSortOrder = batchSortOrder === 'desc' ? 'asc' : 'desc';
+  
+  // Update icon
+  const icon = document.getElementById('batchSortIcon');
+  if(icon) icon.textContent = batchSortOrder === 'desc' ? '▼' : '▲';
+  
+  // Sort inventory array
+  inventory.sort((a, b) => {
+    // Extract numeric batch number
+    const getNum = (item) => {
+      const batch = item.batch_number || String(item.inventory_id || '0');
+      const num = batch.replace(/[^0-9]/g, '');
+      return num ? parseInt(num, 10) : 0;
+    };
+    
+    const aNum = getNum(a);
+    const bNum = getNum(b);
+    
+    // Primary sort: batch number
+    if (aNum !== bNum) {
+      return batchSortOrder === 'desc' ? bNum - aNum : aNum - bNum;
+    }
+    
+    // Tie breaker: received_date (newer first in desc, older first in asc)
+    const aDate = a.received_date ? new Date(a.received_date).getTime() : 0;
+    const bDate = b.received_date ? new Date(b.received_date).getTime() : 0;
+    if (aDate !== bDate) {
+      return batchSortOrder === 'desc' ? bDate - aDate : aDate - bDate;
+    }
+    
+    // Final tie breaker: vaccine name (ascending for readability)
+    const aName = (a.vaccine_name || '').toLowerCase();
+    const bName = (b.vaccine_name || '').toLowerCase();
+    return aName.localeCompare(bName);
+  });
+  
+  // Re-render table
+  renderLots();
+}
+let stockClientToken='';
+function openStockModal(){
+  stockClientToken=(Date.now().toString(36)+Math.random().toString(36).slice(2,10)).replace(/[^a-z0-9]/gi,'').slice(0,64);
+  document.getElementById('stockModal').classList.add('open');
+  const btn=document.getElementById('saveStockBtn');
+  if(btn) btn.disabled=false;
+  refreshStockEntryMode();
+}
+async function refreshStockEntryMode(){
+  const banner=document.getElementById('sEntryBanner');
+  const typeEl=document.getElementById('sTxnType');
+  const qtyLabel=document.getElementById('sQtyLabel');
+  const vid=document.getElementById('sVaccine').value;
+  if(!vid){
+    if(typeEl) typeEl.value='—';
+    if(banner) banner.textContent='Select a vaccine to see whether this entry is an initial opening balance or additional stock received.';
+    if(qtyLabel) qtyLabel.textContent='Quantity';
+    return;
+  }
+  try{
+    const r=await fetch('/api/inventory/stock-entry-mode?vaccine_id='+encodeURIComponent(vid));
+    const j=await r.json();
+    const d=j.data||{};
+    if(typeEl) typeEl.value=d.transaction_type||d.label||'—';
+    if(qtyLabel) qtyLabel.textContent=d.mode==='opening'?'Opening Balance Quantity':'Quantity Received';
+    if(banner){
+      banner.textContent=d.mode==='opening'
+        ? 'Initial setup: this vaccine has no established inventory yet. The quantity will be saved once as Initial Opening Balance (not Verified Additional Stock).'
+        : 'This vaccine already has inventory records. New receipts are classified as Additional Stock Received.';
+    }
+  } catch(e){
+    console.warn(e);
+  }
+}
+function closeStockModal(){document.getElementById('stockModal').classList.remove('open');}
+async function saveStock(){
+  const btn=document.getElementById('saveStockBtn');
+  if(btn && btn.disabled) return;
+  const p={
+    vaccine_id:document.getElementById('sVaccine').value,
+    quantity:parseInt(document.getElementById('sQty').value,10),
+    expiry_date:document.getElementById('sExp').value||null,
+    date_added:document.getElementById('sDate').value,
+    remarks:document.getElementById('sRemarks').value,
+    client_token:stockClientToken
+  };
+  if(!p.vaccine_id){ toast('Please complete all required fields.', 'warning'); return; }
+  if(!Number.isFinite(p.quantity) || p.quantity<=0 || p.quantity!==Math.floor(p.quantity)){
+    toast('Please enter a valid vaccine quantity.', 'warning'); return;
+  }
+  if(!String(p.remarks||'').trim() || !p.expiry_date || !p.date_added){
+    toast('Please complete all required fields.', 'warning'); return;
+  }
+  btn.disabled=true;
+  RemisNotify.setLoading(true, 'Adding stock…');
+  try{
+    const r=await fetch('/api/inventory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const result=await RemisNotify.parseApi(r,{
+      success:'Vaccine stock added successfully.',
+      validation:'Please review the inventory values before saving.',
+      server:'We couldn’t save the inventory record. Please try again.',
+      forbidden:'You do not have permission to complete this action.',
+    });
+    toast(result.message, result.ok);
+    if(result.ok){ closeStockModal(); document.getElementById('sQty').value=''; document.getElementById('sRemarks').value=''; await loadAll(); }
+  } catch(e){
+    console.warn(e);
+    toast('The system is temporarily unavailable. Please try again later.', false);
+  }
+  RemisNotify.setLoading(false);
+  btn.disabled=false;
+}
+function sheetRowAt(idx){
+  const q=(document.getElementById('fSearch').value||'').toLowerCase();
+  return sheetRows.filter(row=>!q || String(row.vaccine_name||row.sheet_label||'').toLowerCase().includes(q) || String(row.remarks||'').toLowerCase().includes(q) || String(row.inventory_status||row.sheet_status||'').toLowerCase().includes(q))[idx];
+}
+function updateRowShiftLabels(){
+  const sh=document.getElementById('rShift').value;
+  const pm=sh==='Afternoon Shift';
+  document.getElementById('rAmWrap').style.display='';
+  document.getElementById('rAddWrap').style.display=pm?'none':'';
+  document.getElementById('rPmWrap').style.display=pm?'':'none';
+  document.getElementById('rPmAddWrap').style.display=pm?'':'none';
+  document.getElementById('rUsedWrap').style.display=pm?'':'none';
+  document.getElementById('rExpWrap').style.display=pm?'none':'';
+  document.getElementById('rDiffWrap').style.display='';
+  const startWrap=document.getElementById('rStartWrap');
+  const expectedWrap=document.getElementById('rExpectedWrap');
+  if(startWrap) startWrap.style.display=pm?'none':'';
+  if(expectedWrap) expectedWrap.style.display=pm?'none':'';
+  document.getElementById('rStatusWrap').style.display='';
+  document.getElementById('rPhysical').readOnly=pm;
+  document.getElementById('rAdd').readOnly=true;
+  document.getElementById('rStartStock').readOnly=true;
+  document.getElementById('rPrevStock').readOnly=true;
+  const hint=document.getElementById('rowHint');
+  const btn=document.getElementById('rSaveBtn');
+  const addLabel=document.querySelector('#rAddWrap label');
+  if(addLabel) addLabel.textContent=pm?'Receipts Included in AM Count (read-only)':'AM Additional Stock';
+  const startLabel=document.getElementById('rStartLabel');
+  const expLabel=document.getElementById('rExpectedLabel');
+  if(startLabel) startLabel.textContent='AM Starting Stock';
+  if(expLabel) expLabel.textContent='Expected AM Stock';
+  hint.textContent=pm
+    ? 'PM stock starts from the verified AM count. Add any stock received during PM shift in PM Additional Stock field. Enter the PM Count. Total Used = verified AM count + PM Additional − PM count.'
+    : 'AM available stock is previous verified stock plus AM additional stock. The AM count verifies that total. PM stock starts from the verified AM count. Total Used = verified AM count + PM Additional − PM count.';
+  btn.innerHTML=saveRowLabel(sh);
+  previewReconcile();
+}
+function amBaselineOf(r){
+  const prev=previousStockOf(r);
+  if(prev!=null) return prev;
+  const opening=Number(r.opening_balance||0);
+  return opening>0?opening:null;
+}
+function previousStockOf(r){
+  if(r.previous_verified_stock!=null && r.previous_verified_stock!=='') return Number(r.previous_verified_stock);
+  if(r.previous_pm_remaining!=null && r.previous_pm_remaining!=='') return Number(r.previous_pm_remaining);
+  return null;
+}
+function expectedAmFromForm(){
+  const prevRaw=document.getElementById('rPrevStock').value;
+  const prev=prevRaw===''||prevRaw==='—'?null:Number(prevRaw);
+  const openingEl=document.getElementById('rOpening');
+  const openingRaw=openingEl?openingEl.value:'';
+  const opening=openingRaw===''||openingRaw==='—'?0:Number(openingRaw);
+  const add=document.getElementById('rAdd').value===''?0:Number(document.getElementById('rAdd').value);
+  const prevN=Number.isFinite(prev)?prev:null;
+  const openingN=Number.isFinite(opening)?opening:0;
+  const addN=Number.isFinite(add)?add:0;
+  if(prevN==null && openingN<=0 && addN<=0){
+    return { prev:null, opening:openingN, additional:addN, expected:null, hasStarting:false };
+  }
+  const baseline=prevN==null?openingN:prevN;
+  return { prev:prevN, opening:openingN, additional:addN, expected:baseline+addN, hasStarting:true };
+}
+function pmAdditionalForRow(r){
+  // Get PM Additional from the authoritative database column
+  if(r && r.pm_additional_vaccine != null && r.pm_additional_vaccine !== '') {
+    const val = Number(r.pm_additional_vaccine);
+    return Number.isFinite(val) ? val : 0;
+  }
+  // Fallback to pm_additional field
+  if(r && r.pm_additional != null) {
+    const val = Number(r.pm_additional);
+    return Number.isFinite(val) ? val : 0;
+  }
+  return 0;
+}
+function pmAdditionalFromForm(){
+  // Prefer the user-entered PM Additional field when in PM shift mode
+  const pmAddEl=document.getElementById('rPmAdd');
+  if(pmAddEl && document.getElementById('rShift').value==='Afternoon Shift' && pmAddEl.style.display!=='none'){
+    const v=pmAddEl.value;
+    if(v!=='' && v!==null){
+      const n=Number(v);
+      if(Number.isFinite(n) && n>=0) return n;
+    }
+  }
+  // Fallback: dataset value pre-populated from existing DB row
+  const raw=document.getElementById('rowModal').dataset.pmAdditional;
+  const n=raw==null||raw===''?0:Number(raw);
+  return Number.isFinite(n)?n:0;
+}
+function previewReconcile(){
+  const box=document.getElementById('rCompare');
+  const physical=document.getElementById('rPhysical').value;
+  if(document.getElementById('rShift').value==='Afternoon Shift'){
+    const am=physical;
+    const pmVal=document.getElementById('rPm').value;
+    const amReceipt=Number(document.getElementById('rowModal').dataset.amAdditional||0);
+    document.getElementById('rStartStock').value=am===''?'—':String(am);
+    document.getElementById('rAdd').value='0';
+    const included=Number.isFinite(amReceipt)&&amReceipt>0
+      ? ' AM additional stock (+'+amReceipt+') is already inside this beginning stock and is not added again.'
+      : '';
+    const amDiff=document.getElementById('rowModal').dataset.amDifference;
+    document.getElementById('rDiff').value=amDiff===undefined||amDiff===''?'—':amDiff;
+    document.getElementById('rDiffStatus').value=document.getElementById('rowModal').dataset.amStatus||'—';
+    if(am==='' || pmVal===''){
+      document.getElementById('rExpected').value=am===''?'—':String(Number(am));
+      document.getElementById('rVerified').value=am===''?'—':String(am);
+      box.innerHTML='Enter the PM count. Current Verified Stock stays the verified AM count until the PM count is saved.'+included;
+      previewUsed();
+      return;
+    }
+    const used=Number(am)-Number(pmVal);
+    const expectedPm=Number(am)-used;
+    document.getElementById('rExpected').value=String(expectedPm);
+    document.getElementById('rVerified').value=String(pmVal);
+    box.innerHTML='Current Verified Stock is the PM count ('+pmVal+'). It is not reduced again by the AM difference. Total Used = '+used+'.';
+    previewUsed();
+    return;
+  }
+  const { prev, opening, additional:add, expected }=expectedAmFromForm();
+  const baseline=prev==null?(opening>0||add>0?opening:null):prev;
+  document.getElementById('rStartStock').value=baseline==null?'—':String(baseline);
+  document.getElementById('rExpected').value=expected==null?'—':String(expected);
+  if(prev==null && opening<=0 && add<=0){
+    box.innerHTML='<div class="inv-warn">No previous verified inventory record was found for this vaccine. Add stock or complete an authorized initial stock setup. Enter remarks for this initial count.</div>';
+    document.getElementById('rDiff').value='—';
+    document.getElementById('rDiffStatus').value='Pending Initial Setup';
+    document.getElementById('rVerified').value=physical===''?'—':String(physical);
+    return;
+  }
+  if(physical===''){
+    document.getElementById('rDiff').value='—';
+    document.getElementById('rDiffStatus').value='Pending';
+    document.getElementById('rVerified').value='—';
+    box.innerHTML='Previous verified stock: <strong>'+(prev==null?'—':prev)+'</strong> · Opening balance: <strong>'+opening+'</strong> · Additional: <strong>'+add+'</strong> · AM starting stock: <strong>'+expected+'</strong>. Enter the AM Count. It is not copied from starting stock.';
+    return;
+  }
+  const phys=Number(physical);
+  const diff=Number.isFinite(phys)?phys-expected:null;
+  document.getElementById('rDiff').value=diff==null?'—':(diff===0?'0':(diff>0?('+'+diff):String(diff)));
+  document.getElementById('rVerified').value=Number.isFinite(phys)?String(phys):'—';
+  if(diff===0){
+    document.getElementById('rDiffStatus').value='Matched';
+    box.innerHTML='AM Count matches expected AM stock ('+(prev==null?('opening '+opening):('previous '+prev))+' + '+add+' additional = <strong>'+expected+'</strong>). The AM count verifies that total. It is not added to inventory again.';
+  } else {
+    document.getElementById('rDiffStatus').value='Pending Verification';
+    box.innerHTML='<div class="inv-warn">The AM Count differs from expected AM stock ('+(diff>0?('higher by '+diff):('lower by '+Math.abs(diff)))+'). Expected is previous verified stock + additional vaccine. Enter remarks describing the difference (for example: 1 vial damaged, Missing 1 vial, Counting error, Expired vial). Additional Vaccine is not automatically the Difference.</div>';
+  }
+}
+function openRow(idx, forceShift){
+  const r=sheetRowAt(idx);
+  if(!r) return;
+  const sh=forceShift || (r.shift==='Afternoon Shift' ? 'Afternoon Shift' : 'Morning Shift');
+  
+  // LOCK: Prevent re-submission if shift already recorded
+  const isAmShift = sh === 'Morning Shift';
+  const isPmShift = sh === 'Afternoon Shift';
+  const alreadyRecorded = (isAmShift && r.am_recorded) || (isPmShift && r.pm_recorded);
+  
+  if (alreadyRecorded) {
+    toast(
+      `This ${isAmShift ? 'AM' : 'PM'} count has already been submitted and is locked. ` +
+      `To make changes, use the "Correct ${isAmShift ? 'AM' : 'PM'} Count" button instead.`,
+      'warning'
+    );
+    return;
+  }
+  
+  const baseline=amBaselineOf(r);
+  const prev=previousStockOf(r);
+  const am=r.inventory_am!=null?r.inventory_am:r.morning_shift_inventory;
+  const add=r.am_additional!=null?r.am_additional:(r.additional_vaccine!=null?r.additional_vaccine:0);
+  const pmAdd=pmAdditionalForRow(r);
+  const pm=r.inventory_pm!=null?r.inventory_pm:r.remaining_pm_shift;
+  document.getElementById('rVaccineId').value=r.vaccine_id;
+  document.getElementById('rVaccine').value=r.vaccine_name||r.sheet_label;
+  document.getElementById('rPrevStock').value=prev==null?'—':String(prev);
+  document.getElementById('rOpening').value=String(Number(r.opening_balance||0));
+  document.getElementById('rStartStock').value=sh==='Afternoon Shift'
+    ?(am!=null?String(am):'—')
+    :(baseline==null?'—':String(baseline));
+  document.getElementById('rDate').value=ymd(r.record_date)==='—'? '': ymd(r.record_date);
+  document.getElementById('rShift').value=sh;
+  document.getElementById('rPhysical').value=(sh==='Morning Shift' && r.am_recorded && am!=null)?am:(sh==='Afternoon Shift' && am!=null?am:'');
+  document.getElementById('rAdd').value=sh==='Afternoon Shift'?pmAdd:(r.am_recorded||r.additional_vaccine!=null?add:0);
+  document.getElementById('rPm').value=r.pm_recorded && pm!=null?pm:'';
+  document.getElementById('rPmAdd').value=sh==='Afternoon Shift'?pmAdd:0;
+  document.getElementById('rExp').value=ymd(r.expiration_date)==='—'? '': ymd(r.expiration_date);
+  document.getElementById('rRemarks').value=r.remarks||r.verification_reason||'';
+  const expectedShown=r.expected_am_stock!=null?Number(r.expected_am_stock):(r.am_starting_stock!=null?Number(r.am_starting_stock):null);
+  const amDiffValue=r.am_recorded&&am!=null&&Number.isFinite(expectedShown)?Number(am)-expectedShown:(r.am_difference!=null?Number(r.am_difference):null);
+  document.getElementById('rowModal').dataset.amDifference=amDiffValue==null?'':(amDiffValue>0?('+'+amDiffValue):String(amDiffValue));
+  document.getElementById('rowModal').dataset.amStatus=amDiffValue==null?'Pending':(amDiffValue===0?'Matched':(r.difference_status&&r.difference_status!=='Matched'?r.difference_status:'Variance'));
+  document.getElementById('rowModal').dataset.amRecorded = r.am_recorded ? '1' : '0';
+  document.getElementById('rowModal').dataset.amVerified = r.am_verified || r.am_recorded ? '1' : '0';
+  document.getElementById('rowModal').dataset.pmAdditional = String(pmAdd);
+  document.getElementById('rowModal').dataset.amAdditional = String(Number(r.am_additional!=null?r.am_additional:add));
+  document.getElementById('rowModalTitle').textContent = sh==='Afternoon Shift' ? 'Record PM Inventory' : 'Record AM Inventory';
+  document.getElementById('rSaveBtn').disabled=false;
+  document.getElementById('rSaveBtn').title='';
+  updateRowShiftLabels();
+  document.getElementById('rowModal').classList.add('open');
+}
+function closeRowModal(){document.getElementById('rowModal').classList.remove('open');}
+function previewUsed(){
+  const el=document.getElementById('rUsed');
+  if(document.getElementById('rShift').value!=='Afternoon Shift'){
+    el.value='';
+    return;
+  }
+  const am=document.getElementById('rPhysical').value;
+  const pmAdd=document.getElementById('rPmAdd').value;
+  const pm=document.getElementById('rPm').value;
+  if(am==='' || pm==='' || Number.isNaN(Number(am)) || Number.isNaN(Number(pm))){
+    el.value='Pending PM Count';
+    return;
+  }
+  const pmAdditional=pmAdd===''?0:Number(pmAdd);
+  const used=Number(am)+pmAdditional-Number(pm);
+  if(used<0){
+    el.value='Review counts — PM count is higher than AM + PM Additional';
+    return;
+  }
+  el.value=String(used);
+}
+function saveRowLabel(shift){
+  return shift==='Afternoon Shift'
+    ? '<i class="fa-solid fa-calculator"></i> Save PM Count &amp; Calculate Usage'
+    : '<i class="fa-solid fa-floppy-disk"></i> Save AM Inventory';
+}
+async function saveRow(){
+  if(saveRowBusy){
+    toast('Save is already in progress. Please wait.', false);
+    return;
+  }
+  const btn=document.getElementById('rSaveBtn');
+  const shift=document.getElementById('rShift').value;
+  const vaccineId=Number(document.getElementById('rVaccineId').value);
+  let recordDate=document.getElementById('rDate').value;
+  if(!recordDate){
+    const sheetDate=document.getElementById('fDate');
+    if(sheetDate && sheetDate.value) recordDate=sheetDate.value;
+  }
+  const physical=document.getElementById('rPhysical').value;
+  const addRaw=document.getElementById('rAdd').value;
+  const pmRaw=document.getElementById('rPm').value;
+  const pmAddRaw=document.getElementById('rPmAdd').value;
+  try{
+    if(!vaccineId || !recordDate){
+      toast('Please complete all required fields.', 'warning');
+      return;
+    }
+    if(shift==='Afternoon Shift' && document.getElementById('rowModal').dataset.amVerified!=='1' && document.getElementById('rowModal').dataset.amRecorded!=='1'){
+      toast('Verify the AM inventory for this date and vaccine before entering the PM count.', 'warning');
+      return;
+    }
+    let computedUsed=0;
+    if(shift==='Morning Shift'){
+      if(physical===''){ toast('Please complete all required fields.', 'warning'); return; }
+      const am=Number(physical);
+      if(!Number.isFinite(am) || am<0 || am!==Math.floor(am)){ toast('Please enter a valid vaccine quantity.', 'warning'); return; }
+      const additional=addRaw===''?0:Number(addRaw);
+      if(!Number.isFinite(additional) || additional<0){ toast('Please enter a valid vaccine quantity.', 'warning'); return; }
+      const amRef=expectedAmFromForm();
+      const expected=amRef.expected==null?0:amRef.expected;
+      const hasStarting=amRef.hasStarting;
+      const diff=am-expected;
+      const remarks=document.getElementById('rRemarks').value.trim();
+      if(diff!==0 && hasStarting && !remarks){
+        toast('Enter remarks describing the AM Difference.', 'warning');
+        return;
+      }
+      if(!hasStarting && !remarks){
+        toast('Please complete all required fields.', 'warning');
+        return;
+      }
+    } else {
+      if(pmRaw===''){ toast('Please complete all required fields.', 'warning'); return; }
+      const pm=Number(pmRaw);
+      if(!Number.isFinite(pm) || pm<0 || pm!==Math.floor(pm)){ toast('Please enter a valid vaccine quantity.', 'warning'); return; }
+      const pmAdditional=pmAddRaw===''?0:Number(pmAddRaw);
+      if(!Number.isFinite(pmAdditional) || pmAdditional<0){ toast('Please enter a valid PM Additional quantity.', 'warning'); return; }
+      const start=Number(physical);
+      if(!Number.isFinite(start)){
+        toast('Verify the AM inventory for this date and vaccine before entering the PM count.', 'warning');
+        return;
+      }
+      computedUsed=start+pmAdditional-Number(pmRaw);
+      if(computedUsed<0){
+        toast('PM count cannot be higher than AM count + PM Additional stock.', 'warning');
+        return;
+      }
+    }
+    const p={
+      record_date:recordDate,
+      vaccine_id:vaccineId,
+      shift:shift,
+      morning_shift_inventory:shift==='Morning Shift'?Number(physical):undefined,
+      physical_count:shift==='Morning Shift'?Number(physical):Number(physical),
+      additional_vaccine:addRaw===''?0:Number(addRaw),
+      pm_additional_vaccine:shift==='Afternoon Shift'?(pmAddRaw===''?0:Number(pmAddRaw)):0,
+      remaining_pm_shift:shift==='Afternoon Shift'?Number(pmRaw):null,
+      vaccine_used:shift==='Afternoon Shift'?computedUsed:0,
+      expiration_date:document.getElementById('rExp').value||null,
+      remarks:document.getElementById('rRemarks').value
+    };
+    saveRowBusy=true;
+    if(btn){
+      btn.disabled=true;
+      btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+    }
+    RemisNotify.setLoading(true, 'Saving inventory…');
+    const r=await fetch('/api/inventory/daily-records',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const result=await RemisNotify.parseApi(r,{
+      success:'Inventory record saved successfully.',
+      validation:'Please review the inventory values before saving.',
+      server:'We couldn’t save the inventory record. Please try again.',
+      forbidden:'You do not have permission to complete this action.',
+      auth:'Please sign in again to continue.',
+    });
+    if(!result.ok){
+      toast(result.message, false);
+      return;
+    }
+    toast(result.message, true);
+    closeRowModal();
+    await loadAll();
+  } catch(e){
+    console.warn(e);
+    toast('The system is temporarily unavailable. Please try again later.', false);
+  } finally {
+    RemisNotify.setLoading(false);
+    saveRowBusy=false;
+    if(btn){
+      btn.disabled=false;
+      btn.innerHTML=saveRowLabel(shift);
+    }
+  }
+}
+async function openLotReceipts(inventoryIds){
+  try{
+    const ids=String(inventoryIds||'');
+    const first=ids.split(',')[0];
+    const r=await fetch('/api/inventory/'+first+'/stock-ins?ids='+encodeURIComponent(ids));
+    const result=await RemisNotify.parseApi(r,{
+      server:'The system is temporarily unavailable. Please try again later.',
+    });
+    const list=(result.body && result.body.data)||[];
+    if(!result.ok){ toast(result.message, false); return; }
+    if(!list.length){ toast('No added-stock receipts were found for this batch.', 'info'); return; }
+    openCorrectForm(list[0]);
+  } catch(e){
+    console.warn(e);
+    toast('The system is temporarily unavailable. Please try again later.', false);
+  }
+}
+function openCorrectForm(txn){
+  const originalExp=ymd(txn.original_expiration_date||txn.expiration_date||txn.lot_expiry_date);
+  const currentExp=ymd(txn.current_expiration_date||txn.corrected_expiration_date||txn.expiration_date||txn.lot_expiry_date);
+  document.getElementById('cTxnId').value=txn.transaction_id;
+  document.getElementById('cVaccine').value=txn.vaccine_name||'';
+  document.getElementById('cOriginal').value=txn.original_quantity!=null?txn.original_quantity:txn.quantity;
+  document.getElementById('cCurrent').value=txn.effective_quantity!=null?txn.effective_quantity:(txn.corrected_quantity!=null?txn.corrected_quantity:txn.quantity);
+  document.getElementById('cQty').value='';
+  document.getElementById('cExpOriginal').value=originalExp==='—'?'':originalExp;
+  document.getElementById('cExpCurrent').value=currentExp==='—'?'':currentExp;
+  document.getElementById('cExp').value='';
+  document.getElementById('cReason').value='';
+  document.getElementById('cOther').value='';
+  previewCorrection();
+  document.getElementById('correctModal').classList.add('open');
+}
+function closeCorrectModal(){ document.getElementById('correctModal').classList.remove('open'); }
+function countTerm(shift){
+  return shift==='Afternoon Shift' ? 'PM Count' : 'AM Count';
+}
+function openPhysicalCorrection(idx, shift){
+  const r=sheetRows[idx];
+  if(!r) return;
+  const am=shift==='Morning Shift';
+  const term=countTerm(shift);
+  const recordId=am?r.am_record_id:r.pm_record_id;
+  if(!recordId){ toast('Save the '+term+' before correcting it.', 'warning'); return; }
+  const title=document.getElementById('pTitle');
+  if(title) title.innerHTML='<i class="fa-solid fa-pen-to-square"></i> Correct '+term;
+  const originalLabel=document.getElementById('pOriginalLabel');
+  if(originalLabel) originalLabel.textContent='Original '+term;
+  const qtyLabel=document.getElementById('pQtyLabel');
+  if(qtyLabel) qtyLabel.textContent='Corrected '+term;
+  const reasonOpt=document.getElementById('pReasonCount');
+  if(reasonOpt) reasonOpt.textContent='Incorrect '+(am?'AM':'PM')+' count entered';
+  const original=am
+    ? (r.am_original_physical_count!=null?r.am_original_physical_count:(r.inventory_am!=null?r.inventory_am:r.physical_count))
+    : (r.pm_original_physical_count!=null?r.pm_original_physical_count:r.inventory_pm);
+  const current=am?(r.inventory_am!=null?r.inventory_am:r.physical_count):r.inventory_pm;
+  const expected=am?r.expected_am_stock:r.expected_pm_stock;
+  const additional=am?r.am_additional:r.pm_additional;
+  document.getElementById('pRecordId').value=recordId;
+  document.getElementById('pToken').value=(Date.now().toString(36)+Math.random().toString(36).slice(2,10)).replace(/[^a-z0-9]/gi,'').slice(0,64);
+  document.getElementById('pVaccine').value=r.vaccine_name||'';
+  document.getElementById('pExp').value=r.expiration_date||'—';
+  document.getElementById('pDate').value=r.record_date||'';
+  document.getElementById('pShift').value=shift;
+  document.getElementById('pPrev').value=r.previous_verified_stock!=null?r.previous_verified_stock:'—';
+  document.getElementById('pAdd').value=additional!=null?additional:0;
+  document.getElementById('pExpected').value=expected!=null?expected:'—';
+  document.getElementById('pOriginal').value=original!=null?original:'—';
+  const oldDiff=current!=null&&expected!=null?Number(current)-Number(expected):(r.stock_difference!=null?Number(r.stock_difference):null);
+  document.getElementById('pOldDiff').value=oldDiff==null?'—':(oldDiff>0?('+'+oldDiff):String(oldDiff));
+  document.getElementById('pOldStatus').value=r.difference_status||'—';
+  document.getElementById('pQty').value='';
+  document.getElementById('pReason').value='';
+  document.getElementById('physModal').dataset.current=current!=null?String(current):'';
+  document.getElementById('physModal').dataset.expected=expected!=null?String(expected):'';
+  previewPhysicalCorrection();
+  document.getElementById('physModal').classList.add('open');
+  const btn=document.getElementById('pSaveBtn');
+  if(btn) btn.disabled=false;
+}
+function closePhysicalCorrection(){ document.getElementById('physModal').classList.remove('open'); }
+function previewPhysicalCorrection(){
+  const expected=Number(document.getElementById('physModal').dataset.expected);
+  const original=document.getElementById('pOriginal').value;
+  const qty=document.getElementById('pQty').value;
+  const reason=document.getElementById('pReason').value;
+  const el=document.getElementById('pSummary');
+  const shift=document.getElementById('pShift').value;
+  const term=countTerm(shift);
+  if(qty==='' || !reason || !Number.isFinite(expected)){
+    el.textContent='Enter the corrected '+term+' and a reason.';
+    return;
+  }
+  const corrected=Number(qty);
+  const diff=corrected-expected;
+  const status=diff===0?'Matched':'Variance';
+  const signedDiff=diff>0?('+'+diff):String(diff);
+  const pmNote=shift==='Afternoon Shift'
+    ? '<div>PM usage is recalculated from the corrected count. The count itself is not added to stock.</div>'
+    : '<div>New Difference: '+signedDiff+'</div><div>New Verification Status: '+status+'</div>';
+  el.innerHTML='<strong>Correct '+term+'</strong>'
+    +'<div>Original '+term+': '+original+'</div>'
+    +'<div>Corrected '+term+': '+corrected+'</div>'
+    +'<div>Expected Stock: '+expected+'</div>'
+    +pmNote
+    +'<div>Correction Reason: '+reason+'</div>'
+    +'<div>Additional Stock stays unchanged. This correction does not add vaccine stock or create another inventory record.</div>';
+}
+let physicalSaveBusy=false;
+async function savePhysicalCorrection(){
+  if(physicalSaveBusy){ toast('Save is already in progress. Please wait.', false); return; }
+  const btn=document.getElementById('pSaveBtn');
+  const qty=Number(document.getElementById('pQty').value);
+  const reason=document.getElementById('pReason').value;
+  if(!Number.isFinite(qty) || qty<0 || qty!==Math.floor(qty)){ toast('Please enter a valid vaccine quantity.', 'warning'); return; }
+  if(!reason){ toast('A correction reason is required.', 'warning'); return; }
+  const term=countTerm(document.getElementById('pShift').value);
+  const ok=await RemisNotify.confirmAction({
+    title:'Correct '+term,
+    body:'Correction changes the verified inventory record. It does not add new vaccine stock.',
+    confirmLabel:'Save correction',
+  });
+  if(!ok) return;
+  physicalSaveBusy=true;
+  if(btn) btn.disabled=true;
+  RemisNotify.setLoading(true, 'Saving correction…');
+  try{
+    const r=await fetch('/api/inventory/daily-records/'+encodeURIComponent(document.getElementById('pRecordId').value)+'/correct-physical',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        corrected_physical_count:qty,
+        correction_reason:reason,
+        client_token:document.getElementById('pToken').value,
+      }),
+    });
+    const result=await RemisNotify.parseApi(r,{
+      success:term+' corrected. This did not add vaccine stock.',
+      validation:'Please review the inventory values before saving.',
+      server:'The inventory update could not be completed. Please check your entries.',
+      forbidden:'You do not have permission to complete this action.',
+      auth:'Please sign in again to continue.',
+    });
+    if(!result.ok){ toast(result.message, false); return; }
+    toast(result.message, true);
+    closePhysicalCorrection();
+    await loadAll();
+  } catch(e){
+    console.warn(e);
+    toast('The system is temporarily unavailable. Please try again later.', false);
+  } finally {
+    RemisNotify.setLoading(false);
+    physicalSaveBusy=false;
+    if(btn) btn.disabled=false;
+  }
+}
+function correctionPlan(){
+  const qtyRaw=document.getElementById('cQty').value;
+  const currentQty=Number(document.getElementById('cCurrent').value);
+  const exp=document.getElementById('cExp').value;
+  const currentExp=document.getElementById('cExpCurrent').value;
+  const reasonSel=document.getElementById('cReason').value;
+  const details=(document.getElementById('cOther').value||'').trim();
+  const other=document.getElementById('cOtherWrap');
+  if(other) other.style.display=reasonSel==='Other'?'':'none';
+  let reason=reasonSel;
+  if(reasonSel==='Other' && details) reason='Other: '+details;
+  const qtyFilled=qtyRaw!=='';
+  const qtyNum=qtyFilled?Number(qtyRaw):null;
+  const qtyValid=qtyFilled && Number.isFinite(qtyNum) && qtyNum>=0 && qtyNum===Math.floor(qtyNum);
+  const qtyChanged=qtyValid && qtyNum!==currentQty;
+  const expChanged=!!exp && /^\d{4}-\d{2}-\d{2}$/.test(exp) && exp!==currentExp;
+  return { qtyRaw, qtyNum, qtyFilled, qtyValid, qtyChanged, exp, expChanged, currentExp, reasonSel, details, reason };
+}
+function previewCorrection(){
+  const plan=correctionPlan();
+  const el=document.getElementById('cSummary');
+  if((!plan.qtyChanged && !plan.expChanged) || !plan.reasonSel || (plan.reasonSel==='Other' && plan.details.length<3)){
+    el.textContent='Enter a corrected quantity, a corrected expiration date, or both, then choose a reason.';
+    return;
+  }
+  const vaccine=document.getElementById('cVaccine').value;
+  const lines=['<strong>Correction Summary</strong>','<div>Vaccine: '+escHtml(vaccine)+'</div>'];
+  if(plan.qtyChanged){
+    lines.push('<div>Original Additional Stock: '+escHtml(document.getElementById('cOriginal').value)+' vials</div>');
+    lines.push('<div>Corrected Additional Stock: '+escHtml(plan.qtyNum)+' vials</div>');
+  }
+  if(plan.expChanged){
+    lines.push('<div>Original Expiration Date: '+escHtml(document.getElementById('cExpOriginal').value||'—')+'</div>');
+    lines.push('<div>Corrected Expiration Date: '+escHtml(plan.exp)+'</div>');
+  }
+  lines.push('<div>Correction Reason: '+escHtml(plan.reason)+'</div>');
+  if(!plan.qtyChanged) lines.push('<div>Additional stock is not changed. Remaining stock, AM/PM counts, and the inventory date stay the same.</div>');
+  el.innerHTML=lines.join('');
+}
+function escHtml(v){
+  return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+async function saveCorrection(){
+  const btn=document.getElementById('cSaveBtn');
+  if(btn && btn.disabled) return;
+  const id=document.getElementById('cTxnId').value;
+  const plan=correctionPlan();
+  if(plan.qtyFilled && !plan.qtyValid){ toast('Please enter a valid vaccine quantity.', 'warning'); return; }
+  if(plan.exp && !/^\d{4}-\d{2}-\d{2}$/.test(plan.exp)){ toast('Enter a valid corrected expiration date.', 'warning'); return; }
+  if(!plan.qtyChanged && !plan.expChanged){ toast('Change the additional stock, the expiration date, or both before saving.', 'warning'); return; }
+  if(!plan.reasonSel){ toast('A correction reason is required.', 'warning'); return; }
+  if(plan.reasonSel==='Other' && plan.details.length<3){ toast('Enter the correction details when Other is selected.', 'warning'); return; }
+  const ok=await RemisNotify.confirmAction({
+    title:'Correction Summary',
+    body: document.getElementById('cSummary').innerText,
+    confirmLabel:'Save correction',
+  });
+  if(!ok) return;
+  if(btn) btn.disabled=true;
+  RemisNotify.setLoading(true, 'Saving correction…');
+  try{
+    const r=await fetch('/api/inventory/transactions/'+id+'/correct',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      quantity: plan.qtyChanged ? plan.qtyNum : null,
+      expiration_date: plan.expChanged ? plan.exp : null,
+      correction_reason: plan.reason,
+      confirm:true,
+    })});
+    const result=await RemisNotify.parseApi(r,{
+      success:'Inventory correction saved successfully.',
+      validation:'Please review the inventory values before saving.',
+      server:'The inventory update could not be completed. Please check your entries.',
+      forbidden:'You do not have permission to complete this action.',
+    });
+    toast(result.message, result.ok);
+    if(result.ok){ closeCorrectModal(); await loadAll(); }
+  } catch(e){
+    console.warn(e);
+    toast('The system is temporarily unavailable. Please try again later.', false);
+  }
+  RemisNotify.setLoading(false);
+  if(btn) btn.disabled=false;
+}
+</script></body></html>

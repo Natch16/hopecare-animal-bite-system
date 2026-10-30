@@ -1,0 +1,677 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Accounts – HopeCare</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="/js/shared/sidebar.js"></script>
+  <style>
+    /* ── Layout ── */
+    .pa-header {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:20px; flex-wrap:wrap; gap:12px;
+    }
+    .pa-header h1 { color:#293681; margin:0; font-size:22px; }
+    .pa-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .pa-search {
+      padding:10px 14px; border:1.5px solid #cdd5e0; border-radius:8px;
+      min-width:280px; font-size:13px; outline:none; transition:border-color .2s;
+    }
+    .pa-search:focus { border-color:#4274D9; box-shadow:0 0 0 3px rgba(66,116,217,.12); }
+
+    /* ── Stats ── */
+    .pa-stats { display:flex; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
+    .pa-stat {
+      background:#fff; border-radius:10px; padding:12px 18px;
+      box-shadow:0 1px 4px rgba(0,0,0,.07);
+      display:flex; align-items:center; gap:10px; min-width:130px;
+    }
+    .pa-stat-icon { font-size:20px; }
+    .pa-stat-val  { font-size:20px; font-weight:800; color:#293681; line-height:1; }
+    .pa-stat-lbl  { font-size:11px; color:#64748b; margin-top:2px; }
+
+    /* ── Table ── */
+    .pa-table-wrap {
+      overflow-x:auto; background:#fff; border-radius:12px;
+      box-shadow:0 2px 8px rgba(0,0,0,.08);
+    }
+    table.pa-table { width:100%; border-collapse:collapse; font-size:13px; min-width:920px; }
+    .pa-table th, .pa-table td { padding:12px 14px; border-bottom:1px solid #e8edf8; text-align:left; }
+    .pa-table th {
+      background:#f8faff; color:#293681; font-weight:700;
+      font-size:11.5px; text-transform:uppercase; letter-spacing:.4px;
+    }
+    .pa-table tr:last-child td { border-bottom:none; }
+    .pa-table tbody tr:hover td { background:#f8faff; }
+
+    /* ── Badges ── */
+    .badge {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:3px 9px; border-radius:99px; font-size:11px; font-weight:700;
+    }
+    .badge-active   { background:#dcfce7; color:#16a34a; }
+    .badge-inactive { background:#f1f5f9; color:#64748b; }
+    .badge-locked   { background:#fee2e2; color:#dc2626; }
+    .badge-new      { background:#eff6ff; color:#2563eb; }
+
+    /* ── Buttons ── */
+    .btn {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:5px 11px; border-radius:7px; border:none; cursor:pointer;
+      font-size:11.5px; font-weight:600; margin:2px; transition:opacity .15s;
+      white-space:nowrap;
+    }
+    .btn:hover   { opacity:.82; }
+    .btn:disabled{ opacity:.45; cursor:not-allowed; }
+    .btn-blue   { background:#eff6ff; color:#2563eb; }
+    .btn-warn   { background:#fef3c7; color:#92400e; }
+    .btn-green  { background:#dcfce7; color:#16a34a; }
+    .btn-purple { background:#f5f3ff; color:#7c3aed; }
+    .btn-refresh{ background:#293681; color:#fff; padding:10px 16px; font-size:12.5px; }
+
+    /* ── Confirm modal ── */
+    .pa-modal {
+      display:none; position:fixed; inset:0; z-index:9000;
+      background:rgba(10,18,50,.5); align-items:center; justify-content:center; padding:20px;
+    }
+    .pa-modal.open { display:flex; }
+    .pa-modal-box {
+      background:#fff; border-radius:16px; padding:28px;
+      width:100%; display:flex; flex-direction:column;
+    }
+    .pa-modal-hd {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #e8edf8;
+    }
+    .pa-modal-hd h4 { margin:0; color:#293681; font-size:15px; }
+    .pa-modal-close {
+      background:none; border:none; font-size:22px; cursor:pointer;
+      color:#64748b; line-height:1; padding:0 4px;
+    }
+    .pa-modal-body { font-size:13.5px; color:#475569; line-height:1.6; margin-bottom:18px; }
+    .pa-modal-body strong { color:#1e2a4a; }
+    .pa-modal-actions { display:flex; gap:10px; justify-content:flex-end; }
+    .btn-modal-cancel  { background:#f1f5f9; color:#475569; padding:9px 18px; font-size:13px; }
+    .btn-modal-confirm { padding:9px 18px; font-size:13px; }
+
+    /* ── History modal ── */
+    .pa-hist-box { max-width:560px; max-height:80vh; }
+    .pa-hist-list { overflow-y:auto; flex:1; max-height:50vh; }
+    .pa-hist-row {
+      padding:10px 12px; border-radius:8px; margin-bottom:6px;
+      display:flex; align-items:flex-start; gap:10px; font-size:13px;
+    }
+    .pa-hist-row.ok  { background:#f0fdf4; }
+    .pa-hist-row.bad { background:#fef2f2; }
+    .pa-hist-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:3px; }
+    .pa-hist-dot.ok  { background:#16a34a; }
+    .pa-hist-dot.bad { background:#dc2626; }
+
+    /* ── Toast ── */
+    #paToastWrap {
+      position:fixed; bottom:24px; right:24px; z-index:9999;
+      display:flex; flex-direction:column; gap:8px; pointer-events:none;
+    }
+    .pa-toast {
+      padding:11px 18px; border-radius:10px; font-size:13px; font-weight:600;
+      pointer-events:auto; display:flex; align-items:center; gap:8px;
+      box-shadow:0 4px 16px rgba(0,0,0,.15); animation:paSlideIn .25s ease;
+    }
+    .pa-toast.success { background:#16a34a; color:#fff; }
+    .pa-toast.error   { background:#dc2626; color:#fff; }
+    .pa-toast.info    { background:#2563eb; color:#fff; }
+    @keyframes paSlideIn {
+      from { transform:translateX(60px); opacity:0; }
+      to   { transform:none; opacity:1; }
+    }
+
+    /* ── Loading overlay ── */
+    #paLoading {
+      display:none; position:fixed; inset:0; z-index:8888;
+      background:rgba(255,255,255,.55); align-items:center; justify-content:center;
+    }
+    #paLoading.show { display:flex; }
+    .pa-spinner {
+      width:44px; height:44px; border:4px solid #e8edf8;
+      border-top-color:#4274D9; border-radius:50%;
+      animation:spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body class="hc-admin" data-nav="patient-accounts">
+<div class="main-wrapper"><script>initAppSidebar();</script>
+<div class="main-content">
+
+  <!-- Header -->
+  <div class="pa-header">
+    <h1><i class="fa-solid fa-users-gear"></i> Patient Account Management</h1>
+    <div class="pa-toolbar">
+      <input class="pa-search" id="paSearch"
+             placeholder="Search name, PAT-ID, registration…"
+             oninput="filterAccounts()" autocomplete="off">
+      <button class="btn btn-refresh" onclick="loadAccounts()">
+        <i class="fa-solid fa-rotate-right"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="pa-stats" id="paStats"></div>
+
+  <!-- Table -->
+  <div class="pa-table-wrap">
+    <table class="pa-table">
+      <thead>
+        <tr>
+          <th>Patient ID</th>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Contact</th>
+          <th>Status</th>
+          <th>Last Login</th>
+          <th class="hc-actions-cell">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="paTbody">
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:#94a3b8;">
+          <i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Loading patient accounts…
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div></div>
+
+<!-- ═══ CONFIRM MODAL (Reset / Activate / Deactivate / Unlock) ═══ -->
+<div class="pa-modal" id="confirmModal">
+  <div class="pa-modal-box" style="max-width:460px;">
+    <div class="pa-modal-hd">
+      <h4 id="confirmTitle">Confirm Action</h4>
+      <button class="pa-modal-close" onclick="closeConfirm()">×</button>
+    </div>
+    <div class="pa-modal-body" id="confirmBody"></div>
+    <div class="pa-modal-actions">
+      <button class="btn btn-modal-cancel" onclick="closeConfirm()">
+        <i class="fa-solid fa-xmark"></i> Cancel
+      </button>
+      <button class="btn btn-modal-confirm" id="confirmOkBtn" onclick="runConfirmedAction()">
+        Confirm
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HISTORY MODAL ═══ -->
+<div class="pa-modal" id="histModal">
+  <div class="pa-modal-box pa-hist-box">
+    <div class="pa-modal-hd">
+      <h4>
+        <i class="fa-solid fa-clock-rotate-left" style="color:#4274D9;margin-right:8px;"></i>
+        Login History — <span id="histPatientName" style="color:#4274D9;"></span>
+      </h4>
+      <button class="pa-modal-close" onclick="closeHistModal()">×</button>
+    </div>
+    <div class="pa-hist-list" id="histList">
+      <div style="text-align:center;color:#94a3b8;padding:24px;">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div id="paLoading"><div class="pa-spinner"></div></div>
+<!-- Toast container -->
+<div id="paToastWrap"></div>
+
+<script src="/js/shared/rbac.js"></script>
+<script src="/js/shared/app.js"></script>
+<script>
+'use strict';
+
+/* ─────────────────────────────────────
+   STATE
+───────────────────────────────────── */
+let allAccounts = [];
+
+// Pending confirmed action { fn, label, style }
+let _pendingAction = null;
+
+/* ─────────────────────────────────────
+   INIT
+───────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkAuth();
+  loadAccounts();
+
+  // Close modals on backdrop click
+  document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirm();
+  });
+  document.getElementById('histModal').addEventListener('click', function(e) {
+    if (e.target === this) closeHistModal();
+  });
+});
+
+/* ─────────────────────────────────────
+   LOAD ALL ACCOUNTS
+───────────────────────────────────── */
+async function loadAccounts() {
+  showLoading();
+  setTbody('<tr><td colspan="7" style="text-align:center;padding:32px;color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Loading…</td></tr>');
+  try {
+    const res = await fetch('/api/patient-accounts', { credentials: 'include' });
+
+    if (res.status === 401) { window.location.href = '/shared/login.html'; return; }
+    if (res.status === 403) {
+      showMsg('Access denied — insufficient permissions.', 'error');
+      setTbody('<tr><td colspan="7" style="text-align:center;padding:32px;color:#dc2626;">Access denied.</td></tr>');
+      return;
+    }
+
+    const json = await res.json();
+    if (!json.success) {
+      showMsg(json.message || 'Failed to load patient accounts.', 'error');
+      setTbody('<tr><td colspan="7" style="text-align:center;padding:32px;color:#dc2626;">' + (json.message || 'Failed to load.') + '</td></tr>');
+      return;
+    }
+
+    allAccounts = json.data || [];
+    renderStats(allAccounts);
+    renderAccounts(allAccounts);
+  } catch (err) {
+    console.error('loadAccounts error:', err);
+    showMsg('Network error — could not load patient accounts.', 'error');
+    setTbody('<tr><td colspan="7" style="text-align:center;padding:32px;color:#dc2626;">Network error. Please try again.</td></tr>');
+  } finally {
+    hideLoading();
+  }
+}
+
+function setTbody(html) {
+  document.getElementById('paTbody').innerHTML = html;
+}
+
+/* ─────────────────────────────────────
+   STATS BAR
+───────────────────────────────────── */
+function renderStats(data) {
+  const total    = data.length;
+  const active   = data.filter(a => a.account_status === 'Active' && !a.is_locked).length;
+  const inactive = data.filter(a => a.account_status === 'Inactive').length;
+  const locked   = data.filter(a => !!a.is_locked).length;
+  const never    = data.filter(a => a.first_login == 1 && !a.is_locked).length;
+
+  const items = [
+    { icon:'fa-users',        val:total,    color:'#293681', label:'Total' },
+    { icon:'fa-circle-check', val:active,   color:'#16a34a', label:'Active' },
+    { icon:'fa-circle-xmark', val:inactive, color:'#64748b', label:'Inactive' },
+    { icon:'fa-lock',         val:locked,   color:'#dc2626', label:'Locked' },
+    { icon:'fa-star',         val:never,    color:'#2563eb', label:'Never Logged In' },
+  ];
+  document.getElementById('paStats').innerHTML = items.map(i =>
+    `<div class="pa-stat">
+       <div class="pa-stat-icon" style="color:${i.color};">
+         <i class="fa-solid ${i.icon}"></i>
+       </div>
+       <div>
+         <div class="pa-stat-val">${i.val}</div>
+         <div class="pa-stat-lbl">${i.label}</div>
+       </div>
+     </div>`
+  ).join('');
+}
+
+/* ─────────────────────────────────────
+   RENDER TABLE ROWS
+   Uses data-* attributes — no inline
+   string escaping needed on onclick.
+───────────────────────────────────── */
+function renderAccounts(data) {
+  if (!data.length) {
+    setTbody('<tr><td colspan="7" style="text-align:center;padding:32px;color:#94a3b8;">No patient accounts found.</td></tr>');
+    return;
+  }
+
+  const rows = data.map(a => {
+    const pid      = a.patient_id_display || ('PAT-' + String(a.patient_id).padStart(6, '0'));
+    const name     = a.full_name    || '—';
+    const uname    = a.username     || '—';
+    const contact  = a.contact_number || '—';
+    const isLocked = !!a.is_locked;
+    const status   = a.account_status || 'Active';
+    const lastLogin = a.last_login
+      ? new Date(a.last_login).toLocaleString('en-US', {
+          month:'short', day:'numeric', year:'numeric',
+          hour:'2-digit', minute:'2-digit',
+        })
+      : '—';
+
+    // Status badge
+    let badge = '';
+    if (isLocked) {
+      badge = `<span class="badge badge-locked"><i class="fa-solid fa-lock" style="font-size:9px;"></i> Locked</span>`;
+    } else if (status === 'Inactive') {
+      badge = `<span class="badge badge-inactive"><i class="fa-solid fa-circle" style="font-size:7px;"></i> Inactive</span>`;
+    } else {
+      badge = `<span class="badge badge-active"><i class="fa-solid fa-circle" style="font-size:7px;"></i> Active</span>`;
+    }
+    if (a.first_login == 1 && !isLocked) {
+      badge += `<span class="badge badge-new" style="margin-left:3px;font-size:10px;">New</span>`;
+    }
+
+    const nextStatus = status === 'Active' ? 'Inactive' : 'Active';
+    const toggleCls  = status === 'Active' ? 'btn-warn' : 'btn-green';
+    const toggleLbl  = status === 'Active'
+      ? '<i class="fa-solid fa-ban"></i> Deactivate'
+      : '<i class="fa-solid fa-circle-check"></i> Activate';
+
+    const unlockBtn = isLocked
+      ? `<button class="btn btn-green"
+           data-action="unlock" data-id="${a.patient_id}" data-name="${escAttr(name)}">
+           <i class="fa-solid fa-lock-open"></i> Unlock
+         </button>`
+      : '';
+
+    return `<tr>
+      <td><strong style="color:#293681;">${escHtml(pid)}</strong></td>
+      <td style="font-weight:600;">${escHtml(name)}</td>
+      <td style="color:#475569;">${escHtml(uname)}</td>
+      <td style="color:#475569;">${escHtml(contact)}</td>
+      <td>${badge}</td>
+      <td style="color:#64748b;font-size:12px;">${lastLogin}</td>
+      <td class="hc-actions-cell">
+        <div class="hc-actions">
+        <button class="btn btn-blue"
+          data-action="reset" data-id="${a.patient_id}" data-name="${escAttr(name)}">
+          <i class="fa-solid fa-key"></i> Reset PW
+        </button>
+        ${unlockBtn}
+        <button class="btn ${toggleCls}"
+          data-action="toggle" data-id="${a.patient_id}"
+          data-name="${escAttr(name)}" data-next="${nextStatus}">
+          ${toggleLbl}
+        </button>
+        <button class="btn btn-purple"
+          data-action="history" data-id="${a.patient_id}" data-name="${escAttr(name)}">
+          <i class="fa-solid fa-clock-rotate-left"></i> History
+        </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('paTbody').innerHTML = rows;
+
+  // Attach ONE delegated listener on tbody (not per-button)
+  document.getElementById('paTbody').addEventListener('click', handleTableClick);
+}
+
+/* ─────────────────────────────────────
+   DELEGATED CLICK HANDLER
+───────────────────────────────────── */
+function handleTableClick(e) {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+
+  const action = btn.dataset.action;
+  const id     = parseInt(btn.dataset.id, 10);
+  const name   = btn.dataset.name || 'this patient';
+
+  switch (action) {
+    case 'reset':
+      openConfirm({
+        title:   'Reset Password?',
+        body:    `This will generate a new temporary password for <strong>${escHtml(name)}</strong>. Continue with the password reset?`,
+        btnLabel:'<i class="fa-solid fa-key"></i> Reset Password',
+        btnStyle:'background:#2563eb;color:#fff;',
+        fn: () => apiResetPw(id, name),
+      });
+      break;
+
+    case 'unlock':
+      openConfirm({
+        title:   'Unlock Account',
+        body:    `Unlock the portal account for <strong>${escHtml(name)}</strong>? Their failed login counter will be cleared.`,
+        btnLabel:'<i class="fa-solid fa-lock-open"></i> Unlock',
+        btnStyle:'background:#16a34a;color:#fff;',
+        fn: () => apiUnlock(id, name),
+      });
+      break;
+
+    case 'toggle': {
+      const next = btn.dataset.next;
+      const isDeactivate = next === 'Inactive';
+      openConfirm({
+        title:   isDeactivate ? 'Deactivate Account' : 'Activate Account',
+        body:    isDeactivate
+          ? `Deactivate the portal account for <strong>${escHtml(name)}</strong>? They will not be able to log in to the patient portal.`
+          : `Activate the portal account for <strong>${escHtml(name)}</strong>? They will be able to log in again.`,
+        btnLabel: isDeactivate
+          ? '<i class="fa-solid fa-ban"></i> Deactivate'
+          : '<i class="fa-solid fa-circle-check"></i> Activate',
+        btnStyle: isDeactivate ? 'background:#92400e;color:#fff;' : 'background:#16a34a;color:#fff;',
+        fn: () => apiToggleStatus(id, next, name),
+      });
+      break;
+    }
+
+    case 'history':
+      openHistory(id, name);
+      break;
+  }
+}
+
+/* ─────────────────────────────────────
+   CONFIRM MODAL
+───────────────────────────────────── */
+function openConfirm({ title, body, btnLabel, btnStyle, fn }) {
+  _pendingAction = fn;
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').innerHTML    = body;
+  const okBtn = document.getElementById('confirmOkBtn');
+  okBtn.innerHTML = btnLabel;
+  okBtn.style.cssText = btnStyle + 'border:none;cursor:pointer;border-radius:7px;font-weight:700;';
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function closeConfirm() {
+  _pendingAction = null;
+  document.getElementById('confirmModal').classList.remove('open');
+}
+
+async function runConfirmedAction() {
+  if (!_pendingAction) return;
+  const fn = _pendingAction;
+  closeConfirm();
+  await fn();
+}
+
+/* ─────────────────────────────────────
+   API ACTIONS
+───────────────────────────────────── */
+async function apiResetPw(id, name) {
+  showLoading();
+  try {
+    const res  = await fetch(`/api/patient-accounts/${id}/reset-password`, {
+      method: 'PUT',
+      credentials: 'include',
+    });
+    const json = await res.json();
+    if (json.success) {
+      showMsg(`Password reset for ${escHtml(name)}. <a href="/patient/patient-card.html?patientId=${encodeURIComponent(id)}" target="_blank" rel="noopener">Print the Patient Card</a> for the temporary password. It is not sent by SMS.`, 'success', 8000);
+      loadAccounts();
+    } else {
+      showMsg(json.message || 'Failed to reset password.', 'error');
+    }
+  } catch (err) {
+    console.error('apiResetPw error:', err);
+    showMsg('Network error — password reset failed.', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function apiUnlock(id, name) {
+  showLoading();
+  try {
+    const res  = await fetch(`/api/patient-accounts/${id}/unlock`, {
+      method: 'PUT',
+      credentials: 'include',
+    });
+    const json = await res.json();
+    if (json.success) {
+      showMsg(`Account unlocked for ${name}.`);
+      loadAccounts();
+    } else {
+      showMsg(json.message || 'Failed to unlock account.', 'error');
+    }
+  } catch (err) {
+    console.error('apiUnlock error:', err);
+    showMsg('Network error — unlock failed.', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function apiToggleStatus(id, newStatus, name) {
+  showLoading();
+  try {
+    const res  = await fetch(`/api/patient-accounts/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ account_status: newStatus }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      showMsg(newStatus === 'Active'
+        ? `Account activated for ${name}.`
+        : `Account deactivated for ${name}.`
+      );
+      loadAccounts();
+    } else {
+      showMsg(json.message || 'Failed to update account status.', 'error');
+    }
+  } catch (err) {
+    console.error('apiToggleStatus error:', err);
+    showMsg('Network error — status update failed.', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+/* ─────────────────────────────────────
+   HISTORY MODAL
+───────────────────────────────────── */
+async function openHistory(id, name) {
+  document.getElementById('histPatientName').textContent = name;
+  document.getElementById('histList').innerHTML =
+    '<div style="text-align:center;color:#94a3b8;padding:24px;"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp; Loading…</div>';
+  document.getElementById('histModal').classList.add('open');
+
+  try {
+    const res  = await fetch(`/api/patient-accounts/${id}/login-history`, { credentials: 'include' });
+    const json = await res.json();
+
+    if (!json.success) {
+      document.getElementById('histList').innerHTML =
+        `<div style="text-align:center;color:#dc2626;padding:24px;">${json.message || 'Failed to load history.'}</div>`;
+      return;
+    }
+
+    const rows = json.data || [];
+    if (!rows.length) {
+      document.getElementById('histList').innerHTML =
+        '<div style="text-align:center;color:#94a3b8;padding:24px;">No login history found for this patient.</div>';
+      return;
+    }
+
+    document.getElementById('histList').innerHTML = rows.map(h => {
+      const ok = h.success == 1 || h.success === true;
+      const dt = new Date(h.login_at).toLocaleString('en-US', {
+        month:'short', day:'numeric', year:'numeric',
+        hour:'2-digit', minute:'2-digit',
+      });
+      return `<div class="pa-hist-row ${ok ? 'ok' : 'bad'}">
+        <div class="pa-hist-dot ${ok ? 'ok' : 'bad'}"></div>
+        <div style="flex:1;">
+          <div style="font-weight:700;color:${ok ? '#16a34a' : '#dc2626'};">
+            ${ok ? 'Login Successful' : 'Login Failed'}
+          </div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">${dt}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    console.error('openHistory error:', err);
+    document.getElementById('histList').innerHTML =
+      '<div style="text-align:center;color:#dc2626;padding:24px;">Network error — failed to load history.</div>';
+  }
+}
+
+function closeHistModal() {
+  document.getElementById('histModal').classList.remove('open');
+}
+
+/* ─────────────────────────────────────
+   SEARCH / FILTER
+───────────────────────────────────── */
+function filterAccounts() {
+  const q = (document.getElementById('paSearch').value || '').trim().toLowerCase();
+  if (!q) { renderAccounts(allAccounts); return; }
+  const filtered = allAccounts.filter(a => {
+    const pid = (a.patient_id_display || ('PAT-' + String(a.patient_id).padStart(6,'0'))).toLowerCase();
+    return (
+      (a.full_name          || '').toLowerCase().includes(q) ||
+      (a.username           || '').toLowerCase().includes(q) ||
+      (a.registration_number|| '').toLowerCase().includes(q) ||
+      (a.contact_number     || '').toLowerCase().includes(q) ||
+      pid.includes(q)
+    );
+  });
+  renderAccounts(filtered);
+}
+
+/* ─────────────────────────────────────
+   HELPERS
+───────────────────────────────────── */
+function showLoading() { document.getElementById('paLoading').classList.add('show'); }
+function hideLoading() { document.getElementById('paLoading').classList.remove('show'); }
+
+function showMsg(msg, type = 'success', stayMs = 4000) {
+  const wrap = document.getElementById('paToastWrap');
+  const t = document.createElement('div');
+  t.className = `pa-toast ${type}`;
+  const icons = { success:'fa-circle-check', error:'fa-circle-exclamation', info:'fa-circle-info' };
+  t.innerHTML = `<i class="fa-solid ${icons[type] || 'fa-circle-check'}"></i> ${msg}`;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, stayMs);
+  setTimeout(() => t.remove(), stayMs + 300);
+}
+
+/** Escape for HTML text nodes */
+function escHtml(v) {
+  if (v == null) return '';
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Escape for HTML attribute values (double-quoted) */
+function escAttr(v) {
+  if (v == null) return '';
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+</script>
+</body>
+</html>

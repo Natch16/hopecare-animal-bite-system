@@ -1,0 +1,2077 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Treatment &amp; Exposure History – HopeCare ABC System</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/shared/sidebar.js"></script>
+  <script src="/js/shared/vaccine-catalog.js?v=cat3-layout-sync"></script>
+  <script src="/js/nurse/gingoog-barangays.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    :root {
+      --primary:#293681; --accent:#4274D9; --teal:#95CCDD;
+      --bg:#f0f4ff; --surface:#fff; --border:#e8edf8;
+      --text:#1e2a4a; --muted:#6b7a9d;
+      --green:#16a34a; --red:#dc2626; --orange:#ea580c;
+      --amber:#d97706; --purple:#7c3aed;
+      --radius:12px; --shadow:0 2px 12px rgba(41,54,129,.08);
+    }
+    body { background:var(--bg); }
+    .ep-page { display:flex; flex-direction:column; gap:16px; }
+
+    .ep-header {
+      background:linear-gradient(135deg,var(--primary),var(--accent));
+      border-radius:var(--radius); padding:18px 22px;
+      display:flex; align-items:center; justify-content:space-between;
+      flex-wrap:wrap; gap:12px;
+      box-shadow:0 4px 16px rgba(41,54,129,.2);
+    }
+    .ep-header-left { display:flex; align-items:center; gap:14px; }
+    .ep-back-btn {
+      background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.35);
+      color:#fff; border-radius:9px; padding:8px 14px; font-size:13px;
+      font-weight:600; cursor:pointer; transition:all .2s; text-decoration:none;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .ep-back-btn:hover { background:rgba(255,255,255,.3); }
+    .ep-header-title h1 { color:#fff; font-size:1.1rem; font-weight:800; margin:0; }
+    .ep-header-title p  { color:rgba(255,255,255,.75); font-size:12px; margin:2px 0 0; }
+    .ep-header-actions  { display:flex; gap:10px; }
+    @media (max-width:480px) {
+      .ep-header-title h1 { font-size:.95rem; }
+      .ep-header-left { flex-wrap:wrap; }
+    }
+    .ep-action-btn {
+      display:inline-flex; align-items:center; gap:7px;
+      padding:9px 18px; border:none; border-radius:9px;
+      font-size:13px; font-weight:700; cursor:pointer; transition:all .2s;
+      font-family:inherit;
+    }
+    .ep-btn-newcase { background:var(--orange); color:#fff; }
+    .ep-btn-newcase:hover { background:#c2410c; }
+
+    .pat-card {
+      background:var(--surface); border-radius:var(--radius);
+      padding:16px 20px; box-shadow:var(--shadow);
+      display:flex; gap:18px; align-items:center; flex-wrap:wrap;
+    }
+    .pat-avatar {
+      width:52px; height:52px; border-radius:50%;
+      background:linear-gradient(135deg,var(--accent),var(--primary));
+      color:#fff; font-size:20px; font-weight:800;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .pat-info { flex:1; min-width:180px; }
+    .pat-name  { font-size:1rem; font-weight:800; color:var(--primary); }
+    .pat-meta  { font-size:12px; color:var(--muted); margin-top:3px; }
+    .pat-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:#eff6ff; border:1px solid #bfdbfe;
+      border-radius:99px; padding:4px 12px;
+      font-size:11px; font-weight:700; color:var(--accent);
+    }
+    .pat-fields { display:flex; gap:20px; flex-wrap:wrap; }
+    .pat-field  { display:flex; flex-direction:column; gap:2px; }
+    .pat-field .lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .pat-field .val { font-size:13px; font-weight:700; color:var(--text); }
+
+    .case-card {
+      background:var(--surface); border-radius:var(--radius);
+      box-shadow:var(--shadow); overflow:hidden;
+      border:1.5px solid var(--border);
+    }
+    .case-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 18px; flex-wrap:wrap; gap:8px;
+      background:linear-gradient(90deg,#f8faff,#fff);
+      border-bottom:1.5px solid var(--border);
+    }
+    .case-header-left { display:flex; align-items:center; gap:10px; }
+    .case-num {
+      width:36px; height:36px; border-radius:50%;
+      background:linear-gradient(135deg,var(--accent),var(--primary));
+      color:#fff; font-weight:800; font-size:13px;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .case-title .t1 { font-size:14px; font-weight:800; color:var(--text); }
+    .case-title .t2 { font-size:11px; color:var(--muted); margin-top:2px; }
+    .case-header-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+
+    .badge {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:3px 10px; border-radius:99px;
+      font-size:10.5px; font-weight:700; white-space:nowrap;
+    }
+    .badge-completed { background:#dcfce7; color:#15803d; }
+    .badge-ongoing   { background:#dbeafe; color:#1d4ed8; }
+    .badge-cat1 { background:#dcfce7; color:#15803d; }
+    .badge-cat2 { background:#fef9c3; color:#854d0e; }
+    .badge-cat3 { background:#ede9fe; color:#6d28d9; }
+    .badge-outcome-c   { background:#dcfce7; color:#15803d; }
+    .badge-outcome-inc { background:#fef9c3; color:#854d0e; }
+    .badge-outcome-n   { background:#f1f5f9; color:#64748b; }
+    .badge-outcome-d   { background:#fee2e2; color:#b91c1c; }
+
+    .case-body { padding:14px 18px; display:flex; flex-direction:column; gap:14px; }
+
+    .case-section {
+      border:1px solid var(--border); border-radius:10px; overflow:hidden;
+    }
+    .cs-header {
+      display:flex; align-items:center; gap:8px;
+      padding:9px 14px; font-size:12px; font-weight:800;
+      text-transform:uppercase; letter-spacing:.4px;
+    }
+    .cs-exp   { background:#fff7ed; color:var(--orange); }
+    .cs-pep   { background:#eff6ff; color:var(--accent); }
+    .cs-cat3  { background:#faf5ff; color:var(--purple); }
+    .cs-out   { background:#f0fdf4; color:var(--green); }
+
+    .cs-body { padding:12px 16px; }
+
+    .field-grid {
+      display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+      gap:12px 20px;
+    }
+    .fld { display:flex; flex-direction:column; gap:2px; }
+    .fld .lbl { font-size:10.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
+    .fld .val { font-size:12.5px; font-weight:600; color:var(--text); word-break:break-word; }
+    .fld .val.null { color:#94a3b8; font-weight:500; }
+
+    .dose-track {
+      display:flex; gap:6px; flex-wrap:wrap;
+      padding:10px 12px; background:#f8faff;
+      border-radius:8px; border:1px solid var(--border);
+    }
+    .dose-pip {
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      min-width:58px;
+    }
+    .pip-circle {
+      width:32px; height:32px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:800; border:2px solid transparent;
+    }
+    .pip-done     { background:#dcfce7; border-color:#86efac; color:#15803d; }
+    .pip-upcoming { background:#f1f5f9; border-color:#cbd5e1; color:#64748b; }
+    .pip-label    { font-size:9.5px; color:var(--muted); font-weight:700; }
+    .pip-date       { font-size:9px; color:var(--muted); }
+    .pip-vaccinator {
+      font-size:9px; color:#4274D9; font-weight:600; text-align:center;
+      max-width:72px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      margin-top:1px;
+    }
+
+    .cat3-grid {
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:12px;
+    }
+    .cat3-box {
+      border:1px solid #ddd6fe; border-radius:8px; overflow:hidden;
+    }
+    .cat3-box-hd {
+      background:#7c3aed; color:#fff;
+      padding:6px 10px; font-size:11px; font-weight:800;
+      display:flex; align-items:center; gap:6px;
+    }
+    .cat3-box-bd {
+      padding:10px 12px; background:#faf5ff;
+      display:grid; grid-template-columns:1fr 1fr; gap:8px 14px;
+    }
+    .cat3-box-bd.wide { grid-template-columns:1fr; }
+    .cat3-flag { font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
+    .cat3-flag.on  { color:#15803d; }
+    .cat3-flag.off { color:#94a3b8; font-weight:500; }
+
+    .outcome-row {
+      display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    }
+
+    .empty-state { text-align:center; padding:32px; color:var(--muted); }
+    .empty-state i { font-size:32px; opacity:.3; display:block; margin-bottom:8px; }
+
+    .ep-modal {
+      display:none; position:fixed; inset:0; z-index:9999;
+      background:rgba(10,18,50,.52); backdrop-filter:blur(4px);
+      align-items:flex-start; justify-content:center; padding:20px;
+      overflow-y:auto;
+    }
+    .ep-modal.open { display:flex; animation:fadeIn .2s ease; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .ep-modal-card {
+      background:#fff; border-radius:18px; width:100%; max-width:900px;
+      padding:26px 24px; box-shadow:0 24px 64px rgba(10,18,50,.22);
+      animation:slideIn .25s cubic-bezier(.22,1,.36,1);
+      margin-bottom:40px;
+    }
+    @keyframes slideIn { from{transform:translateY(20px);opacity:0} to{transform:none;opacity:1} }
+    .ep-modal-hd {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:18px; padding-bottom:14px; border-bottom:1.5px solid var(--border);
+      position:sticky; top:-26px; background:#fff; padding-top:10px; z-index:2;
+    }
+    .ep-modal-hd h3 { font-size:16px; font-weight:800; color:var(--primary); display:flex; align-items:center; gap:8px; margin:0; }
+    .ep-modal-close {
+      width:32px; height:32px; background:#f1f5f9; border:none; border-radius:8px;
+      font-size:18px; cursor:pointer; color:#64748b; transition:all .15s;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .ep-modal-close:hover { background:#fee2e2; color:#ef4444; }
+
+    .form-section-title {
+      font-size:11px; font-weight:800; color:var(--primary);
+      text-transform:uppercase; letter-spacing:.5px;
+      padding:5px 10px; border-radius:6px;
+      display:flex; align-items:center; gap:6px;
+      margin:14px 0 8px;
+    }
+    .fst-exp  { background:#fff7ed; }
+    .fst-pep  { background:#eff6ff; }
+    .fst-cat3 { background:#faf5ff; }
+    .fst-out  { background:#f0fdf4; }
+
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; margin-bottom:6px; }
+    .form-row.triple { grid-template-columns:1fr 1fr 1fr; }
+    .form-row.single { grid-template-columns:1fr; }
+    @media(max-width:600px) { .form-row, .form-row.triple { grid-template-columns:1fr; } }
+
+    .form-group { display:flex; flex-direction:column; gap:4px; }
+    .form-group label {
+      font-size:11px; font-weight:700; color:var(--primary);
+      text-transform:uppercase; letter-spacing:.4px;
+    }
+    .form-group label .req { color:#dc2626; }
+    .form-group select,
+    .form-group input,
+    .form-group textarea {
+      padding:8px 11px; border:1.5px solid #cdd5e0; border-radius:8px;
+      font-size:13px; font-family:inherit; background:#f8faff; transition:border-color .2s;
+    }
+    .form-group select:focus,
+    .form-group input:focus,
+    .form-group textarea:focus { outline:none; border-color:var(--accent); background:#fff; }
+    .form-group textarea { resize:vertical; min-height:60px; }
+
+    .check-row {
+      display:flex; flex-wrap:wrap; gap:14px; padding:6px 0;
+    }
+    .check-row label {
+      display:inline-flex; align-items:center; gap:5px;
+      font-size:12.5px; font-weight:600; text-transform:none; letter-spacing:0;
+      color:var(--text); cursor:pointer;
+    }
+    .radio-row {
+      display:flex; gap:16px; padding:4px 0;
+    }
+    .radio-row label {
+      display:inline-flex; align-items:center; gap:5px;
+      font-size:12.5px; font-weight:600; text-transform:none; letter-spacing:0;
+      color:var(--text); cursor:pointer;
+    }
+
+    .ep-modal-footer {
+      display:flex; gap:10px; margin-top:22px; padding-top:16px;
+      border-top:1.5px solid var(--border);
+      position:sticky; bottom:-26px; background:#fff; padding-bottom:4px;
+    }
+    .ep-modal-footer button { flex:1; }
+    .btn-cancel { background:#f1f5f9; color:var(--muted); border:1.5px solid var(--border); padding:10px 16px; border-radius:9px; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; }
+    .btn-cancel:hover { background:var(--border); }
+    .btn-submit { background:linear-gradient(135deg,var(--accent),var(--primary)); color:#fff; border:none; padding:10px 16px; border-radius:9px; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .2s; }
+    .btn-submit:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(41,54,129,.35); }
+    .btn-submit:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+
+    .ep-feedback { padding:10px 14px; border-radius:9px; font-size:13px; font-weight:600; margin-bottom:14px; display:none; }
+    .ep-feedback.success { background:#dcfce7; color:#15803d; border:1px solid #86efac; }
+    .ep-feedback.error   { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; }
+
+    /* Category III Treatment — match Add Patient form */
+    #nc_cat3Section.cat3-section {
+      border: 1px solid #4274D9;
+      border-radius: 12px;
+      padding: 18px 20px;
+      background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+      box-shadow: 0 2px 10px rgba(41, 54, 129, 0.08);
+      margin: 8px 0 6px;
+    }
+    #nc_cat3Section.cat3-section > h4 {
+      color: #293681;
+      margin: 0 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #4274D9;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    #nc_cat3Section .cat3-block {
+      border: 1px solid #c5d4f5;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+      background: #fff;
+    }
+    #nc_cat3Section .cat3-block:last-child { margin-bottom: 0; }
+    #nc_cat3Section .cat3-block-title {
+      color: #293681;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      margin: 0 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #dde4f5;
+    }
+    #nc_cat3Section .cat3-subblock {
+      border: 1px dashed #b8c9ee;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      background: #fafcff;
+    }
+    #nc_cat3Section .cat3-subblock:last-child { margin-bottom: 0; }
+    #nc_dynamicTetanusVaccines .form-row,
+    #nc_cat3Section .form-row {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    #nc_cat3Section .form-row .form-group { margin-bottom: 0; }
+    #nc_cat3Section .wide-field { grid-column: 1 / -1; }
+    #nc_cat3Section .cat3-subblock h6 {
+      margin: 0 0 10px;
+      color: #293681;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+    #nc_cat3Section .cat3-check-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: #293681;
+      margin-bottom: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    #nc_cat3Section .cat3-check-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #4274D9;
+      cursor: pointer;
+    }
+    #nc_cat3Section input[type="checkbox"],
+    #nc_cat3Section input[type="radio"] {
+      width: 17px;
+      height: 17px;
+      accent-color: #4274D9;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    #nc_cat3Section .cat3-inline-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    #nc_cat3Section .cat3-inline-checks label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    #nc_cat3Section .cat3-route-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #dde4f5;
+    }
+    #nc_cat3Section .cat3-route-row > span {
+      font-weight: 700;
+      color: #293681;
+      font-size: 13px;
+    }
+    #nc_cat3Section .cat3-route-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #334155;
+    }
+    #nc_cat3Section .cat3-rig-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    #nc_cat3Section .cat3-rig-col {
+      border: 1px solid #c5d4f5;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fafcff;
+    }
+    #nc_cat3Section .cat3-rig-col h6 {
+      margin: 0 0 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #293681;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    #nc_cat3Section .cat3-rig-col h6 em {
+      font-style: italic;
+      font-weight: 700;
+      text-transform: none;
+    }
+    #nc_cat3Section .form-group label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      margin-bottom: 6px;
+    }
+    #nc_cat3Section .form-group input:not([type="checkbox"]):not([type="radio"]),
+    #nc_cat3Section .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #1e2a4a;
+      background: #f8faff;
+      border: 1.5px solid #dde4f5;
+      border-radius: 10px;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    #nc_cat3Section .form-group input:hover:not(:disabled),
+    #nc_cat3Section .form-group textarea:hover {
+      border-color: #95CCDD;
+      background: #fff;
+    }
+    #nc_cat3Section .form-group input:focus,
+    #nc_cat3Section .form-group textarea:focus {
+      outline: none;
+      border-color: #4274D9;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(66, 116, 217, 0.15);
+    }
+    #nc_cat3Section .form-group textarea {
+      min-height: 72px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    @media (max-width: 768px) {
+      #nc_cat3Section .cat3-rig-grid { grid-template-columns: 1fr; }
+      #nc_cat3Section.cat3-section { padding: 14px 12px; }
+      #nc_cat3Section .form-row { grid-template-columns: 1fr !important; }
+    }
+
+    .loading-spin { display:none; }
+    .loading-spin.show { display:inline-block; animation:spin .7s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    .case-section-empty {
+      padding:10px 14px; font-size:12px; color:var(--muted);
+      display:flex; align-items:center; gap:6px;
+    }
+  </style>
+  <script src="/js/nurse/episodes-helpers.js"></script>
+  <script src="/js/nurse/treatment-restart.js"></script>
+</head>
+<body data-nav="patients">
+<div class="main-wrapper">
+<script>initAppSidebar();</script>
+
+<div class="main-content">
+  <div class="ep-page" id="epPage">
+    <div id="epLoading" style="text-align:center;padding:60px;color:#64748b;">
+      <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#4274D9;"></i>
+      <p style="margin-top:12px;font-weight:600;">Loading Treatment &amp; Exposure History…</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ── Modal: New Case / New Exposure ── -->
+<div class="ep-modal" id="ncModal">
+  <div class="ep-modal-card">
+    <div class="ep-modal-hd">
+      <h3><i class="fa-solid fa-file-circle-plus" style="color:var(--orange);"></i> + New Case / New Exposure</h3>
+      <button class="ep-modal-close" onclick="closeNewCase()">×</button>
+    </div>
+    <div id="ncPatientHeader"></div>
+    <div class="ep-feedback" id="ncFeedback"></div>
+
+    <div class="form-section-title fst-exp">
+      <i class="fa-solid fa-biohazard"></i> History of Exposure
+    </div>
+
+    <!-- Row 1: Date of Exposure | Place (Where Biting Occurred) -->
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date of Exposure <span class="req">*</span></label>
+        <input type="date" id="nc_dateOfExposure">
+      </div>
+      <div class="form-group">
+        <label>Place (Where Biting Occurred)</label>
+        <input type="text" id="nc_placeOfExposure" placeholder="e.g., House, Farm, Street">
+      </div>
+    </div>
+
+    <!-- Row 1b: Barangay (where exposure occurred) -->
+    <div class="form-row">
+      <div class="form-group">
+        <label>Barangay (Where Bite/Exposure Occurred) <span class="req">*</span></label>
+        <select id="nc_barangay">
+          <option value="">— Select Barangay —</option>
+          <!-- Options injected by fillNcBarangaySelect() on DOMContentLoaded -->
+          <option value="Others">Others (outside Gingoog City)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Row 2: Type of Animal | Type of Exposure (B/NB) -->
+    <div class="form-row">
+      <div class="form-group">
+        <label>Type of Animal</label>
+        <select id="nc_typeOfAnimal">
+          <option value="">Select</option>
+          <option value="D">PD – Pet Dog</option>
+          <option value="SD">SD – Stray Dog</option>
+          <option value="C">C – Cat</option>
+          <option value="O">O – Others</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Type of Exposure (B/NB)</label>
+        <select id="nc_typeOfExposure">
+          <option value="">Select</option>
+          <option value="B">B – Bite</option>
+          <option value="NB">NB – Non-Bite</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Row 3: Site (Body Parts) — full-width textarea -->
+    <div class="form-row single">
+      <div class="form-group">
+        <label>Site (Body Parts)</label>
+        <textarea id="nc_siteOfExposure" rows="2" placeholder="e.g., Left palm, Right index finger, Left foot"></textarea>
+      </div>
+    </div>
+
+    <div class="form-section-title fst-pep">
+      <i class="fa-solid fa-syringe"></i> Rabies Exposure Category
+    </div>
+
+    <!-- Row 1: Category | Washing of Bite | Route -->
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="form-group">
+        <label>Category (1, 2, 3)</label>
+        <select id="nc_category" onchange="toggleNcCat3(); updateNcDoseVisibility()">
+          <option value="">Select</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Washing of Bite (Y/N)</label>
+        <select id="nc_washingOfBite">
+          <option value="">Select</option>
+          <option value="Y">Y</option>
+          <option value="N">N</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Route</label>
+        <select id="nc_route">
+          <option value="">Select</option>
+          <option value="ID">ID</option>
+          <option value="IM">IM</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Row 2: D0 | D3 | D7 | D14 (IM) | D28 — matches reference image -->
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr;">
+      <div class="form-group">
+        <label>Day 0 (D0)</label>
+        <input type="date" id="nc_vaccineD0">
+      </div>
+      <div class="form-group">
+        <label>Day 3 (D3)</label>
+        <input type="date" id="nc_vaccineD3">
+      </div>
+      <div class="form-group" id="nc_group_d7">
+        <label>Day 7 (D7)</label>
+        <input type="date" id="nc_vaccineD7">
+      </div>
+      <div class="form-group" id="nc_group_d14">
+        <label>Day 14 (D14 IM)</label>
+        <input type="date" id="nc_vaccineD14">
+      </div>
+      <div class="form-group" id="nc_group_d28">
+        <label>Day 28 (D28)</label>
+        <input type="date" id="nc_vaccineD28">
+      </div>
+    </div>
+
+    <!-- Row 2b: Vaccinator Name per dose — manually entered, never auto-filled -->
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr;">
+      <div class="form-group">
+        <label>Day 0 Vaccinator</label>
+        <input type="text" id="nc_vaccinatorD0" placeholder="Name of nurse" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Day 3 Vaccinator</label>
+        <input type="text" id="nc_vaccinatorD3" placeholder="Name of nurse" autocomplete="off">
+      </div>
+      <div class="form-group" id="nc_group_vacc_d7">
+        <label>Day 7 Vaccinator</label>
+        <input type="text" id="nc_vaccinatorD7" placeholder="Name of nurse" autocomplete="off">
+      </div>
+      <div class="form-group" id="nc_group_vacc_d14">
+        <label>Day 14 Vaccinator</label>
+        <input type="text" id="nc_vaccinatorD14" placeholder="Name of nurse" autocomplete="off">
+      </div>
+      <div class="form-group" id="nc_group_vacc_d28">
+        <label>Day 28 Vaccinator</label>
+        <input type="text" id="nc_vaccinatorD28" placeholder="Name of nurse" autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Row 3: Brand Name -->
+    <div class="form-row" style="grid-template-columns:1fr 2fr;">
+      <div class="form-group">
+        <label>Brand Name</label>
+        <select id="nc_brandName">
+          <option value="">Select</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section cat3-section" id="nc_cat3Section" style="display:none;">
+      <h4>Category III Treatment Information</h4>
+
+      <div class="cat3-block">
+        <div class="cat3-block-title">1. Tetanus Prophylaxis</div>
+
+        <div class="cat3-subblock" id="nc_ttBlock">
+          <label class="cat3-check-label"><input type="checkbox" id="nc_ttGiven"> Tetanus-Toxoid</label>
+          <div class="form-row">
+            <div class="form-group"><label>Dose (mL)</label><input type="number" id="nc_ttDoseMl" min="0" step="0.01" placeholder="0.00"></div>
+            <div class="form-group"><label>Injection Site</label><input type="text" id="nc_ttInjectionSite" placeholder="e.g. deltoid"></div>
+            <div class="form-group"><label>Date Given</label><input type="date" id="nc_ttDateGiven"></div>
+            <div class="form-group"><label>Given By</label><input type="text" id="nc_ttGivenBy" placeholder="Staff name"></div>
+          </div>
+          <div class="cat3-route-row" id="nc_ttRouteRow" style="display:none;">
+            <span>Route:</span>
+            <label><input type="radio" name="nc_ttRoute" id="nc_ttRouteId" value="ID"> ID</label>
+            <label><input type="radio" name="nc_ttRoute" id="nc_ttRouteIm" value="IM"> IM</label>
+          </div>
+          <div class="cat3-route-row" id="nc_ttAnstRow" style="display:none;">
+            <span>ANST Result:</span>
+            <label><input type="radio" name="nc_ttAnst" id="nc_ttAnstPositive" value="Positive"> Positive (+)</label>
+            <label><input type="radio" name="nc_ttAnst" id="nc_ttAnstNegative" value="Negative"> Negative (−)</label>
+          </div>
+        </div>
+
+        <div class="cat3-subblock" id="nc_atsBlock">
+          <label class="cat3-check-label"><input type="checkbox" id="nc_atsGiven"> ATS</label>
+          <div class="form-row">
+            <div class="form-group"><label>Dose (mL)</label><input type="number" id="nc_atsDoseMl" min="0" step="0.01" placeholder="0.00"></div>
+            <div class="form-group"><label>Injection Site</label><input type="text" id="nc_atsInjectionSite" placeholder="e.g. deltoid"></div>
+            <div class="form-group"><label>Date Given</label><input type="date" id="nc_atsDateGiven"></div>
+            <div class="form-group"><label>Given By</label><input type="text" id="nc_atsGivenBy" placeholder="Staff name"></div>
+          </div>
+          <div class="cat3-route-row" id="nc_atsRouteRow" style="display:none;">
+            <span>Route:</span>
+            <label><input type="radio" name="nc_atsRoute" id="nc_atsRouteId" value="ID"> ID</label>
+            <label><input type="radio" name="nc_atsRoute" id="nc_atsRouteIm" value="IM"> IM</label>
+          </div>
+          <div class="cat3-route-row" id="nc_atsAnstRow" style="display:none;">
+            <span>ANST Result:</span>
+            <label><input type="radio" name="nc_atsAnst" id="nc_atsAnstPositive" value="Positive"> Positive (+)</label>
+            <label><input type="radio" name="nc_atsAnst" id="nc_atsAnstNegative" value="Negative"> Negative (−)</label>
+          </div>
+        </div>
+
+        <div class="cat3-subblock" id="nc_htigBlock">
+          <label class="cat3-check-label"><input type="checkbox" id="nc_htigGiven"> HTIG</label>
+          <div class="form-row">
+            <div class="form-group"><label>Dose (mL)</label><input type="number" id="nc_htigDoseMl" min="0" step="0.01" placeholder="0.00"></div>
+            <div class="form-group"><label>Injection Site</label><input type="text" id="nc_htigInjectionSite" placeholder="e.g. deltoid"></div>
+            <div class="form-group"><label>Date Given</label><input type="date" id="nc_htigDateGiven"></div>
+            <div class="form-group"><label>Given By</label><input type="text" id="nc_htigGivenBy" placeholder="Staff name"></div>
+          </div>
+          <div class="cat3-route-row" id="nc_htigRouteRow" style="display:none;">
+            <span>Route:</span>
+            <label><input type="radio" name="nc_htigRoute" id="nc_htigRouteId" value="ID"> ID</label>
+            <label><input type="radio" name="nc_htigRoute" id="nc_htigRouteIm" value="IM"> IM</label>
+          </div>
+          <div class="cat3-route-row" id="nc_htigAnstRow" style="display:none;">
+            <span>ANST Result:</span>
+            <label><input type="radio" name="nc_htigAnst" id="nc_htigAnstPositive" value="Positive"> Positive (+)</label>
+            <label><input type="radio" name="nc_htigAnst" id="nc_htigAnstNegative" value="Negative"> Negative (−)</label>
+          </div>
+        </div>
+        <div id="nc_dynamicTetanusVaccines"></div>
+      </div>
+
+      <div class="cat3-block">
+        <div class="cat3-block-title">2. RIG Infiltration</div>
+        <div class="cat3-rig-grid">
+          <div class="cat3-rig-col">
+            <h6><em>Equine Rabies Immunoglobulin</em></h6>
+            <div class="cat3-inline-checks" id="nc_erigBrandChecks">
+              <label><input type="checkbox" id="nc_rigEquirab"> Equirab (200 IU/mL)</label>
+              <label><input type="checkbox" id="nc_rigVinrab"> Vinrab (200 IU/mL)</label>
+              <span id="nc_dynamicErigVaccines" style="display:contents;"></span>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Up to (mL) infiltrated on bite sites</label><input type="number" id="nc_rigEquineUpToMl" min="0" step="0.01" placeholder="0.00"></div>
+              <div class="form-group"><label>Date Given</label><input type="date" id="nc_rigEquineDate"></div>
+              <div class="form-group"><label>Given By</label><input type="text" id="nc_rigEquineGivenBy" placeholder="Staff name"></div>
+            </div>
+            <div class="cat3-route-row" id="nc_rigEquineAnstRow">
+              <span>ANST Result:</span>
+              <label><input type="radio" name="nc_rigEquineAnst" id="nc_rigEquineAnstPositive" value="Positive"> Positive (+)</label>
+              <label><input type="radio" name="nc_rigEquineAnst" id="nc_rigEquineAnstNegative" value="Negative"> Negative (−)</label>
+            </div>
+            <input type="checkbox" id="nc_rigEquineGiven" style="display:none;" tabindex="-1" aria-hidden="true">
+          </div>
+          <div class="cat3-rig-col">
+            <h6><em>Human Rabies Immunoglobulin</em></h6>
+            <div class="cat3-inline-checks" id="nc_hrigBrandChecks">
+              <label><input type="checkbox" id="nc_rigBerirab"> Berirab (300 IU/mL)</label>
+              <span id="nc_dynamicHrigVaccines" style="display:contents;"></span>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Up to (mL) infiltrated on bite sites</label><input type="number" id="nc_rigHumanUpToMl" min="0" step="0.01" placeholder="0.00"></div>
+              <div class="form-group"><label>Date Given</label><input type="date" id="nc_rigHumanDate"></div>
+              <div class="form-group"><label>Given By</label><input type="text" id="nc_rigHumanGivenBy" placeholder="Staff name"></div>
+            </div>
+            <input type="checkbox" id="nc_rigHumanGiven" style="display:none;" tabindex="-1" aria-hidden="true">
+          </div>
+        </div>
+      </div>
+
+      <div class="cat3-block">
+        <div class="cat3-block-title">3. Meds Given</div>
+        <label class="cat3-check-label"><input type="checkbox" id="nc_medsGiven"> Meds Given</label>
+        <div class="form-group wide-field">
+          <label>Prescribed Medicines</label>
+          <textarea id="nc_medsDescription" rows="4" placeholder="List prescribed medicines, dosage, and instructions…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section-title fst-out">
+      <i class="fa-solid fa-flag-checkered"></i> Outcome
+    </div>
+    <div class="form-row triple">
+      <div class="form-group">
+        <label>Outcome</label>
+        <div style="padding:10px 12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;font-size:12.5px;font-weight:700;color:#15803d;">
+          <i class="fa-solid fa-lock" style="margin-right:5px;"></i> Auto-calculated after save
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Biting Animal Status</label>
+        <select id="nc_bitingAnimalStatus">
+          <option value="">Select…</option>
+          <option value="Alive">Alive (A)</option>
+          <option value="Dead">Dead (D)</option>
+          <option value="Lost">Lost (L)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Remarks</label>
+        <input type="text" id="nc_remarks" placeholder="Additional notes…">
+      </div>
+    </div>
+
+    <div class="ep-modal-footer">
+      <button class="btn-cancel" onclick="closeNewCase()">Cancel</button>
+      <button class="btn-submit" id="ncSaveBtn" onclick="saveNewCase()">
+        <i class="fa-solid fa-save"></i> Save New Case
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/shared/rbac.js"></script>
+<script src="/js/shared/app.js"></script>
+<script>
+const API = '/api/episodes';
+
+// Will be populated once DOM loads and episodes-helpers.js is available
+let EpH = null; // assigned in DOMContentLoaded
+
+let patientId = null;
+let patientData = {};
+let episodesData = [];
+let exposuresData = [];
+// Logged-in staff info — populated in DOMContentLoaded from checkAuth()
+let currentStaff = { staff_id: null, full_name: '', username: '' };
+
+function esc(v) {
+  if (v == null || v === '' || v === undefined) return '—';
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return (typeof formatDateShort === 'function') ? formatDateShort(d, '—') : String(d);
+}
+function fmtShort(d) {
+  if (!d) return '';
+  const iso = (typeof dateOnlyIso === 'function') ? dateOnlyIso(d) : String(d).slice(0, 10);
+  if (!iso) return '';
+  const [y, mo, da] = iso.split('-');
+  return `${mo}-${da}-${String(y).slice(-2)}`;
+}
+function animalLabel(c) {
+  return ({D:'Pet Dog',SD:'Stray Dog',C:'Cat',O:'Other'})[c] || c || '—';
+}
+function exposureTypeLabel(c) {
+  return ({B:'Bite',NB:'Non-bite',S:'Scratch'})[c] || c || '—';
+}
+function outcomeLabel(v) {
+  return ({C:'Completed',Inc:'Incomplete',N:'None',D:'Died'})[v] || v || '—';
+}
+function outcomeBadge(v) {
+  const cls = ({C:'badge-outcome-c',Inc:'badge-outcome-inc',N:'badge-outcome-n',D:'badge-outcome-d'})[v] || '';
+  return `<span class="badge ${cls}"><i class="fa-solid fa-circle"></i> ${outcomeLabel(v)}</span>`;
+}
+function catBadge(c) {
+  if (!c) return '';
+  const cls = c==='1'||c===1?'badge-cat1':(c==='2'||c===2?'badge-cat2':'badge-cat3');
+  return `<span class="badge ${cls}"><i class="fa-solid fa-star"></i> Category ${c}</span>`;
+}
+function statusBadge(s) {
+  const incomplete = s === 'Incomplete' || s === 'Treatment Interrupted';
+  const cls = s === 'Completed' ? 'badge-completed' : (incomplete ? 'badge-outcome-inc' : 'badge-ongoing');
+  const label = s === 'Treatment Interrupted' ? 'Incomplete' : (s || 'Ongoing');
+  return `<span class="badge ${cls}"><i class="fa-solid fa-circle-dot"></i> ${label}</span>`;
+}
+function valOr(v, alt='—') { return (v==null||v==='') ? alt : esc(v); }
+function formatAnst(v) {
+  const s = String(v || '').trim().toLowerCase();
+  if (!s) return '—';
+  if (s.startsWith('pos') || s === '+') return 'Positive (+)';
+  if (s.startsWith('neg') || s === '-' || s === '−') return 'Negative (−)';
+  return esc(v);
+}
+function flagOn(on, label) {
+  return `<span class="cat3-flag ${on?'on':'off'}"><i class="fa-solid ${on?'fa-circle-check':'fa-circle'}"></i> ${label}${on?'':' — Not given'}</span>`;
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function showFeedback(el, msg, type='error') {
+  el.textContent = msg; el.className = 'ep-feedback ' + type; el.style.display = 'block';
+}
+function hideFeedback(el) { el.style.display='none'; }
+function val(id) { const e = document.getElementById(id); if (!e) return null; const v = e.value?.trim(); return (v===''?null:v); }
+function valNum(id) { const v = val(id); if (v==null) return null; const n = parseFloat(v); return Number.isNaN(n)?null:n; }
+function chk(id) { const e = document.getElementById(id); return e ? (e.checked ? 1 : 0) : 0; }
+
+async function loadVaccineCatalogForNewCase() {
+  if (!window.VaccineCatalog) return;
+  await VaccineCatalog.load();
+  VaccineCatalog.applyToNewCaseForm('');
+}
+function toInputDate(d) {
+  return (typeof dateOnlyIso === 'function' ? dateOnlyIso(d) : String(d || '').slice(0, 10)) || '';
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Import helpers
+  EpH = window.EpHelpers || {};
+
+  // Populate the Barangay select in the New Case modal from the canonical list
+  (function fillNcBarangaySelect() {
+    const sel = document.getElementById('nc_barangay');
+    if (!sel) return;
+    const list = (window.GINGOOG_BARANGAYS || []).slice().sort();
+    // Insert sorted Gingoog barangays before the existing 'Others' option
+    list.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      // Insert before the last option (Others)
+      sel.insertBefore(opt, sel.lastElementChild);
+    });
+  })();
+
+  const authData = await checkAuth();
+  if (authData) {
+    currentStaff = {
+      staff_id:  authData.staff_id  || null,
+      full_name: authData.full_name || authData.username || '',
+      username:  authData.username  || '',
+    };
+  }
+
+  loadVaccineCatalogForNewCase();
+
+  const params = new URLSearchParams(location.search);
+  const rawId = params.get('id');
+  if (!rawId || !/^\d+$/.test(rawId)) {
+    document.getElementById('epPage').innerHTML = `
+      <div class="empty-state" style="padding:40px;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size:32px;color:#dc2626;"></i>
+        <p style="margin-top:12px;font-weight:700;color:#dc2626;">No patient specified.</p>
+        <p>Please <a href="/nurse/patients.html" style="color:#4274D9;">select a patient from Patient Records</a>.</p>
+      </div>`;
+    return;
+  }
+  patientId = parseInt(rawId, 10);
+  await loadPatientData();
+});
+
+async function loadPatientData() {
+  try {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    const res = await fetch(`/api/cases/patient/${patientId}`, {
+      cache: 'no-store',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    if (res.status === 401 || res.status === 403) {
+      window.location.href = '/shared/login.html';
+      return;
+    }
+    if (res.status === 404) {
+      document.getElementById('epPage').innerHTML = `
+        <div class="empty-state" style="padding:40px;">
+          <i class="fa-solid fa-user-slash" style="font-size:32px;color:#dc2626;"></i>
+          <p style="margin-top:12px;font-weight:700;">Patient not found.</p>
+          <a href="/nurse/patients.html" style="color:#4274D9;">← Back to Patient Records</a>
+        </div>`;
+      return;
+    }
+    if (!res.ok) throw new Error('Server error');
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Failed to load');
+    patientData = json.data.patient || {};
+    exposuresData = json.data.exposures || [];
+    episodesData = json.data.episodes || [];
+    renderPage();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('epPage').innerHTML = `
+      <div class="empty-state" style="padding:40px;">
+        <i class="fa-solid fa-circle-exclamation" style="font-size:32px;color:#ea580c;"></i>
+        <p style="margin-top:12px;font-weight:700;">Patient information could not be loaded. Please try again.</p>
+        <a href="/nurse/patients.html" style="color:#4274D9;">← Back to Patient Records</a>
+      </div>`;
+  }
+}
+
+function renderPage() {
+  document.getElementById('epLoading')?.remove();
+  const p = patientData;
+  const initials = (p.full_name || 'P').trim().split(' ')
+    .filter(Boolean).map(w => w[0].toUpperCase()).slice(0,2).join('');
+  const sexLabel = p.sex === 'M' ? 'Male' : p.sex === 'F' ? 'Female' : (p.sex || '—');
+
+  document.getElementById('epPage').innerHTML = `
+    <div class="ep-header">
+      <div class="ep-header-left">
+        <a href="/nurse/patients.html" class="ep-back-btn"><i class="fa-solid fa-arrow-left"></i> Back</a>
+        <div class="ep-header-title">
+          <h1><i class="fa-solid fa-timeline"></i> Treatment &amp; Exposure History</h1>
+          <p>${esc(p.full_name)} · ${esc(p.patient_id_display)} · ${esc(p.registration_number)}</p>
+        </div>
+      </div>
+      <div class="ep-header-actions">
+        <button class="ep-action-btn ep-btn-newcase" onclick="openNewCase()">
+          <i class="fa-solid fa-plus"></i> NEW CASE / NEW EXPOSURE
+        </button>
+      </div>
+    </div>
+
+    <div class="pat-card">
+      <div class="pat-avatar">${initials}</div>
+      <div class="pat-info">
+        <div class="pat-name">${esc(p.full_name)}</div>
+        <div class="pat-meta">${esc(p.barangay)}${p.address?` · ${esc(p.address)}`:''}${p.contact_number?` · ${esc(p.contact_number)}`:''}</div>
+      </div>
+      <span class="pat-badge"><i class="fa-solid fa-id-badge"></i> ${esc(p.patient_id_display)}</span>
+      <div class="pat-fields">
+        <div class="pat-field"><span class="lbl">Registration No.</span><span class="val">${esc(p.registration_number)}</span></div>
+        <div class="pat-field"><span class="lbl">Date Registered</span><span class="val">${fmtDate(p.date_registered)}</span></div>
+        <div class="pat-field"><span class="lbl">Age</span><span class="val">${esc(p.age)}</span></div>
+        <div class="pat-field"><span class="lbl">Sex</span><span class="val">${esc(sexLabel)}</span></div>
+        <div class="pat-field"><span class="lbl">Contact No.</span><span class="val">${esc(p.contact_number)}</span></div>
+        <div class="pat-field"><span class="lbl">Total Cases</span><span class="val">${exposuresData.length}</span></div>
+      </div>
+    </div>
+
+    ${renderCurrentCase(exposuresData, episodesData)}
+    ${renderCaseHistoryAccordion(exposuresData, episodesData)}
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// Task 3.1 — renderAllCases: merge, sort via buildCaseList, legacy fallback
+// ---------------------------------------------------------------------------
+function renderAllCases(exposures, episodes) {
+  const buildCaseList = (EpH && EpH.buildCaseList) || function(exps, eps) {
+    const byExp = {};
+    for (const ep of (eps||[])) { if (ep.exposure_id) byExp[ep.exposure_id] = ep; }
+    return (exps||[]).slice().sort((a,b)=>a.exposure_number-b.exposure_number)
+      .map(exp=>({exposure:exp, episode:byExp[exp.exposure_id]||null}));
+  };
+  const getLegacyCases = (EpH && EpH.getLegacyCases) || function(p, exps) {
+    if ((exps||[]).length > 0) return null;
+    if (!p || !p.date_of_exposure) return [];
+    return [{
+      exposure:{ exposure_number:1, date_of_exposure:p.date_of_exposure, category:p.category,
+        type_of_animal:p.type_of_animal, type_of_exposure:p.type_of_exposure,
+        site_of_exposure:p.site_of_exposure, washing_of_bite:p.washing_of_bite,
+        biting_animal_status:p.biting_animal_status, notes:p.notes },
+      episode:{ vaccine_d0:p.vaccine_d0, vaccine_d3:p.vaccine_d3, vaccine_d7:p.vaccine_d7,
+        vaccine_d14:p.vaccine_d14, vaccine_d28:p.vaccine_d28, outcome:p.outcome,
+        brand_name:p.brand_name, route:p.route, rig_given:p.rig_given,
+        tetanus_given:p.tetanus_given, pep_schedule:[], rig_records:[], tetanus_records:[], medication_records:[] }
+    }];
+  };
+
+  const caseList = buildCaseList(exposures, episodes);
+
+  if (!caseList.length) {
+    // Try legacy fallback
+    const legacy = getLegacyCases(patientData, exposures);
+    if (legacy && legacy.length) {
+      return legacy.map(({ exposure, episode }) => renderCaseCard(exposure, episode)).join('');
+    }
+    return `<div class="case-card">
+      <div class="case-section-empty" style="padding:30px;text-align:center;justify-content:center;">
+        <div class="empty-state" style="padding:0;"><i class="fa-solid fa-file-lines"></i>
+        <p style="margin-top:4px;">No exposure history recorded for this patient.</p></div>
+      </div>
+    </div>`;
+  }
+  return caseList.map(({ exposure, episode }) => renderCaseCard(exposure, episode)).join('');
+}
+
+// ---------------------------------------------------------------------------
+// Task 3.3 — renderPepTracker: five-dose visual tracker
+// ---------------------------------------------------------------------------
+// Prefer the active treatment cycle so a restarted Day 0 is not hidden by the stopped cycle.
+function pepRowForLabel(pepSchedule, episode, label) {
+  const rows = pepSchedule || [];
+  const cycle = Number(episode && episode.treatment_cycle) || 0;
+  if (cycle > 0) {
+    const current = rows.find((r) => Number(r.treatment_cycle) === cycle && r.day_label === label);
+    if (current) return current;
+  }
+  const matches = rows.filter((r) => r.day_label === label);
+  return matches.length ? matches[matches.length - 1] : {};
+}
+
+function renderPepTracker(pepSchedule, episode, category) {
+  const pepDaysForCategory = (EpH && EpH.pepDaysForCategory) || function (cat) {
+    // Must match backend PEP_SCHEDULE_BY_CATEGORY: '1':[0,3,7], '2':[0,3,7,14], '3':[0,3]
+    const map = { '1': [0, 3, 7], '2': [0, 3, 7, 14], '3': [0, 3] };
+    return map[String(cat)] || [0, 3, 7, 14, 28];
+  };
+  const KEYS = { 0: 'vaccine_d0', 3: 'vaccine_d3', 7: 'vaccine_d7', 14: 'vaccine_d14', 28: 'vaccine_d28' };
+  const LABELS = { 0: 'Day 0', 3: 'Day 3', 7: 'Day 7', 14: 'Day 14', 28: 'Day 28' };
+  const ep = episode || {};
+  let days = pepDaysForCategory(category || ep.category);
+  // Always show any dose that was actually saved, even if outside the category list
+  [0, 3, 7, 14, 28].forEach((d) => {
+    if (ep[KEYS[d]] && !days.includes(d)) days.push(d);
+  });
+  days = days.slice().sort((a, b) => a - b);
+
+  return `<div class="dose-track">${days.map((d) => {
+    const label = LABELS[d];
+    const row = pepRowForLabel(pepSchedule, ep, label);
+    const given = ep[KEYS[d]] || row.date_given || null;
+    const vaccinator = row.vaccinated_by || null;
+    let cls, icon, statusLabel, dateStr;
+    if (given) {
+      cls = 'pip-done'; icon = '✓'; statusLabel = 'Completed'; dateStr = fmtDate(given);
+    } else if (row.status === 'Missed') {
+      cls = 'pip-upcoming'; icon = '✗'; statusLabel = 'Missed'; dateStr = row.date_due ? fmtDate(row.date_due) : '—';
+    } else if (row.status === 'Stopped' || row.status === 'Cancelled') {
+      cls = 'pip-upcoming'; icon = '–'; statusLabel = 'Stopped'; dateStr = row.date_due ? fmtDate(row.date_due) : '—';
+    } else {
+      cls = 'pip-upcoming'; icon = '○'; statusLabel = 'Pending'; dateStr = row.date_due ? fmtDate(row.date_due) : '—';
+    }
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dueLocal = row.date_due ? (typeof dateOnlyLocal === 'function' ? dateOnlyLocal(row.date_due) : new Date(row.date_due + 'T00:00:00')) : null;
+    const stopped = (ep.treatmentStatus === 'Incomplete' || ep.status === 'Incomplete' || ep.schedule_suspended || row.status === 'Stopped' || row.status === 'Missed');
+    const showBtn = !stopped && row.pep_id && !given && (row.status === 'Pending' || (dueLocal && dueLocal <= today));
+    return `<div class="dose-pip">
+      <div class="pip-circle ${cls}">${icon}</div>
+      <div class="pip-label">${label}</div>
+      <div class="pip-label" style="font-size:9px;color:#64748b;">${statusLabel}</div>
+      <div class="pip-date">${dateStr}</div>
+      ${given
+        ? `<div class="pip-vaccinator" title="Vaccinator">${vaccinator ? '<i class="fa-solid fa-user-nurse" style="font-size:8px;"></i> ' + esc(vaccinator) : '<span style="color:#94a3b8;">—</span>'}</div>`
+        : `<div class="pip-vaccinator" style="color:#94a3b8;">—</div>`
+      }
+      ${showBtn ? `<button onclick="openRecordDoseModal(${ep.episode_id||0},'${label}')" style="margin-top:3px;padding:2px 7px;font-size:9px;font-weight:700;background:#4274D9;color:#fff;border:none;border-radius:5px;cursor:pointer;">Record</button>` : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Task 3.5 — renderCat3Section: RIG, tetanus, medications from sub-record arrays
+// ---------------------------------------------------------------------------
+function renderCat3Section(episode) {
+  const ep = episode || {};
+  const rigRecs = ep.rig_records || [];
+  const tetRecs = ep.tetanus_records || [];
+  const medRecs = ep.medication_records || [];
+
+  const rigHtml = rigRecs.length
+    ? rigRecs.map(r => `<div class="field-grid" style="border-bottom:1px solid #ede9fe;padding-bottom:8px;margin-bottom:8px;">
+        <div class="fld"><span class="lbl">Type</span><span class="val">${esc(r.rig_type)}</span></div>
+        <div class="fld"><span class="lbl">Brand</span><span class="val">${esc(r.rig_brand)}</span></div>
+        <div class="fld"><span class="lbl">Concentration</span><span class="val">${valOr(r.concentration)}</span></div>
+        <div class="fld"><span class="lbl">Volume (mL)</span><span class="val">${valOr(r.volume_ml)}</span></div>
+        <div class="fld"><span class="lbl">ANST Result</span><span class="val">${formatAnst(r.anst_result)}</span></div>
+        <div class="fld"><span class="lbl">Injection Site</span><span class="val">${valOr(r.injection_site)}</span></div>
+        <div class="fld"><span class="lbl">Date Given</span><span class="val">${fmtDate(r.date_given)}</span></div>
+        <div class="fld"><span class="lbl">Given By</span><span class="val">${valOr(r.given_by)}</span></div>
+      </div>`).join('')
+    : `<div class="case-section-empty"><i class="fa-solid fa-circle-info"></i> No RIG records</div>`;
+
+  const tetHtml = tetRecs.length
+    ? tetRecs.map(r => `<div class="field-grid" style="border-bottom:1px solid #ede9fe;padding-bottom:8px;margin-bottom:8px;">
+        <div class="fld"><span class="lbl">Type</span><span class="val">${esc(r.vaccine_name || r.type)}</span></div>
+        <div class="fld"><span class="lbl">Given</span><span class="val">${valOr(r.given)}</span></div>
+        <div class="fld"><span class="lbl">Dose (mL)</span><span class="val">${valOr(r.dose_ml)}</span></div>
+        <div class="fld"><span class="lbl">Injection Site</span><span class="val">${valOr(r.injection_site)}</span></div>
+        <div class="fld"><span class="lbl">Route</span><span class="val">${valOr(r.route)}</span></div>
+        <div class="fld"><span class="lbl">ANST Result</span><span class="val">${valOr(r.anst_result)}</span></div>
+        <div class="fld"><span class="lbl">Date Given</span><span class="val">${fmtDate(r.date_given)}</span></div>
+        <div class="fld"><span class="lbl">Given By</span><span class="val">${valOr(r.given_by)}</span></div>
+      </div>`).join('')
+    : `<div class="case-section-empty"><i class="fa-solid fa-circle-info"></i> No tetanus records</div>`;
+
+  const medHtml = medRecs.length
+    ? medRecs.map(r => `<div class="field-grid" style="border-bottom:1px solid #ede9fe;padding-bottom:8px;margin-bottom:8px;">
+        <div class="fld"><span class="lbl">Medication</span><span class="val">${esc(r.medication_name)}</span></div>
+        <div class="fld"><span class="lbl">Dosage</span><span class="val">${valOr(r.dosage)}</span></div>
+        <div class="fld"><span class="lbl">Route</span><span class="val">${valOr(r.route)}</span></div>
+        <div class="fld"><span class="lbl">Date Given</span><span class="val">${fmtDate(r.date_given)}</span></div>
+        <div class="fld"><span class="lbl">Given By</span><span class="val">${valOr(r.given_by)}</span></div>
+        <div class="fld" style="grid-column:1/-1"><span class="lbl">Remarks</span><span class="val">${valOr(r.remarks)}</span></div>
+      </div>`).join('')
+    : `<div class="case-section-empty"><i class="fa-solid fa-circle-info"></i> No medication records</div>`;
+
+  return `<div class="case-section">
+    <div class="cs-header cs-cat3"><i class="fa-solid fa-star"></i> Category III Treatment</div>
+    <div class="cs-body">
+      <div style="font-size:11px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">
+        <i class="fa-solid fa-shield-virus"></i> RIG Records
+      </div>
+      ${rigHtml}
+      <div style="font-size:11px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.4px;margin:10px 0 6px;">
+        <i class="fa-solid fa-syringe"></i> Tetanus Records
+      </div>
+      ${tetHtml}
+      <div style="font-size:11px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.4px;margin:10px 0 6px;">
+        <i class="fa-solid fa-pills"></i> Medications
+      </div>
+      ${medHtml}
+    </div>
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Task 3.2 — renderCaseCard: full case card using {exposure, episode} model
+// ---------------------------------------------------------------------------
+function renderCaseCard(exposure, episode, hideHeader) {
+  const exp = exposure || {};
+  const ep = episode || {};
+  const cn = exp.exposure_number || 1;
+  const isCat3 = String(exp.category) === '3' || Number(exp.category) === 3;
+  const treatmentStatus = ep.treatmentStatus || ep.status || '';
+  const pepSched = ep.pep_schedule || [];
+
+  return `
+    <div class="case-card">
+      ${hideHeader ? '' : `
+      <div class="case-header">
+        <div class="case-header-left">
+          <div class="case-num">${cn}</div>
+          <div class="case-title">
+            <div class="t1">Case #${cn} · ${exp.date_of_exposure ? fmtDate(exp.date_of_exposure) : '—'}</div>
+            <div class="t2">${animalLabel(exp.type_of_animal)} · ${exposureTypeLabel(exp.type_of_exposure)}</div>
+          </div>
+        </div>
+        <div class="case-header-right">
+          ${catBadge(exp.category)}
+          ${treatmentStatus ? statusBadge(treatmentStatus) : ''}
+          ${ep.outcome ? outcomeBadge(ep.outcome) : ''}
+        </div>
+      </div>`}
+      <div class="case-body">
+        ${window.TreatmentRestart ? TreatmentRestart.renderBanner(ep, { episodeId: ep.episode_id, patientId: ep.patient_id || (typeof patientId !== 'undefined' ? patientId : null), hideHistory: true }) : ''}
+        ${window.TreatmentRestart ? TreatmentRestart.renderRestartSummary(ep) : ''}
+
+        <!-- SECTION 1: HISTORY OF EXPOSURE -->
+        <div class="case-section">
+          <div class="cs-header cs-exp"><i class="fa-solid fa-biohazard"></i> History of Exposure</div>
+          <div class="cs-body">
+            <div class="field-grid">
+              <div class="fld"><span class="lbl">Exposure #</span><span class="val">${esc(exp.exposure_number)}</span></div>
+              <div class="fld"><span class="lbl">Date of Exposure</span><span class="val">${fmtDate(exp.date_of_exposure)}</span></div>
+              <div class="fld"><span class="lbl">Place (Where Biting Occurred)</span><span class="val">${valOr(exp.place_of_exposure)}</span></div>
+              <div class="fld"><span class="lbl">Barangay (Location)</span><span class="val">${valOr(exp.barangay)}</span></div>
+              <div class="fld"><span class="lbl">Type of Animal</span><span class="val">${animalLabel(exp.type_of_animal)}</span></div>
+              <div class="fld"><span class="lbl">Type of Exposure (B/NB)</span><span class="val">${exposureTypeLabel(exp.type_of_exposure)}</span></div>
+              <div class="fld"><span class="lbl">Category</span><span class="val">${exp.category ? 'Category ' + esc(exp.category) : '—'}</span></div>
+              <div class="fld" style="grid-column:1/-1"><span class="lbl">Site (Body Parts)</span><span class="val">${valOr(exp.site_of_exposure)}</span></div>
+            </div>
+            ${(exp.time_of_exposure||exp.animal_ownership||exp.animal_status||exp.wound_type||exp.wound_severity||exp.pre_exposure_hx||exp.allergy||exp.co_morbidities||exp.tetanus_vaccine_hx) ? `
+            <details style="margin-top:8px;">
+              <summary style="cursor:pointer;font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;">Additional Details</summary>
+              <div class="field-grid" style="margin-top:8px;">
+                ${exp.time_of_exposure ? `<div class="fld"><span class="lbl">Time of Bite</span><span class="val">${valOr(exp.time_of_exposure)}</span></div>` : ''}
+                ${exp.animal_ownership ? `<div class="fld"><span class="lbl">Animal Ownership</span><span class="val">${valOr(exp.animal_ownership)}</span></div>` : ''}
+                ${exp.animal_status ? `<div class="fld"><span class="lbl">Status of Animal</span><span class="val">${valOr(exp.animal_status)}</span></div>` : ''}
+                ${exp.wound_type ? `<div class="fld"><span class="lbl">Wound Type</span><span class="val">${valOr(exp.wound_type)}</span></div>` : ''}
+                ${exp.wound_severity ? `<div class="fld"><span class="lbl">Wound Severity</span><span class="val">${valOr(exp.wound_severity)}</span></div>` : ''}
+                ${exp.pre_exposure_hx ? `<div class="fld"><span class="lbl">Pre-Exposure Hx</span><span class="val">${valOr(exp.pre_exposure_hx)}</span></div>` : ''}
+                ${exp.allergy ? `<div class="fld"><span class="lbl">Allergy</span><span class="val">${valOr(exp.allergy)}</span></div>` : ''}
+                ${exp.co_morbidities ? `<div class="fld"><span class="lbl">Co-Morbidities</span><span class="val">${valOr(exp.co_morbidities)}</span></div>` : ''}
+                ${exp.tetanus_vaccine_hx ? `<div class="fld"><span class="lbl">Tetanus Vaccine Hx</span><span class="val">${valOr(exp.tetanus_vaccine_hx)}</span></div>` : ''}
+              </div>
+            </details>` : ''}
+          </div>
+        </div>
+        <!-- SECTION 2: PEP / TREATMENT -->
+        <div class="case-section">
+          <div class="cs-header cs-pep"><i class="fa-solid fa-syringe"></i> Rabies Exposure Category</div>
+          <div class="cs-body">
+            ${episode ? `
+            <div class="field-grid" style="margin-bottom:12px;">
+              <div class="fld"><span class="lbl">Washing of Bite (Y/N)</span><span class="val">${(ep.washing_of_bite || exp.washing_of_bite) === 'Y' ? 'Y – Yes' : (ep.washing_of_bite || exp.washing_of_bite) === 'N' ? 'N – No' : '<span class="null">Not recorded</span>'}</span></div>
+              <div class="fld"><span class="lbl">Route</span><span class="val">${valOr(ep.route)}</span></div>
+              <div class="fld"><span class="lbl">Brand Name</span><span class="val">${valOr(ep.brand_name)}</span></div>
+            </div>
+            ${renderPepTracker(pepSched, ep, exp.category || ep.category)}
+            ${renderPepDoseTable(pepSched, ep)}` : '<div class="case-section-empty"><i class="fa-solid fa-circle-info"></i> No treatment recorded</div>'}
+          </div>
+        </div>
+
+        <!-- SECTION 3: CATEGORY III (only if category === 3) -->
+        ${isCat3 ? renderCat3Section(ep) : ''}
+
+        <!-- SECTION 4: OUTCOME -->
+        <div class="case-section">
+          <div class="cs-header cs-out"><i class="fa-solid fa-flag-checkered"></i> Outcome</div>
+          <div class="cs-body">
+            <div class="outcome-row">
+              <div class="fld" style="min-width:180px;"><span class="lbl">Outcome</span><div style="margin-top:2px;">${ep.outcome ? outcomeBadge(ep.outcome) : '<span style="color:#94a3b8;">Not recorded</span>'}</div></div>
+              <div class="fld" style="min-width:200px;"><span class="lbl">Biting Animal Status</span><span class="val">${valOr(exp.biting_animal_status)}</span></div>
+              <div class="fld" style="flex:1;min-width:260px;"><span class="lbl">Remarks</span><span class="val">${valOr(exp.notes || ep.notes)}</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
+
+/* ───── NEW CASE MODAL ───── */
+
+// ---------------------------------------------------------------------------
+// Task 3.5 — Case History accordion for prior cases
+// ---------------------------------------------------------------------------
+function renderCaseHistoryAccordion(exposures, episodes) {
+  const buildCaseList = (EpH && EpH.buildCaseList) || function(exps, eps) {
+    const byExp = {};
+    for (const ep of (eps||[])) { if (ep.exposure_id) byExp[ep.exposure_id] = ep; }
+    return (exps||[]).slice().sort((a,b)=>Number(a.exposure_number)-Number(b.exposure_number))
+      .map(exp=>({exposure:exp, episode:byExp[exp.exposure_id]||(eps||[]).find(e=>Number(e.episode_number)===Number(exp.exposure_number))||null}));
+  };
+  const allCases = buildCaseList(exposures, episodes);
+  const priorCases = allCases.slice(0, allCases.length - 1);
+  if (!priorCases.length) return '';
+
+  const rows = priorCases.map(({exposure: exp, episode: ep}, idx) => {
+    const cn = exp.exposure_number || (idx + 1);
+    const epOut = (ep && ep.outcome) ? ep.outcome : null;
+    const outBadge = epOut === 'C'
+      ? `<span class="badge badge-outcome-c"><i class="fa-solid fa-circle-check"></i> Completed</span>`
+      : `<span class="badge badge-outcome-inc"><i class="fa-solid fa-circle-xmark"></i> Incomplete</span>`;
+    return `
+      <div style="border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px;">
+        <div class="ch-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.ch-chevron').style.transform=this.nextElementSibling.style.display==='none'?'':'rotate(180deg)'"
+          style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;background:#f8faff;user-select:none;">
+          <div class="case-num" style="width:30px;height:30px;font-size:12px;">${cn}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:800;color:var(--text);">Case #${cn}${exp.date_of_exposure?' — '+fmtDate(exp.date_of_exposure):''}</div>
+            <div style="font-size:11px;color:var(--muted);">${animalLabel(exp.type_of_animal)} · ${exposureTypeLabel(exp.type_of_exposure)}</div>
+          </div>
+          ${catBadge(exp.category || (ep&&ep.category))}
+          ${epOut ? outBadge : ''}
+          <i class="fa-solid fa-chevron-down ch-chevron" style="color:var(--muted);font-size:11px;transition:transform .2s;"></i>
+        </div>
+        <div style="display:none;padding:14px 16px;background:#fff;">
+          ${renderCaseCard(exp, ep, true)}
+        </div>
+      </div>`;
+  });
+
+  return `
+    <div style="background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1.5px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 18px;border-bottom:1.5px solid var(--border);background:linear-gradient(90deg,#f8faff,#fff);">
+        <i class="fa-solid fa-clock-rotate-left" style="color:var(--accent);"></i>
+        <span style="font-size:13px;font-weight:800;color:var(--text);">Case History</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:4px;">(${priorCases.length} prior case${priorCases.length>1?'s':''})</span>
+      </div>
+      <div style="padding:14px 16px;">${rows.join('')}</div>
+    </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Task 3.7 — Inline dose date inputs wired to PUT /api/cases/:caseId
+// ---------------------------------------------------------------------------
+function renderInlineDoseTrack(episode, exposure) {
+  const ep = episode || {};
+  const exp = exposure || {};
+  const cat = ep.category || exp.category;
+  const SCHEDULE = {'1':[0,3,7],'2':[0,3,7,14],'3':[0,3]};
+  const KEYS = {0:'vaccine_d0',3:'vaccine_d3',7:'vaccine_d7',14:'vaccine_d14',28:'vaccine_d28'};
+  const LABELS = {0:'Day 0',3:'Day 3',7:'Day 7',14:'Day 14',28:'Day 28'};
+  const reqDays = SCHEDULE[String(cat)] || [0,3,7];
+  const pepSched = ep.pep_schedule || [];
+
+  const pips = reqDays.map(d => {
+    const key = KEYS[d];
+    const label = LABELS[d];
+    const given = ep[key] || null;
+    const schedRow = pepRowForLabel(pepSched, ep, label);
+    const vaccinator = schedRow.vaccinated_by || null;
+    return `<div class="dose-pip">
+      <div class="pip-circle ${given?'pip-done':'pip-upcoming'}">${given?'✓':'○'}</div>
+      <div class="pip-label">${label}</div>
+      <div class="pip-date" style="margin-top:3px;font-size:10px;">${given ? fmtDate(given) : '<span style="color:#94a3b8;">—</span>'}</div>
+      <div class="pip-vaccinator" title="Vaccinator">
+        ${given
+          ? (vaccinator ? `<i class="fa-solid fa-user-nurse" style="font-size:8px;"></i> ${esc(vaccinator)}` : '<span style="color:#94a3b8;font-size:9px;">—</span>')
+          : '<span style="color:#94a3b8;font-size:9px;">—</span>'}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="dose-track" style="margin-top:4px;">${pips}</div>`;
+}
+
+async function saveDoseDate(caseId, pid, doseKey, inputEl) {
+  const newDate = inputEl.value;
+  const prevDate = inputEl.dataset.prev || '';
+  const DOSE_SUFFIX_MAP = {vaccine_d0:'d0',vaccine_d3:'d3',vaccine_d7:'d7',vaccine_d14:'d14',vaccine_d28:'d28'};
+  const payload = { patient_id: pid };
+  ['vaccine_d0','vaccine_d3','vaccine_d7','vaccine_d14','vaccine_d28'].forEach(k => {
+    const suffix = DOSE_SUFFIX_MAP[k];
+    const el = document.getElementById(`dose_${caseId}_${suffix}`);
+    payload[k] = el ? (el.value || null) : null;
+  });
+  payload[doseKey] = newDate || null;
+
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+  const hdrs = { 'Content-Type': 'application/json' };
+  if (token) hdrs['Authorization'] = `Bearer ${token}`;
+  const fbEl = document.getElementById(`dose_feedback_${caseId}`);
+  try {
+    const res = await fetch(`/api/cases/${caseId}`, { method: 'PUT', headers: hdrs, body: JSON.stringify(payload) });
+    if (res.status === 401 || res.status === 403) { window.location.href = '/shared/login.html'; return; }
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Failed to save dose.');
+    const newOutcome = json.outcome;
+    const cls = newOutcome === 'C' ? 'badge-outcome-c' : 'badge-outcome-inc';
+    const lbl = newOutcome === 'C' ? 'Completed' : 'Incomplete';
+    ['',`_out`].forEach(sfx => {
+      const el = document.getElementById(`outcome_badge_${caseId}${sfx}`);
+      if (el) el.innerHTML = `<i class="fa-solid fa-circle"></i> ${lbl}`;
+      if (el) el.className = `badge ${cls}`;
+    });
+    inputEl.style.background = newDate ? '#dcfce7' : '#f8faff';
+    inputEl.dataset.prev = newDate;
+    if (fbEl) { fbEl.textContent='Dose saved.'; fbEl.style.cssText='display:block;background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:6px 10px;border-radius:7px;font-size:12px;font-weight:600;'; setTimeout(()=>{if(fbEl)fbEl.style.display='none';},2500); }
+  } catch (err) {
+    inputEl.value = prevDate;
+    if (fbEl) { fbEl.textContent=err.message||'Save failed.'; fbEl.style.cssText='display:block;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;padding:6px 10px;border-radius:7px;font-size:12px;font-weight:600;'; }
+  }
+}
+
+// Render current (latest) case with inline dose inputs and read-only outcome badge
+function renderCurrentCase(exposures, episodes) {
+  const buildCaseList = (EpH && EpH.buildCaseList) || function(exps, eps) {
+    const byExp = {};
+    for (const ep of (eps||[])) { if (ep.exposure_id) byExp[ep.exposure_id] = ep; }
+    return (exps||[]).slice().sort((a,b)=>Number(a.exposure_number)-Number(b.exposure_number))
+      .map(exp=>({exposure:exp, episode:byExp[exp.exposure_id]||(eps||[]).find(e=>Number(e.episode_number)===Number(exp.exposure_number))||null}));
+  };
+  const getLegacyCases = (EpH && EpH.getLegacyCases) || function(p, exps) {
+    if ((exps||[]).length > 0) return null;
+    if (!p || (!p.date_of_exposure && !p.vaccine_d0 && !p.category)) return [];
+    return [{exposure:{exposure_number:1,date_of_exposure:p.date_of_exposure,category:p.category,type_of_animal:p.type_of_animal,type_of_exposure:p.type_of_exposure,site_of_exposure:p.site_of_exposure,washing_of_bite:p.washing_of_bite,biting_animal_status:p.biting_animal_status,notes:p.notes},episode:{vaccine_d0:p.vaccine_d0,vaccine_d3:p.vaccine_d3,vaccine_d7:p.vaccine_d7,vaccine_d14:p.vaccine_d14,vaccine_d28:p.vaccine_d28,outcome:p.outcome,brand_name:p.brand_name,route:p.route,rig_date_given:p.rig_date_given,washing_of_bite:p.washing_of_bite,category:p.category,pep_schedule:[],rig_records:[],tetanus_records:[],medication_records:[]}}];
+  };
+  const caseList = buildCaseList(exposures, episodes);
+  let currentPair;
+  if (!caseList.length) {
+    const legacy = getLegacyCases(patientData, exposures);
+    if (legacy && legacy.length) { currentPair = legacy[legacy.length - 1]; }
+    else return `<div class="case-card"><div class="case-section-empty" style="padding:30px;text-align:center;justify-content:center;"><div class="empty-state" style="padding:0;"><i class="fa-solid fa-file-lines"></i><p style="margin-top:4px;">No exposure history recorded for this patient.</p></div></div></div>`;
+  } else {
+    currentPair = caseList[caseList.length - 1];
+  }
+  const { exposure: exp, episode: ep } = currentPair;
+  const cn = exp.exposure_number || 1;
+  const cat = exp.category || (ep && ep.category);
+  const isCat3 = String(cat) === '3' || Number(cat) === 3;
+  const treatmentStatus = (ep && ep.treatmentStatus) || (ep && ep.status) || '';
+  const epOut = ep && ep.outcome;
+  const epId = ep ? ep.episode_id : '';
+
+  return `<div class="case-card" data-case-id="${epId}">
+    <div class="case-header">
+      <div class="case-header-left">
+        <div class="case-num">${cn}</div>
+        <div class="case-title">
+          <div class="t1">Current Case #${cn} · ${exp.date_of_exposure ? fmtDate(exp.date_of_exposure) : '—'}</div>
+          <div class="t2">${animalLabel(exp.type_of_animal)} · ${exposureTypeLabel(exp.type_of_exposure)}</div>
+        </div>
+      </div>
+      <div class="case-header-right">
+        ${catBadge(cat)}
+        ${treatmentStatus ? statusBadge(treatmentStatus) : ''}
+        ${epOut ? `<span class="badge ${epOut==='C'?'badge-outcome-c':'badge-outcome-inc'}" id="outcome_badge_${epId}"><i class="fa-solid fa-circle"></i> ${epOut==='C'?'Completed':'Incomplete'}</span>` : ''}
+      </div>
+    </div>
+    <div class="case-body">
+      ${ep && window.TreatmentRestart ? TreatmentRestart.renderBanner(ep, { episodeId: ep.episode_id, patientId: ep.patient_id || (typeof patientId !== 'undefined' ? patientId : null), hideHistory: true }) : ''}
+      ${ep && window.TreatmentRestart ? TreatmentRestart.renderRestartSummary(ep) : ''}
+      <div class="case-section">
+        <div class="cs-header cs-exp"><i class="fa-solid fa-biohazard"></i> History of Exposure</div>
+        <div class="cs-body">
+          <div class="field-grid">
+            <div class="fld"><span class="lbl">Date of Exposure</span><span class="val">${fmtDate(exp.date_of_exposure)}</span></div>
+            <div class="fld"><span class="lbl">Place (Where Biting Occurred)</span><span class="val">${valOr(exp.place_of_exposure)}</span></div>
+            <div class="fld"><span class="lbl">Barangay (Location)</span><span class="val">${valOr(exp.barangay)}</span></div>
+            <div class="fld"><span class="lbl">Type of Animal</span><span class="val">${animalLabel(exp.type_of_animal)}</span></div>
+            <div class="fld"><span class="lbl">Type of Exposure (B/NB)</span><span class="val">${exposureTypeLabel(exp.type_of_exposure)}</span></div>
+            <div class="fld"><span class="lbl">Category</span><span class="val">${cat ? 'Category '+esc(cat) : '—'}</span></div>
+            <div class="fld" style="grid-column:1/-1"><span class="lbl">Site (Body Parts)</span><span class="val">${valOr(exp.site_of_exposure)}</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="case-section">
+        <div class="cs-header cs-pep"><i class="fa-solid fa-syringe"></i> Rabies Exposure Category</div>
+        <div class="cs-body">
+          ${ep ? `
+          <div class="field-grid" style="margin-bottom:12px;">
+            <div class="fld"><span class="lbl">Washing of Bite</span><span class="val">${(ep.washing_of_bite||exp.washing_of_bite)==='Y'?'Y – Yes':(ep.washing_of_bite||exp.washing_of_bite)==='N'?'N – No':'—'}</span></div>
+            <div class="fld"><span class="lbl">Route</span><span class="val">${valOr(ep.route)}</span></div>
+            <div class="fld"><span class="lbl">Brand Name</span><span class="val">${valOr(ep.brand_name)}</span></div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;">Dose Schedule</div>
+          ${renderInlineDoseTrack(ep, exp)}` : '<div class="case-section-empty"><i class="fa-solid fa-circle-info"></i> No treatment recorded</div>'}
+        </div>
+      </div>
+      ${isCat3 ? renderCat3Section(ep) : ''}
+      <div class="case-section">
+        <div class="cs-header cs-out"><i class="fa-solid fa-flag-checkered"></i> Outcome</div>
+        <div class="cs-body">
+          <div class="outcome-row">
+            <div class="fld" style="min-width:180px;"><span class="lbl">Outcome (Auto-calculated)</span>
+              <div style="margin-top:2px;">${epOut ? `<span class="badge ${epOut==='C'?'badge-outcome-c':'badge-outcome-inc'}" id="outcome_badge_${epId}_out"><i class="fa-solid fa-circle"></i> ${epOut==='C'?'Completed':'Incomplete'}</span>` : '<span style="color:#94a3b8;">Pending doses</span>'}</div>
+            </div>
+            <div class="fld" style="min-width:200px;"><span class="lbl">Biting Animal Status</span><span class="val">${valOr(exp.biting_animal_status)}</span></div>
+            <div class="fld" style="flex:1;"><span class="lbl">Remarks</span><span class="val">${valOr(exp.notes||(ep&&ep.notes))}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openNewCase() {
+  // openNewCase() resets all date fields — D0 must remain EMPTY until nurse enters it
+  const ids = ['nc_dateOfExposure','nc_vaccineD0','nc_vaccineD3','nc_vaccineD7','nc_vaccineD14','nc_vaccineD28','nc_ttDateGiven','nc_atsDateGiven','nc_htigDateGiven','nc_rigEquineDate','nc_rigHumanDate'];
+  ids.forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
+  // Only pre-fill Date of Exposure with today (local date, not UTC) — dose dates remain empty
+  const _now = new Date();
+  const today = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
+  ['nc_dateOfExposure'].forEach(i => { const e = document.getElementById(i); if (e) e.value = today; });
+  const clears = ['nc_placeOfExposure','nc_siteOfExposure','nc_ttDoseMl','nc_ttInjectionSite','nc_ttGivenBy','nc_atsDoseMl','nc_atsInjectionSite','nc_atsGivenBy','nc_rigEquineUpToMl','nc_rigEquineGivenBy','nc_rigHumanUpToMl','nc_rigHumanGivenBy','nc_htigDoseMl','nc_htigInjectionSite','nc_htigGivenBy','nc_remarks','nc_medsDescription',
+    'nc_vaccinatorD0','nc_vaccinatorD3','nc_vaccinatorD7','nc_vaccinatorD14','nc_vaccinatorD28'];
+  clears.forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
+  ['nc_typeOfAnimal','nc_typeOfExposure','nc_category','nc_barangay','nc_washingOfBite','nc_brandName','nc_route','nc_outcome','nc_bitingAnimalStatus'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});
+  ['nc_ttGiven','nc_atsGiven','nc_htigGiven','nc_rigEquineGiven','nc_rigEquirab','nc_rigVinrab','nc_rigHumanGiven','nc_rigBerirab','nc_medsGiven'].forEach(i=>{const e=document.getElementById(i);if(e)e.checked=false;});
+  ['nc_atsAnstPositive','nc_atsAnstNegative','nc_atsRouteId','nc_atsRouteIm','nc_htigRouteId','nc_htigRouteIm','nc_htigAnstPositive','nc_htigAnstNegative','nc_ttRouteId','nc_ttRouteIm','nc_ttAnstPositive','nc_ttAnstNegative','nc_rigEquineAnstPositive','nc_rigEquineAnstNegative'].forEach(i=>{const e=document.getElementById(i);if(e)e.checked=false;});
+  if (window.VaccineCatalog) {
+    VaccineCatalog.applyToNewCaseForm('');
+    VaccineCatalog.resetDynamic('nc_');
+  }
+  document.getElementById('nc_cat3Section').style.display = 'none';
+  hideFeedback(document.getElementById('ncFeedback'));
+
+  // ── Category progression logic ─────────────────────────────────────────────
+  // If the patient's most recent completed case was Category 1, 2, or 3, the
+  // new case must start at Category 3 (per clinical protocol).
+  // Only applies when the PREVIOUS case is fully Completed (outcome === 'C').
+  // If the previous case is Incomplete, leave category blank for the nurse to choose.
+  (function applyPriorCaseCategory() {
+    try {
+      if (!episodesData || !episodesData.length) return;
+
+      // The current (latest) episode is the last in the ascending-sorted array
+      const latestEp = episodesData.slice().sort(
+        (a, b) => Number(a.episode_number) - Number(b.episode_number)
+      ).pop();
+      if (!latestEp) return;
+
+      const prevCat    = String(latestEp.category || '');
+      const prevOutcome = latestEp.outcome || computeOutcomeLocal(latestEp);
+
+      // Only progress to Cat 3 when the prior case is fully completed
+      if (prevOutcome !== 'C') return;
+
+      // Cat 1, 2, or 3 completed → next case is Cat 3
+      if (['1','2','3'].includes(prevCat)) {
+        const catEl = document.getElementById('nc_category');
+        if (catEl) catEl.value = '3';
+      }
+    } catch (_) { /* non-fatal — nurse can still choose manually */ }
+  })();
+
+  // Local outcome calculator matching backend computeOutcome logic:
+  // 'C' only when every required dose for the category has a date.
+  function computeOutcomeLocal(ep) {
+    const cat = String(ep.category || '');
+    const REQUIRED = { '1': ['vaccine_d0','vaccine_d3','vaccine_d7'],
+                       '2': ['vaccine_d0','vaccine_d3','vaccine_d7','vaccine_d14'],
+                       '3': ['vaccine_d0','vaccine_d3'] };
+    const keys = REQUIRED[cat] || REQUIRED['1'];
+    return keys.every(k => ep[k]) ? 'C' : 'Inc';
+  }
+
+  // Sync Cat III section visibility and dose groups after category may have been set
+  toggleNcCat3();
+  updateNcDoseVisibility();
+
+  // Populate read-only patient identity header from patientData state
+  const hdrEl = document.getElementById('ncPatientHeader');
+  if (hdrEl) {
+    hdrEl.innerHTML = `
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:800;color:#293681;">${(EpH.esc||esc)(patientData.full_name||'')}</div>
+        <div style="font-size:11px;color:#6b7a9d;margin-top:3px;">
+          ${(EpH.esc||esc)(patientData.patient_id_display||'')} · ${(EpH.esc||esc)(patientData.registration_number||'')}
+        </div>
+      </div>`;
+  }
+
+  openModal('ncModal');
+}
+
+function toggleNcCat3() {
+  const v = document.getElementById('nc_category').value;
+  const show = (v === '3');
+  document.getElementById('nc_cat3Section').style.display = show ? 'block' : 'none';
+}
+
+// Task 3.2 — category-based dose field show/hide for New Case modal
+function updateNcDoseVisibility() {
+  const cat = document.getElementById('nc_category').value;
+  const schedule = { '1': ['d7'], '2': ['d7','d14'], '3': [] };
+  const shown = new Set(schedule[String(cat)] || []);
+  const allOptional = ['d7','d14','d28'];
+  allOptional.forEach(d => {
+    const grp = document.getElementById('nc_group_' + d);
+    if (grp) grp.style.display = shown.has(d) ? '' : 'none';
+    const vaccGrp = document.getElementById('nc_group_vacc_' + d);
+    if (vaccGrp) vaccGrp.style.display = shown.has(d) ? '' : 'none';
+  });
+}
+
+function getNamedRadio(name) {
+  const el = document.querySelector(`input[name="${name}"]:checked`);
+  return el ? el.value : null;
+}
+function getAtsAnst() {
+  return getNamedRadio('nc_atsAnst');
+}
+function getHtigRoute() {
+  return getNamedRadio('nc_htigRoute');
+}
+
+async function saveNewCase() {
+  const btn = document.getElementById('ncSaveBtn');
+  const fb = document.getElementById('ncFeedback');
+  const dateExp = document.getElementById('nc_dateOfExposure').value;
+  const cat = document.getElementById('nc_category').value;
+  if (!dateExp) { showFeedback(fb, 'Date of Bite/Exposure is required.', 'error'); return; }
+  if (!cat)     { showFeedback(fb, 'Category is required.', 'error'); return; }
+
+  // Validate brand and route before calling API
+  const brandVal = val('nc_brandName');
+  const routeVal = val('nc_route');
+  if (brandVal && window.VaccineCatalog) {
+    const brandErr = VaccineCatalog.isValidBrand(brandVal);
+    if (brandErr) { showFeedback(fb, brandErr, 'error'); return; }
+  } else if (brandVal) {
+    const brandErr = (EpH.validateBrand || validateBrandFallback)(brandVal);
+    if (brandErr) { showFeedback(fb, brandErr, 'error'); return; }
+  }
+  if (routeVal) {
+    const routeErr = (EpH.validateRoute || validateRouteFallback)(routeVal);
+    if (routeErr) { showFeedback(fb, routeErr, 'error'); return; }
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner loading-spin show"></i> Saving…';
+  hideFeedback(fb);
+
+  const equineGiven = chk('nc_rigEquineGiven') || chk('nc_rigEquirab') || chk('nc_rigVinrab')
+    || (window.VaccineCatalog && VaccineCatalog.extraErigChecked('nc_'));
+  const humanGiven  = chk('nc_rigHumanGiven') || chk('nc_rigBerirab')
+    || (window.VaccineCatalog && VaccineCatalog.extraHrigChecked('nc_'));
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+  const authHeaders = token
+    ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+    : { 'Content-Type': 'application/json' };
+
+  // Task 3.4 — Single POST /api/cases call (atomic: exposure + episode + pep_schedule + Cat III)
+  const casePayload = {
+    patient_id: patientId,
+    date_of_exposure: val('nc_dateOfExposure'),
+    place_of_exposure: val('nc_placeOfExposure'),
+    barangay: val('nc_barangay') || null,
+    type_of_animal: val('nc_typeOfAnimal'),
+    type_of_exposure: val('nc_typeOfExposure'),
+    site_of_exposure: val('nc_siteOfExposure'),
+    category: cat,
+    washing_of_bite: val('nc_washingOfBite'),
+    biting_animal_status: val('nc_bitingAnimalStatus'),
+    remarks: val('nc_remarks'),
+    brand_name: brandVal,
+    route: routeVal,
+    vaccine_d0: val('nc_vaccineD0'),
+    vaccine_d3: val('nc_vaccineD3'),
+    vaccine_d7: val('nc_vaccineD7'),
+    vaccine_d14: val('nc_vaccineD14'),
+    vaccine_d28: val('nc_vaccineD28'),
+    // Per-dose vaccinator names — manually entered, never auto-filled from session
+    vaccinator_d0:  val('nc_vaccinatorD0')  || null,
+    vaccinator_d3:  val('nc_vaccinatorD3')  || null,
+    vaccinator_d7:  val('nc_vaccinatorD7')  || null,
+    vaccinator_d14: val('nc_vaccinatorD14') || null,
+    vaccinator_d28: val('nc_vaccinatorD28') || null,
+    // Category III — Tetanus Toxoid
+    tt_given:          chk('nc_ttGiven'),
+    tt_dose_ml:        valNum('nc_ttDoseMl'),
+    tt_injection_site: val('nc_ttInjectionSite'),
+    tt_date_given:     val('nc_ttDateGiven'),
+    tt_given_by:       val('nc_ttGivenBy'),
+    tt_route:          getNamedRadio('nc_ttRoute'),
+    tt_anst_result:    getNamedRadio('nc_ttAnst'),
+    // Category III — ATS
+    ats_given:          chk('nc_atsGiven'),
+    ats_dose_ml:        valNum('nc_atsDoseMl'),
+    ats_injection_site: val('nc_atsInjectionSite'),
+    ats_date_given:     val('nc_atsDateGiven'),
+    ats_given_by:       val('nc_atsGivenBy'),
+    ats_route:          getNamedRadio('nc_atsRoute'),
+    ats_anst_result:    getAtsAnst(),
+    // Category III — HTIG
+    htig_given:          chk('nc_htigGiven'),
+    htig_dose_ml:        valNum('nc_htigDoseMl'),
+    htig_injection_site: val('nc_htigInjectionSite'),
+    htig_date_given:     val('nc_htigDateGiven'),
+    htig_given_by:       val('nc_htigGivenBy'),
+    htig_route:          getHtigRoute(),
+    htig_anst_result:    getNamedRadio('nc_htigAnst'),
+    // Category III — RIG Equine
+    rig_equine_given:      equineGiven,
+    rig_equirab:           chk('nc_rigEquirab'),
+    rig_vinrab:            chk('nc_rigVinrab'),
+    rig_equine_up_to_ml:   valNum('nc_rigEquineUpToMl'),
+    rig_equine_anst:       getNamedRadio('nc_rigEquineAnst'),
+    rig_equine_date:       val('nc_rigEquineDate'),
+    rig_equine_given_by:   val('nc_rigEquineGivenBy'),
+    // Category III — RIG Human (Berirab)
+    rig_human_given:     humanGiven,
+    rig_berirab:         chk('nc_rigBerirab'),
+    rig_human_up_to_ml:  valNum('nc_rigHumanUpToMl'),
+    rig_human_date:      val('nc_rigHumanDate'),
+    rig_human_given_by:  val('nc_rigHumanGivenBy'),
+    // Category III — Medications
+    meds_given:       chk('nc_medsGiven'),
+    meds_description: val('nc_medsDescription'),
+    dynamic_tetanus: (window.VaccineCatalog && VaccineCatalog.collectDynamicTetanus('nc_')) || [],
+    dynamic_rig: (window.VaccineCatalog && VaccineCatalog.collectDynamicRig('nc_', {
+      equineMl: valNum('nc_rigEquineUpToMl'),
+      equineDate: val('nc_rigEquineDate'),
+      equineBy: val('nc_rigEquineGivenBy'),
+      humanMl: valNum('nc_rigHumanUpToMl'),
+      humanDate: val('nc_rigHumanDate'),
+      humanBy: val('nc_rigHumanGivenBy'),
+    })) || [],
+  };
+
+  try {
+    const caseRes = await fetch('/api/cases', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify(casePayload),
+    });
+    if (caseRes.status === 401 || caseRes.status === 403) { window.location.href = '/shared/login.html'; return; }
+    const caseJson = await caseRes.json();
+    if (!caseJson.success) throw new Error(caseJson.message || 'Case could not be saved. Please try again.');
+
+    // Show success + offer to print the patient card for this specific new case
+    showCasePrintPrompt(patientId, caseJson.episode_id, caseJson.case_number, fb, btn);
+  } catch (err) {
+    console.error(err);
+    showFeedback(fb, err.message || 'Failed to save case.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-save"></i> Save New Case';
+  }
+}
+
+function showCasePrintPrompt(pid, episodeId, caseNumber, fb, btn) {
+  // Show inline success feedback in the modal
+  showFeedback(fb, 'New case saved successfully.', 'success');
+
+  // Build a small overlay inside the modal footer area
+  const existing = document.getElementById('casePrintPrompt');
+  if (existing) existing.remove();
+
+  const prompt = document.createElement('div');
+  prompt.id = 'casePrintPrompt';
+  prompt.style.cssText = `
+    position:fixed;inset:0;z-index:99999;
+    background:rgba(10,18,50,.55);backdrop-filter:blur(4px);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+  `;
+  prompt.innerHTML = `
+    <div style="background:#fff;border-radius:18px;width:100%;max-width:400px;
+         padding:26px 24px;box-shadow:0 24px 64px rgba(10,18,50,.25);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;
+           padding-bottom:12px;border-bottom:1.5px solid #e8edf8;">
+        <i class="fa-solid fa-circle-check" style="font-size:22px;color:#15803d;"></i>
+        <h3 style="font-size:15px;font-weight:800;color:#293681;margin:0;">
+          New Case Saved
+        </h3>
+      </div>
+      <p style="font-size:12.5px;color:#475569;margin-bottom:16px;line-height:1.6;">
+        <strong style="color:#1e2a4a;">Case #${Number(caseNumber)||''}</strong> has been created successfully.<br>
+        Would you like to print the Patient Record Card for this new case?
+      </p>
+      <div style="display:flex;gap:10px;">
+        <button id="btnCasePrint"
+          style="flex:1;padding:10px 14px;
+          background:linear-gradient(135deg,#4274D9,#293681);color:#fff;
+          border:none;border-radius:10px;font-size:13px;font-weight:700;
+          cursor:pointer;font-family:inherit;display:flex;align-items:center;
+          justify-content:center;gap:7px;">
+          <i class="fa-solid fa-print"></i> Print Case Card
+        </button>
+        <button id="btnCaseSkip"
+          style="flex:1;padding:10px 14px;background:#f1f5f9;color:#64748b;
+          border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-weight:700;
+          cursor:pointer;font-family:inherit;">
+          Skip
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(prompt);
+
+  // Print button — open card in new tab then close modal & reload
+  document.getElementById('btnCasePrint').addEventListener('click', () => {
+    prompt.remove();
+    const url = `/patient/patient-card.html?patientId=${encodeURIComponent(pid)}&caseId=${encodeURIComponent(episodeId)}`;
+    window.open(url, '_blank', 'width=900,height=700,scrollbars=yes');
+    closeNewCase();
+    loadPatientData();
+  });
+
+  // Skip button — just close modal & reload as before
+  document.getElementById('btnCaseSkip').addEventListener('click', () => {
+    prompt.remove();
+    closeNewCase();
+    loadPatientData();
+  });
+}
+
+function closeNewCase() {
+  closeModal('ncModal');
+  hideFeedback(document.getElementById('ncFeedback'));
+}
+
+// ---------------------------------------------------------------------------
+// renderPepDoseTable — detailed per-dose table with Vaccinator column
+// Shown beneath the visual tracker in every case card.
+// ---------------------------------------------------------------------------
+function renderPepDoseTable(pepSchedule, episode) {
+  const ep = episode || {};
+  const KEYS   = { 'Day 0':'vaccine_d0','Day 3':'vaccine_d3','Day 7':'vaccine_d7','Day 14':'vaccine_d14','Day 28':'vaccine_d28' };
+  const pepSched = pepSchedule || [];
+  if (!pepSched.length) return '';
+
+  const rows = pepSched.map(row => {
+    const given    = ep[KEYS[row.day_label]] || row.date_given || null;
+    const vaccName = row.vaccinated_by || null;
+    const dueTxt   = row.date_due   ? fmtDate(row.date_due)   : '—';
+    const givenTxt = given          ? fmtDate(given)          : '—';
+    const brandTxt = row.vaccine_brand || valOr(ep.brand_name);
+    const routeTxt = row.route || valOr(ep.route);
+    const isGiven  = !!given;
+    return `<tr>
+      <td style="font-weight:700;color:#293681;">${esc(row.day_label)}</td>
+      <td>${brandTxt}</td>
+      <td>${routeTxt}</td>
+      <td>${dueTxt}</td>
+      <td style="color:${isGiven?'#15803d':'#94a3b8'};font-weight:${isGiven?'700':'400'};">${givenTxt}</td>
+      <td style="color:${vaccName?'#1e2a4a':'#94a3b8'};">
+        ${vaccName
+          ? `<i class="fa-solid fa-user-nurse" style="font-size:10px;color:#4274D9;margin-right:4px;"></i>${esc(vaccName)}`
+          : '—'}
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div style="margin-top:12px;overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+      <thead>
+        <tr style="background:linear-gradient(180deg,#4274D9,#293681);color:#fff;">
+          <th style="padding:6px 8px;text-align:left;border-radius:6px 0 0 0;">Dose Day</th>
+          <th style="padding:6px 8px;text-align:left;">Vaccine Brand</th>
+          <th style="padding:6px 8px;text-align:left;">Route</th>
+          <th style="padding:6px 8px;text-align:left;">Date Due</th>
+          <th style="padding:6px 8px;text-align:left;">Date Given</th>
+          <th style="padding:6px 8px;text-align:left;border-radius:0 6px 0 0;">Vaccinator</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Task 6.1 — openRecordDoseModal / recordDose: dose recording with manual vaccinator input
+// ---------------------------------------------------------------------------
+function openRecordDoseModal(episodeId, doseLabel) {
+  // Build or reuse modal
+  let modal = document.getElementById('recordDoseModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'recordDoseModal';
+    modal.style.cssText = `
+      position:fixed;inset:0;z-index:99999;
+      background:rgba(10,18,50,.52);backdrop-filter:blur(4px);
+      display:flex;align-items:center;justify-content:center;padding:20px;
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const today = (typeof todayDateOnlyIso === 'function')
+    ? todayDateOnlyIso()
+    : `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`;
+
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;
+         padding:26px 24px;box-shadow:0 24px 64px rgba(10,18,50,.22);">
+      <div style="display:flex;align-items:center;justify-content:space-between;
+           margin-bottom:18px;padding-bottom:14px;border-bottom:1.5px solid #e8edf8;">
+        <div>
+          <h3 style="font-size:15px;font-weight:800;color:#293681;margin:0;">
+            <i class="fa-solid fa-syringe" style="color:#4274D9;margin-right:6px;"></i>
+            Record Dose — <span style="color:#4274D9;">${doseLabel}</span>
+          </h3>
+          <p style="font-size:12px;color:#64748b;margin:4px 0 0;">Episode #${episodeId}</p>
+        </div>
+        <button onclick="document.getElementById('recordDoseModal').remove()"
+          style="background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;
+          font-size:18px;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center;">×</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:#475569;
+            text-transform:uppercase;letter-spacing:.35px;margin-bottom:6px;">
+            Date Given <span style="color:#dc2626;">*</span>
+          </label>
+          <input type="date" id="rdDateGiven" value="${today}"
+            style="width:100%;padding:10px 14px;border:1.5px solid #dde4f5;border-radius:10px;
+            font-size:14px;font-family:inherit;background:#f8faff;color:#1e2a4a;box-sizing:border-box;">
+        </div>
+
+        <div>
+          <label style="display:block;font-size:11px;font-weight:700;color:#475569;
+            text-transform:uppercase;letter-spacing:.35px;margin-bottom:6px;">
+            Vaccinator Name <span style="color:#dc2626;">*</span>
+          </label>
+          <input type="text" id="rdVaccinator" value=""
+            placeholder="Enter name of nurse/staff who administered this dose"
+            style="width:100%;padding:10px 14px;border:1.5px solid #dde4f5;border-radius:10px;
+            font-size:14px;font-family:inherit;background:#fff;color:#1e2a4a;box-sizing:border-box;"
+            autocomplete="off">
+          <p style="font-size:10.5px;color:#64748b;margin:4px 0 0;">
+            <i class="fa-solid fa-circle-info" style="color:#4274D9;"></i>
+            Manually enter the full name of the person who administered this dose.
+          </p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:#475569;
+              text-transform:uppercase;letter-spacing:.35px;margin-bottom:6px;">
+              Vaccine Brand
+            </label>
+            <select id="rdBrand"
+              style="width:100%;padding:10px 14px;border:1.5px solid #dde4f5;border-radius:10px;
+              font-size:13px;font-family:inherit;background:#f8faff;color:#1e2a4a;
+              appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23293681' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;cursor:pointer;box-sizing:border-box;">
+              <option value="">-- Select --</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:#475569;
+              text-transform:uppercase;letter-spacing:.35px;margin-bottom:6px;">
+              Route
+            </label>
+            <select id="rdRoute"
+              style="width:100%;padding:10px 14px;border:1.5px solid #dde4f5;border-radius:10px;
+              font-size:13px;font-family:inherit;background:#f8faff;color:#1e2a4a;
+              appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23293681' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;cursor:pointer;box-sizing:border-box;">
+              <option value="">-- Select --</option>
+              <option value="ID">ID</option>
+              <option value="IM">IM</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="rdError" style="display:none;background:#fee2e2;color:#b91c1c;
+          border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;"></div>
+
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button onclick="document.getElementById('recordDoseModal').remove()"
+            style="flex:1;padding:11px 16px;background:#f1f5f9;color:#64748b;
+            border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-weight:700;
+            cursor:pointer;font-family:inherit;">
+            Cancel
+          </button>
+          <button onclick="confirmRecordDose(${episodeId}, '${doseLabel}')"
+            style="flex:1;padding:11px 16px;
+            background:linear-gradient(135deg,#4274D9,#293681);color:#fff;
+            border:none;border-radius:10px;font-size:13px;font-weight:700;
+            cursor:pointer;font-family:inherit;display:flex;align-items:center;
+            justify-content:center;gap:7px;">
+            <i class="fa-solid fa-syringe"></i> Save Dose
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.style.display = 'flex';
+  if (window.VaccineCatalog) {
+    VaccineCatalog.fillBrandSelect('rdBrand', '');
+    const rd = document.getElementById('rdBrand');
+    if (rd && rd.options[0]) rd.options[0].textContent = '-- Select --';
+  }
+}
+
+async function confirmRecordDose(episodeId, doseLabel) {
+  const dateGiven   = document.getElementById('rdDateGiven')?.value?.trim();
+  const vaccinator  = document.getElementById('rdVaccinator')?.value?.trim();
+  const vaccineBrand = document.getElementById('rdBrand')?.value || '';
+  const route       = document.getElementById('rdRoute')?.value || '';
+  const errEl       = document.getElementById('rdError');
+
+  if (!dateGiven || !/^\d{4}-\d{2}-\d{2}$/.test(dateGiven)) {
+    errEl.textContent = 'Date Given is required (YYYY-MM-DD).';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!vaccinator) {
+    errEl.textContent = 'Vaccinator Name is required. Please enter the name of the nurse/staff who administered this dose.';
+    errEl.style.display = 'block';
+    document.getElementById('rdVaccinator')?.focus();
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const saveBtn = document.querySelector('#recordDoseModal button[onclick*="confirmRecordDose"]');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…'; }
+
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  try {
+    const res = await fetch(`/api/episodes/${episodeId}/record-dose`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        dose_label:          doseLabel,
+        date_given:          dateGiven,
+        vaccine_brand:       vaccineBrand || null,
+        route:               route || null,
+        vaccinated_by:       vaccinator,
+      }),
+    });
+    if (res.status === 401 || res.status === 403) { window.location.href = '/shared/login.html'; return; }
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Failed to record dose.');
+    document.getElementById('recordDoseModal')?.remove();
+    await loadPatientData();
+  } catch (err) {
+    if (errEl) { errEl.textContent = err.message || 'Failed to record dose. Please try again.'; errEl.style.display = 'block'; }
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-syringe"></i> Save Dose'; }
+  }
+}
+
+// Keep old recordDose as a thin wrapper for any legacy callers
+async function recordDose(episodeId, doseLabel) {
+  openRecordDoseModal(episodeId, doseLabel);
+}
+
+function validateBrandFallback(v) {
+  if (window.VaccineCatalog) return VaccineCatalog.isValidBrand(v);
+  if (!v || !['Abhayrab','Vaxirab'].includes(v)) return 'Invalid vaccine brand. Use an available Anti-Rabies Vaccine from Vaccine Management (e.g. Abhayrab or Vaxirab).';
+  return null;
+}
+function validateRouteFallback(v) {
+  if (!v || !['ID','IM'].includes(v)) return 'Invalid route. Only ID and IM are accepted.';
+  return null;
+}
+</script>
+</body>
+</html>

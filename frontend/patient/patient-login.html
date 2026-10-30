@@ -1,0 +1,903 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Patient Sign In – HopeCare ABC System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      height: 100%;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      font-family: 'Poppins', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a2a5e 0%, #293681 35%, #4274D9 65%, #95CCDD 100%);
+      overflow-x: hidden;
+      overflow-y: auto;
+      position: relative;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .bg-blob {
+      position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+      filter: blur(60px);
+    }
+    .bg-blob-1 {
+      width: min(520px, 90vw); height: min(520px, 90vw); top: -160px; right: -80px;
+      background: radial-gradient(circle, rgba(66,116,217,0.4) 0%, transparent 70%);
+      animation: blobDrift 20s ease-in-out infinite alternate;
+    }
+    .bg-blob-2 {
+      width: min(440px, 80vw); height: min(440px, 80vw); bottom: -140px; left: -80px;
+      background: radial-gradient(circle, rgba(22,163,74,0.18) 0%, transparent 70%);
+      animation: blobDrift 26s ease-in-out infinite alternate-reverse;
+    }
+    .bg-blob-3 {
+      width: min(300px, 60vw); height: min(300px, 60vw); top: 40%; left: 38%;
+      background: radial-gradient(circle, rgba(66,116,217,0.18) 0%, transparent 70%);
+      animation: blobPulse 10s ease-in-out infinite;
+    }
+    @keyframes blobDrift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(24px,16px) scale(1.07); }
+    }
+    @keyframes blobPulse {
+      0%,100% { opacity:.5; transform:scale(1); }
+      50%      { opacity:1; transform:scale(1.12); }
+    }
+    .login-card {
+      position: relative; z-index: 1;
+      display: flex;
+      width: 980px;
+      max-width: 100%;
+      min-height: 580px;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow:
+        0 32px 80px rgba(0,0,0,0.45),
+        0 0 0 1px rgba(255,255,255,0.06),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+      animation: cardIn .65s cubic-bezier(.22,1,.36,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity:0; transform:translateY(24px) scale(.98); }
+      to   { opacity:1; transform:translateY(0)    scale(1); }
+    }
+    .lp-brand {
+      width: 40%;
+      flex-shrink: 0;
+      background: linear-gradient(160deg, #293681 0%, #4274D9 50%, #95CCDD 100%);
+      padding: 44px 36px 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .lp-brand::before {
+      content:''; position:absolute;
+      width:420px; height:420px; border-radius:50%;
+      border:1px solid rgba(255,255,255,0.06);
+      top:-110px; left:-100px; pointer-events:none;
+    }
+    .lp-brand::after {
+      content:''; position:absolute;
+      width:280px; height:280px; border-radius:50%;
+      border:1px solid rgba(255,255,255,0.05);
+      bottom:-60px; right:-60px; pointer-events:none;
+    }
+    .brand-logo-ring {
+      position: relative; z-index:1;
+      width: 148px; height: 148px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      background: radial-gradient(circle, rgba(149,204,221,0.18) 0%, rgba(66,116,217,0.08) 100%);
+      border: 2.5px solid rgba(149,204,221,0.7);
+      box-shadow:
+        0 0 0 8px rgba(149,204,221,0.1),
+        0 0 32px rgba(149,204,221,0.28),
+        0 10px 30px rgba(0,0,0,0.3);
+      animation: logoFloat 5s ease-in-out infinite;
+    }
+    @keyframes logoFloat {
+      0%,100% { transform:translateY(0); }
+      50%      { transform:translateY(-8px); }
+    }
+    .brand-logo-ring img {
+      width: 118px; height: 118px;
+      object-fit: contain; border-radius: 50%;
+      display: block;
+    }
+    .brand-badge {
+      position: relative; z-index:1;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(149,204,221,0.18);
+      border: 1px solid rgba(149,204,221,0.55);
+      border-radius: 99px;
+      padding: 5px 14px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+      color: #c6ebf4; text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .brand-badge i { font-size: 9px; color: #95CCDD; }
+    .brand-title {
+      position: relative; z-index:1;
+      font-size: 20px; font-weight: 800;
+      color: #fff; text-align: center; line-height: 1.3;
+      margin-bottom: 6px;
+    }
+    .brand-title .accent { color: #95CCDD; }
+    .brand-sub {
+      position: relative; z-index:1;
+      font-size: 12px; font-weight: 400;
+      color: rgba(255,255,255,0.72);
+      text-align: center; margin-bottom: 22px;
+      line-height: 1.45;
+      max-width: 28ch;
+    }
+    .brand-divider {
+      position: relative; z-index:1;
+      width: 100%; display: flex; align-items: center;
+      gap: 10px; margin-bottom: 22px;
+    }
+    .brand-divider-line {
+      flex:1; height:1px; background:rgba(255,255,255,0.14);
+    }
+    .brand-divider i { color: rgba(149,204,221,0.75); font-size: 13px; }
+    .brand-features {
+      position: relative; z-index:1;
+      display: flex; gap: 8px; width: 100%;
+      margin-bottom: 24px;
+    }
+    .brand-feat {
+      flex: 1;
+      min-width: 0;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+      backdrop-filter: blur(6px);
+      transition: background .25s, border-color .25s;
+    }
+    .brand-feat:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(149,204,221,0.45);
+    }
+    .brand-feat i {
+      font-size: 18px; color: #95CCDD;
+      margin-bottom: 7px; display: block;
+    }
+    .brand-feat span {
+      font-size: 10px; font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      line-height: 1.3; display: block;
+    }
+    .brand-footer {
+      position: relative; z-index:1;
+      margin-top: auto;
+      display: flex; align-items: flex-start; gap: 10px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 12px 14px;
+      width: 100%;
+    }
+    .brand-footer i { font-size: 16px; color: #95CCDD; margin-top: 1px; flex-shrink:0; }
+    .brand-footer-text p:first-child {
+      font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 2px;
+    }
+    .brand-footer-text p:last-child {
+      font-size: 11px; color: rgba(255,255,255,0.62); font-weight: 400; line-height: 1.4;
+    }
+    .lp-form {
+      flex: 1;
+      min-width: 0;
+      background: #f8fafc;
+      padding: 48px 52px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .lp-form::before {
+      content:''; position:absolute; top:24px; right:28px;
+      width:90px; height:90px; pointer-events:none;
+      background-image: radial-gradient(circle, rgba(66,116,217,0.18) 1.5px, transparent 1.5px);
+      background-size: 12px 12px;
+    }
+    .form-hd { margin-bottom: 28px; }
+    .form-hd-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, #293681, #4274D9);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 14px rgba(41,54,129,0.35);
+    }
+    .form-hd-icon i { font-size: 20px; color: #fff; }
+    .form-hd h2 {
+      font-size: 30px; font-weight: 800; color: #0f172a;
+      letter-spacing: -0.5px; margin-bottom: 4px;
+    }
+    .form-hd h2 span { color: #293681; }
+    .form-hd p {
+      font-size: 14px; color: #64748b; font-weight: 400; margin-bottom: 10px; line-height: 1.5;
+    }
+    .form-hd-accent {
+      width: 44px; height: 3px; border-radius: 99px;
+      background: linear-gradient(90deg, #293681, #16a34a);
+    }
+    .error-banner {
+      display: none; align-items: flex-start; gap: 10px;
+      background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 11px;
+      padding: 11px 14px; margin-bottom: 18px;
+      font-size: 13px; color: #b91c1c; font-weight: 500; line-height: 1.45;
+    }
+    .error-banner.show { display: flex; animation: shake .4s ease; }
+    .error-banner i { font-size: 14px; flex-shrink:0; margin-top: 2px; }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-6px)}
+      40%{transform:translateX(6px)}
+      60%{transform:translateX(-4px)}
+      80%{transform:translateX(4px)}
+    }
+    .inp-group { margin-bottom: 16px; }
+    .inp-label {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12px; font-weight: 700; color: #334155;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+    .inp-label i { font-size: 11px; color: #64748b; }
+    .inp-wrap { position: relative; }
+    .inp-wrap .inp-icon {
+      position: absolute; left: 15px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 15px; color: #94a3b8;
+      pointer-events: none; transition: color .2s;
+    }
+    .inp-wrap input {
+      width: 100%;
+      min-height: 48px;
+      padding: 13px 48px 13px 44px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 16px; font-family: 'Poppins', sans-serif; font-weight: 400;
+      color: #0f172a; background: #fff;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+      outline: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .inp-wrap input::placeholder { color: #94a3b8; font-weight: 400; }
+    .inp-wrap input:hover:not(:focus) {
+      border-color: #bfdbfe; background: #fafcff;
+    }
+    .inp-wrap input:focus {
+      border-color: #293681; background: #fff;
+      box-shadow: 0 0 0 4px rgba(41,54,129,0.12), 0 2px 6px rgba(41,54,129,0.08);
+    }
+    .inp-wrap:focus-within .inp-icon { color: #293681; }
+    .pw-btn {
+      position: absolute; right: 6px; top: 50%;
+      transform: translateY(-50%);
+      width: 44px; height: 44px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer;
+      color: #64748b; font-size: 16px;
+      border-radius: 10px;
+      transition: color .15s, background .15s;
+      line-height: 1;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pw-btn:hover, .pw-btn:focus-visible { color: #293681; background: rgba(41,54,129,0.08); outline: none; }
+    .signin-btn {
+      width: 100%;
+      min-height: 50px;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, #293681 0%, #4274D9 100%);
+      color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 700; font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 5px 18px rgba(41,54,129,0.4);
+      position: relative; overflow: hidden;
+      margin: 8px 0 18px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .signin-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(41,54,129,0.52);
+    }
+    .signin-btn:active:not(:disabled) { transform: translateY(0); }
+    .signin-btn:disabled { opacity: .7; cursor: not-allowed; }
+    .signin-btn .ripple {
+      position:absolute; border-radius:50%;
+      background: rgba(255,255,255,0.22);
+      transform:scale(0);
+      animation: ripple .55s linear;
+      pointer-events:none;
+    }
+    @keyframes ripple { to { transform:scale(3); opacity:0; } }
+    .btn-spinner {
+      display:none; width:16px; height:16px;
+      border:2.5px solid rgba(255,255,255,0.4);
+      border-top-color:#fff; border-radius:50%;
+      animation:spin .7s linear infinite;
+    }
+    .signin-btn.loading .btn-spinner { display:inline-block; }
+    .signin-btn.loading .btn-icon    { display:none; }
+    .signin-btn.loading .btn-lbl     { opacity:.8; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .or-row {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 18px;
+    }
+    .or-line { flex:1; height:1px; background:#e2e8f0; }
+    .or-text  { font-size: 12px; color: #94a3b8; font-weight: 600; letter-spacing:.5px; }
+    .form-footer {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: #eef6ff; border: 1px solid #dbeafe; border-radius: 12px;
+      padding: 12px 16px;
+    }
+    .form-footer i { font-size: 18px; color: #293681; flex-shrink:0; margin-top: 1px; }
+    .form-footer-text p:first-child { font-size: 13px; font-weight: 700; color: #0f172a; }
+    .form-footer-text p:last-child  { font-size: 12px; color: #3c5b85; line-height: 1.45; }
+    .temp-pw-modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(10,18,50,0.55);
+      z-index: 9999;
+      align-items: center; justify-content: center;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+      backdrop-filter: blur(4px);
+      overflow-y: auto;
+    }
+    .temp-pw-modal.show { display: flex; animation: overlayIn .2s ease; }
+    @keyframes overlayIn { from{opacity:0} to{opacity:1} }
+    .temp-pw-card {
+      background: #fff;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 440px;
+      padding: 36px 32px;
+      box-shadow: 0 24px 60px rgba(10,18,50,0.28);
+      animation: cardSlideIn .28s cubic-bezier(.22,1,.36,1);
+      margin: auto;
+    }
+    @keyframes cardSlideIn {
+      from { opacity:0; transform: translateY(16px) scale(.97); }
+      to   { opacity:1; transform: translateY(0) scale(1); }
+    }
+    .temp-pw-icon {
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 18px;
+      box-shadow: 0 0 0 10px rgba(251,191,36,0.08);
+    }
+    .temp-pw-icon i { font-size: 30px; color: #d97706; }
+    .temp-pw-title {
+      text-align: center;
+      font-size: 20px; font-weight: 800; color: #0f172a;
+      margin-bottom: 6px;
+    }
+    .temp-pw-title span { color: #d97706; }
+    .temp-pw-desc {
+      text-align: center;
+      font-size: 13px; color: #64748b;
+      margin-bottom: 22px;
+      line-height: 1.55;
+    }
+    .temp-pw-form .form-group { margin-bottom: 14px; }
+    .temp-pw-form label {
+      display: block;
+      font-size: 12px; font-weight: 700;
+      color: #475569; text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 7px;
+    }
+    .temp-pw-form input {
+      width: 100%;
+      min-height: 46px;
+      padding: 11px 14px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 16px; font-family: 'Poppins', sans-serif;
+      background: #f8fafc;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .temp-pw-form input:focus {
+      border-color: #293681;
+      box-shadow: 0 0 0 3px rgba(41,54,129,0.1);
+      background: #fff;
+    }
+    .pw-req-list {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+    }
+    .pw-req-list li {
+      font-size: 12px; color: #64748b;
+      list-style: none;
+      padding: 2px 0;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pw-req-list li::before { content: '•'; color: #293681; font-weight: 800; }
+    .temp-pw-error {
+      display: none;
+      background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: 10px; padding: 9px 12px;
+      color: #b91c1c; font-size: 13px; font-weight: 500;
+      margin-bottom: 14px;
+    }
+    .temp-pw-error.show { display: block; }
+    .temp-pw-btn {
+      width: 100%;
+      min-height: 48px;
+      padding: 13px;
+      background: linear-gradient(135deg, #293681 0%, #4274D9 100%);
+      color: #fff;
+      border: none; border-radius: 11px;
+      font-size: 14px; font-weight: 700; font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 4px 14px rgba(41,54,129,0.35);
+      transition: transform .18s, box-shadow .18s;
+    }
+    .temp-pw-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(41,54,129,0.45);
+    }
+    .temp-pw-btn:disabled { opacity: .7; cursor: not-allowed; }
+
+    @media (max-width: 920px) {
+      .login-card {
+        flex-direction: column;
+        width: 100%;
+        max-width: 480px;
+        min-height: 0;
+        border-radius: 24px;
+      }
+      .lp-brand {
+        width: 100%;
+        padding: 28px 24px 22px;
+      }
+      .brand-logo-ring { width: 96px; height: 96px; margin-bottom: 12px; }
+      .brand-logo-ring img { width: 76px; height: 76px; }
+      .brand-title { font-size: 18px; }
+      .brand-sub { margin-bottom: 14px; font-size: 12px; max-width: none; }
+      .brand-divider { margin-bottom: 14px; }
+      .brand-features { margin-bottom: 14px; }
+      .brand-footer { max-width: none; }
+      .lp-form { padding: 28px 24px 28px; }
+      .form-hd { margin-bottom: 20px; }
+      .form-hd h2 { font-size: 24px; }
+    }
+
+    @media (max-width: 560px) {
+      body { align-items: stretch; padding: 0; }
+      .login-card {
+        width: 100%;
+        max-width: none;
+        min-height: 100dvh;
+        min-height: 100svh;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+      }
+      .lp-brand {
+        padding: max(16px, env(safe-area-inset-top)) 20px 14px;
+      }
+      .brand-logo-ring {
+        width: 76px; height: 76px;
+        margin-bottom: 8px;
+        box-shadow: 0 0 0 6px rgba(149,204,221,0.12), 0 8px 20px rgba(0,0,0,0.22);
+        animation: none;
+      }
+      .brand-logo-ring img { width: 60px; height: 60px; }
+      .brand-badge { margin-bottom: 8px; font-size: 11px; }
+      .brand-title { font-size: 19px; }
+      .brand-sub { margin-bottom: 10px; }
+      .brand-divider { margin-bottom: 10px; }
+      .brand-features { margin-bottom: 10px; }
+      .brand-feat { padding: 10px 6px; border-radius: 10px; }
+      .brand-feat i { font-size: 16px; margin-bottom: 5px; }
+      .brand-feat span { font-size: 11px; }
+      .lp-form {
+        padding: 20px 20px max(16px, env(safe-area-inset-bottom));
+        justify-content: flex-start;
+      }
+      .lp-form::before { display: none; }
+      .form-hd { margin-bottom: 16px; }
+      .form-hd-icon { width: 40px; height: 40px; border-radius: 12px; margin-bottom: 10px; }
+      .form-hd p { font-size: 14px; }
+      .inp-group { margin-bottom: 12px; }
+      .inp-label { font-size: 12px; }
+      .signin-btn { font-size: 15px; min-height: 52px; margin: 4px 0 12px; }
+      .or-row { margin-bottom: 12px; }
+    }
+
+    @media (max-width: 380px) {
+      .brand-features { gap: 6px; }
+      .brand-feat span { font-size: 10px; }
+      .form-hd h2 { font-size: 22px; }
+      .lp-brand { padding-left: 16px; padding-right: 16px; }
+      .lp-form { padding-left: 16px; padding-right: 16px; }
+    }
+
+    @media (max-height: 700px) and (max-width: 920px) {
+      .brand-logo-ring { width: 72px; height: 72px; margin-bottom: 8px; }
+      .brand-logo-ring img { width: 56px; height: 56px; }
+      .brand-footer { display: none; }
+      .form-hd { margin-bottom: 14px; }
+      .form-hd-icon { display: none; }
+    }
+
+    @media (max-height: 520px) and (orientation: landscape) {
+      body { align-items: flex-start; padding: 12px; }
+      .login-card {
+        flex-direction: row;
+        max-width: 860px;
+        min-height: 0;
+        width: 100%;
+        border-radius: 20px;
+      }
+      .lp-brand {
+        width: 38%;
+        padding: 20px 16px;
+      }
+      .brand-features, .brand-footer, .brand-divider { display: none; }
+      .brand-logo-ring { width: 64px; height: 64px; margin-bottom: 8px; animation: none; }
+      .brand-logo-ring img { width: 50px; height: 50px; }
+      .lp-form { padding: 20px 24px; }
+      .form-hd { margin-bottom: 12px; }
+      .form-hd-icon { display: none; }
+      .form-hd h2 { font-size: 20px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-blob bg-blob-1"></div>
+  <div class="bg-blob bg-blob-2"></div>
+  <div class="bg-blob bg-blob-3"></div>
+
+  <div class="login-card">
+    <div class="lp-brand">
+      <div class="brand-logo-ring">
+        <img src="/images/logo.png" alt="HopeCare ABC Logo">
+      </div>
+      <div class="brand-badge">
+        <i class="fa-solid fa-user-check"></i>
+        Patient Portal
+      </div>
+      <div class="brand-title">
+        Patient Health<br>
+        <span class="accent">Portal Access</span>
+      </div>
+      <div class="brand-sub">HopeCare Animal Bite Center – Gingoog City</div>
+      <div class="brand-divider">
+        <div class="brand-divider-line"></div>
+        <i class="fa-solid fa-heart-pulse"></i>
+        <div class="brand-divider-line"></div>
+      </div>
+      <div class="brand-features">
+        <div class="brand-feat">
+          <i class="fa-solid fa-syringe"></i>
+          <span>View Vaccination Schedule</span>
+        </div>
+        <div class="brand-feat">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span>Treatment Progress</span>
+        </div>
+        <div class="brand-feat">
+          <i class="fa-solid fa-bell"></i>
+          <span>Dose Reminders</span>
+        </div>
+      </div>
+      <div class="brand-footer">
+        <i class="fa-solid fa-shield-halved"></i>
+        <div class="brand-footer-text">
+          <p>Your Health Data is Protected</p>
+          <p>Secure & confidential patient records.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="lp-form">
+      <div class="form-hd">
+        <div class="form-hd-icon"><i class="fa-solid fa-id-card"></i></div>
+        <h2>Patient <span>Login</span></h2>
+        <p>Enter the Patient ID printed on your Patient Card (example: PAT-000001). Registration numbers such as ABC-2026-000001 are also accepted.</p>
+        <div class="form-hd-accent"></div>
+      </div>
+
+      <div class="error-banner" id="errorBanner" role="alert">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span id="errorText">Invalid Patient ID or password. Please check your credentials and try again.</span>
+      </div>
+
+      <form id="loginForm" novalidate>
+        <div class="inp-group">
+          <label class="inp-label" for="username"><i class="fa-solid fa-hashtag"></i> Patient ID</label>
+          <div class="inp-wrap">
+            <i class="fa-solid fa-hashtag inp-icon" aria-hidden="true"></i>
+            <input type="text" id="username" name="username"
+              placeholder="PAT-000001"
+              autocomplete="username" required spellcheck="false" autofocus
+              inputmode="text" autocapitalize="characters">
+          </div>
+        </div>
+
+        <div class="inp-group">
+          <label class="inp-label" for="password"><i class="fa-solid fa-lock"></i> Password</label>
+          <div class="inp-wrap">
+            <i class="fa-solid fa-lock inp-icon" aria-hidden="true"></i>
+            <input type="password" id="password" name="password"
+              placeholder="Enter your password"
+              autocomplete="current-password" required>
+            <button type="button" class="pw-btn" id="pwToggle" aria-label="Show password" aria-pressed="false">
+              <i class="fa-regular fa-eye" id="pwIcon" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="signin-btn" id="signinBtn">
+          <div class="btn-spinner"></div>
+          <i class="fa-solid fa-right-to-bracket btn-icon"></i>
+          <span class="btn-lbl">Sign In to Patient Portal</span>
+        </button>
+
+        <div class="or-row">
+          <div class="or-line"></div>
+          <span class="or-text">ACCESS</span>
+          <div class="or-line"></div>
+        </div>
+      </form>
+
+      <div class="form-footer">
+        <i class="fa-solid fa-info-circle"></i>
+        <div class="form-footer-text">
+          <p>First-time User?</p>
+          <p>Use the temporary password provided by the clinic. You will be asked to change it after signing in.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="temp-pw-modal" id="tempPwModal">
+    <div class="temp-pw-card">
+      <div class="temp-pw-icon">
+        <i class="fa-solid fa-lock-open"></i>
+      </div>
+      <h3 class="temp-pw-title">Change Your <span>Password</span></h3>
+      <p class="temp-pw-desc">
+        You're using a temporary password. Please set a new, secure password to continue accessing your portal.
+      </p>
+      <div class="temp-pw-error" id="tempPwError"></div>
+      <form class="temp-pw-form" id="tempPwForm">
+        <div class="form-group">
+          <label for="tempCurrentPw">Current (Temporary) Password</label>
+          <input type="password" id="tempCurrentPw" autocomplete="current-password" required>
+        </div>
+        <div class="form-group">
+          <label for="tempNewPw">New Password</label>
+          <input type="password" id="tempNewPw" autocomplete="new-password" required>
+        </div>
+        <div class="form-group">
+          <label for="tempConfirmPw">Confirm New Password</label>
+          <input type="password" id="tempConfirmPw" autocomplete="new-password" required>
+        </div>
+        <ul class="pw-req-list">
+          <li>Minimum 8 characters</li>
+          <li>New passwords must match</li>
+          <li>Cannot be the same as the temporary password</li>
+        </ul>
+        <button type="submit" class="temp-pw-btn" id="tempPwBtn">
+          <span class="btn-spinner" style="display:none;border-color:rgba(255,255,255,.35);border-top-color:#fff;"></span>
+          <i class="fa-solid fa-key"></i>
+          <span>Set New Password & Continue</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('pwToggle').addEventListener('click', () => {
+      const inp  = document.getElementById('password');
+      const icon = document.getElementById('pwIcon');
+      const btn  = document.getElementById('pwToggle');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'fa-regular fa-eye-slash';
+        btn.setAttribute('aria-label', 'Hide password');
+        btn.setAttribute('aria-pressed', 'true');
+      } else {
+        inp.type = 'password';
+        icon.className = 'fa-regular fa-eye';
+        btn.setAttribute('aria-label', 'Show password');
+        btn.setAttribute('aria-pressed', 'false');
+      }
+    });
+
+    document.getElementById('signinBtn').addEventListener('mousedown', function(e) {
+      const r    = this.getBoundingClientRect();
+      const size = Math.max(r.width, r.height);
+      const x    = e.clientX - r.left  - size / 2;
+      const y    = e.clientY - r.top   - size / 2;
+      const rpl  = document.createElement('span');
+      rpl.className = 'ripple';
+      rpl.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px`;
+      this.appendChild(rpl);
+      setTimeout(() => rpl.remove(), 600);
+    });
+
+    ['username','password'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        document.getElementById('errorBanner').classList.remove('show');
+      });
+    });
+
+    document.getElementById('username').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('password').focus(); }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username  = document.getElementById('username').value.trim();
+      const password  = document.getElementById('password').value.trim();
+      const btn       = document.getElementById('signinBtn');
+      const banner    = document.getElementById('errorBanner');
+      const errorText = document.getElementById('errorText');
+
+      const showError = (msg) => {
+        errorText.textContent = msg;
+        banner.classList.remove('show');
+        void banner.offsetWidth;
+        banner.classList.add('show');
+      };
+
+      if (!username || !password) {
+        showError('Please enter both Patient ID and password.');
+        return;
+      }
+
+      btn.classList.add('loading');
+      btn.disabled = true;
+      banner.classList.remove('show');
+
+      try {
+        const res  = await fetch('/api/patient/auth/login', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body:    JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          btn.style.background = 'linear-gradient(135deg,#16a34a,#15803d)';
+          btn.style.boxShadow  = '0 5px 18px rgba(22,163,74,0.45)';
+          btn.querySelector('.btn-lbl').textContent = 'Redirecting…';
+          setTimeout(() => { window.location.href = '/patient/patient-dashboard.html'; }, 400);
+        } else {
+          btn.classList.remove('loading');
+          btn.disabled = false;
+          showError(data.message || 'Invalid Patient ID or password. Please check your credentials and try again.');
+          const pwField = document.getElementById('password');
+          pwField.style.borderColor = '#f87171';
+          setTimeout(() => { pwField.style.borderColor = ''; }, 1400);
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        showError('Unable to connect. Check your connection and try again.');
+      }
+    });
+
+    document.getElementById('tempPwForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const currentPw = document.getElementById('tempCurrentPw').value;
+      const newPw     = document.getElementById('tempNewPw').value;
+      const confirmPw = document.getElementById('tempConfirmPw').value;
+      const btn       = document.getElementById('tempPwBtn');
+      const errEl     = document.getElementById('tempPwError');
+
+      const showErr = (msg) => {
+        errEl.textContent = msg;
+        errEl.classList.add('show');
+      };
+
+      errEl.classList.remove('show');
+
+      if (!currentPw || !newPw || !confirmPw) {
+        showErr('Please fill in all fields.');
+        return;
+      }
+      if (newPw.length < 8) {
+        showErr('New password must be at least 8 characters long.');
+        return;
+      }
+      if (newPw !== confirmPw) {
+        showErr('New passwords do not match.');
+        return;
+      }
+      if (newPw === currentPw) {
+        showErr('New password cannot be the same as the temporary password.');
+        return;
+      }
+
+      btn.disabled = true;
+      const spinner = btn.querySelector('.btn-spinner');
+      spinner.style.display = 'inline-block';
+
+      try {
+        const res = await fetch('/api/patient/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            current_password: currentPw,
+            new_password: newPw
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          btn.style.background = 'linear-gradient(135deg,#16a34a,#15803d)';
+          btn.style.boxShadow  = '0 4px 14px rgba(22,163,74,0.4)';
+          btn.querySelector('span:last-child').textContent = 'Success! Redirecting…';
+          const dest = data.require_relogin
+            ? '/patient/patient-login.html'
+            : '/patient/patient-dashboard.html';
+          setTimeout(() => { window.location.href = dest; }, 600);
+        } else {
+          btn.disabled = false;
+          spinner.style.display = 'none';
+          showErr(data.message || 'Failed to change password.');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        showErr('Network error. Please try again.');
+      }
+    });
+  </script>
+</body>
+</html>

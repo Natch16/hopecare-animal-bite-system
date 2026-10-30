@@ -1,0 +1,880 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Monitoring - Animal Bite System</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/shared/sidebar.js"></script>
+  <script src="/js/shared/vaccine-catalog.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    /* ═══════════════════════════════════
+       FOLLOW-UP PAGE STYLES
+    ═══════════════════════════════════ */
+    .fu-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+    .fu-header h1 { color:#293681; font-size:1.4rem; margin:0; }
+
+    /* Summary cards */
+    .fu-cards { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+    @media(max-width:1100px){ .fu-cards{grid-template-columns:repeat(3,1fr);} }
+    .fu-card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); display:flex; align-items:center; gap:14px; cursor:pointer; transition:transform .15s; }
+    .fu-card:hover { transform:translateY(-2px); }
+    .fu-card .fu-ci { width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+    .fu-card.blue   .fu-ci { background:rgba(66,116,217,.15); }
+    .fu-card.green  .fu-ci { background:rgba(34,197,94,.15);  }
+    .fu-card.orange .fu-ci { background:rgba(249,115,22,.15); }
+    .fu-card.red    .fu-ci { background:rgba(239,68,68,.15);  }
+    .fu-card.gray   .fu-ci { background:rgba(100,116,139,.15);}
+    .fu-card-info .fu-cv { font-size:26px; font-weight:800; color:#293681; line-height:1; }
+    .fu-card-info .fu-cl { font-size:11.5px; color:#666; margin-top:2px; }
+
+    /* Filters */
+    .fu-filters { background:#fff; border-radius:12px; padding:16px 18px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:18px; display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+    .fu-fg { display:flex; flex-direction:column; gap:3px; }
+    .fu-fg label { font-size:10.5px; font-weight:700; color:#293681; text-transform:uppercase; letter-spacing:.4px; }
+    .fu-fg input, .fu-fg select {
+      padding:8px 11px; border:1.5px solid #cdd5e0; border-radius:8px;
+      font-size:13px; background:#f8faff; min-width:140px; transition:border-color .2s;
+    }
+    .fu-fg input:focus, .fu-fg select:focus { outline:none; border-color:#4274D9; }
+    .fu-btn-search {
+      padding:9px 18px; background:linear-gradient(135deg,#4274D9,#293681);
+      color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600;
+      cursor:pointer; align-self:flex-end; transition:all .2s;
+    }
+    .fu-btn-search:hover { transform:translateY(-1px); }
+    .fu-btn-search:disabled { opacity:.55; pointer-events:none; transform:none; cursor:not-allowed; }
+    .fu-btn-reset {
+      padding:9px 14px; background:#f1f5f9; color:#64748b;
+      border:none; border-radius:8px; font-size:13px; font-weight:600;
+      cursor:pointer; align-self:flex-end; transition:all .2s;
+    }
+
+    /* ─────────────────────────────────────────────
+       FOLLOW-UP TABLE — matches Patients Record table
+    ───────────────────────────────────────────── */
+
+    /* Container: only the table scrolls horizontally */
+    .fu-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: visible;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(41,54,129,.09);
+      border: 1px solid #e2e8f5;
+      isolation: isolate;
+    }
+
+    /* Table base */
+    .fu-table {
+      border-collapse: collapse;
+      font-size: 12px;
+      font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+      width: max-content;
+      min-width: 100%;
+    }
+
+    .fu-table th,
+    .fu-table td {
+      border: 1px solid #d1d9ee;
+      padding: 7px 9px;
+      text-align: center;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    /* Header */
+    .fu-table thead th {
+      background: linear-gradient(180deg, #4274D9 0%, #293681 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 11px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    /* ── Sticky: No. (Patient ID) ── left:0, width:80px */
+    .fu-table th.fc-no,
+    .fu-table td.fc-no {
+      position: sticky;
+      left: 0;
+      min-width: 80px;
+      width: 80px;
+      z-index: 15;
+    }
+
+    /* ── Sticky: Patient Name ── left:80px, width:180px */
+    .fu-table th.fc-name,
+    .fu-table td.fc-name {
+      position: sticky;
+      left: 80px;
+      min-width: 180px;
+      width: 180px;
+      z-index: 15;
+      text-align: left;
+    }
+
+    /* Sticky header cells need higher z than body cells */
+    .fu-table thead th.fc-no,
+    .fu-table thead th.fc-name,
+    .fu-table thead th.fc-action {
+      z-index: 35;
+    }
+
+    /* Solid bg for sticky body cells */
+    .fu-table td.fc-no,
+    .fu-table td.fc-name {
+      background: #f0f7ff;
+      font-weight: 600;
+    }
+
+    /* Divider shadow after Patient Name */
+    .fu-table th.fc-name,
+    .fu-table td.fc-name {
+      box-shadow: 3px 0 6px rgba(0,0,0,.15);
+    }
+
+    /* ── Sticky Actions on right ── */
+    .fu-table th.fc-action,
+    .fu-table td.fc-action {
+      position: sticky;
+      right: 0;
+      min-width: 130px;
+      z-index: 15;
+      box-shadow: -3px 0 6px rgba(0,0,0,.12);
+    }
+    .fu-table thead th.fc-action {
+      z-index: 30;
+      background: linear-gradient(180deg, #4274D9 0%, #293681 100%);
+    }
+    .fu-table td.fc-action {
+      background: #f0f7ff;
+    }
+
+    /* Column widths for non-sticky cols */
+    .fc-age      { min-width: 50px; }
+    .fc-sex      { min-width: 60px; }
+    .fc-bgy      { min-width: 130px; }
+    .fc-contact  { min-width: 120px; }
+    .fc-animal   { min-width: 90px; }
+    .fc-cat      { min-width: 100px; }
+    .fc-vaccine  { min-width: 110px; }
+    .fc-dose     { min-width: 75px; }
+    .fc-sched    { min-width: 110px; }
+    .fc-days     { min-width: 100px; }
+    .fc-tstatus  { min-width: 130px; }
+
+    /* Row styles */
+    .fu-table tbody tr:nth-child(even) td { background: #f8faff; }
+    .fu-table tbody tr:nth-child(even) td.fc-no,
+    .fu-table tbody tr:nth-child(even) td.fc-name,
+    .fu-table tbody tr:nth-child(even) td.fc-action { background: #e8f1ff; }
+    .fu-table tbody tr:hover td { background: #ddeeff !important; }
+
+    /* Status badges */
+    .badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:10.5px; font-weight:700; white-space:nowrap; }
+    .badge-completed  { background:#dcfce7; color:#15803d; }
+    .badge-ongoing    { background:#eff6ff; color:#1d4ed8; }
+    .badge-due-today  { background:#ffedd5; color:#c2410c; }
+    .badge-due-tomorrow { background:#dbeafe; color:#1e40af; }
+    .badge-overdue    { background:#fee2e2; color:#b91c1c; }
+    .badge-pending    { background:#f1f5f9; color:#475569; }
+
+    /* Action buttons in table — matches patients record table style */
+    .fu-actions { display:flex; flex-direction:column; gap:4px; justify-content:center; align-items:stretch; }
+    .fu-act-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 4px 9px;
+      border: none;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+      font-family: inherit;
+      text-decoration: none;
+    }
+    .fu-act-btn.view   { background:#eff6ff; color:#1d4ed8; }
+    .fu-act-btn.hist   { background:#f0fdf4; color:#15803d; }
+    .fu-act-btn.sms    { background:#f5f3ff; color:#5b21b6; }
+    .fu-act-btn:hover  { filter:brightness(.9); transform:translateY(-1px); box-shadow:0 2px 6px rgba(0,0,0,.1); }
+    .fu-act-btn:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+
+    /* Days remaining color */
+    .days-red    { color:#ef4444; font-weight:700; }
+    .days-orange { color:#f97316; font-weight:700; }
+    .days-green  { color:#22c55e; font-weight:600; }
+
+    /* ══ MODALS ══ */
+    .fu-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; }
+    .fu-modal.open { display:flex; }
+    .fu-modal-content {
+      background:#fff; border-radius:14px; width:95%; max-width:860px;
+      max-height:90vh; overflow-y:auto; padding:28px 30px;
+      box-shadow:0 20px 60px rgba(0,0,0,.2);
+    }
+    .fu-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+    .fu-modal-header h3 { color:#293681; margin:0; font-size:17px; }
+    .fu-modal-close { background:#f1f5f9; border:none; width:32px; height:32px; border-radius:8px; font-size:18px; cursor:pointer; color:#64748b; transition:all .2s; }
+    .fu-modal-close:hover { background:#fee2e2; color:#ef4444; }
+
+    /* Detail sections inside modal */
+    .fu-section { margin-bottom:18px; }
+    .fu-section h4 { color:#4274D9; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid #e8f0fe; }
+    .fu-detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
+    .fu-detail-item { background:#f8faff; border-radius:8px; padding:10px 12px; }
+    .fu-detail-item .di-label { font-size:10.5px; color:#888; font-weight:600; text-transform:uppercase; margin-bottom:3px; }
+    .fu-detail-item .di-value { font-size:13.5px; color:#293681; font-weight:600; }
+    .sms-section { margin-top:4px; }
+    .sms-actions { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 8px; }
+    .sms-note { font-size:12px; color:#64748b; margin:8px 0 0; }
+    .sms-note.sms-warn { color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px 10px; }
+    .sms-notify { margin:0 0 10px; padding:8px 10px; border-radius:8px; font-size:13px; font-weight:600; }
+    .sms-notify-ok { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+    .sms-notify-fail { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+    .sms-notify-warn { background:#fffbeb; color:#92400e; border:1px solid #fde68a; }
+    .sms-notify-pending { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+    .sms-badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:700; }
+    .sms-badge.sms-ok { background:#dcfce7; color:#166534; }
+    .sms-badge.sms-fail { background:#fee2e2; color:#991b1b; }
+    .sms-badge.sms-skip { background:#f1f5f9; color:#475569; }
+    .sms-badge.sms-pending { background:#fef3c7; color:#92400e; }
+    .sms-log-wrap { overflow:auto; margin-top:10px; }
+    .sms-log-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .sms-log-table th, .sms-log-table td { padding:7px 8px; border-bottom:1px solid #e8edf8; text-align:left; }
+    .sms-modal { position:fixed; inset:0; background:rgba(15,23,42,.45); display:flex; align-items:center; justify-content:center; z-index:80; padding:16px; }
+    .sms-modal[hidden] { display:none; }
+    .sms-modal-card { background:#fff; border-radius:14px; padding:20px; max-width:560px; width:100%; box-shadow:0 16px 40px rgba(15,23,42,.2); }
+    .sms-preview-body { white-space:pre-wrap; background:#f8faff; border:1px solid #e2e8f0; border-radius:10px; padding:12px; font-size:13px; max-height:280px; overflow:auto; }
+
+
+    /* Dose timeline */
+    .dose-timeline { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .dose-item { padding:6px 12px; border-radius:20px; font-size:11.5px; font-weight:700; }
+    .dose-done  { background:#dcfce7; color:#15803d; }
+    .dose-miss  { background:#fee2e2; color:#b91c1c; }
+    .dose-next  { background:#fef3c7; color:#92400e; border:2px dashed #f59e0b; }
+    .dose-empty { background:#f1f5f9; color:#94a3b8; }
+
+    @media print {
+      .sidebar, .fu-header, .fu-cards, .fu-filters, .fu-actions,
+      .fu-modal, .fu-btn-search, .fu-btn-reset { display:none !important; }
+      .main-content { margin-left:0 !important; width:100% !important; }
+      body { background:#fff !important; }
+    }
+  </style>
+</head>
+<body data-nav="followup">
+  <div class="main-wrapper">
+    <script>initAppSidebar();</script>
+
+    <div class="main-content">
+      <div class="fu-header">
+        <h1 class="fu-header h1" style="color:#293681;font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-clipboard-list" style="color:#4274D9;"></i> Patient Monitoring
+          </h1>
+        <div style="display:flex;gap:10px;align-items:center;"></div>
+      </div>
+
+      <!-- ── Summary Cards ── -->
+      <div class="fu-cards">
+        <div class="fu-card blue" onclick="applyQuickFilter('')">
+          <div class="fu-ci"><i class="fa-solid fa-users"></i></div>
+          <div class="fu-card-info">
+            <div class="fu-cv" id="card-total">—</div>
+            <div class="fu-cl">Total Active Patients</div>
+          </div>
+        </div>
+        <div class="fu-card orange" onclick="applyQuickFilter('due-today')">
+          <div class="fu-ci"><i class="fa-solid fa-calendar-day"></i></div>
+          <div class="fu-card-info">
+            <div class="fu-cv" id="card-today">—</div>
+            <div class="fu-cl">Due Today</div>
+          </div>
+        </div>
+        <div class="fu-card blue" onclick="applyQuickFilter('due-tomorrow')">
+          <div class="fu-ci"><i class="fa-solid fa-calendar-week"></i></div>
+          <div class="fu-card-info">
+            <div class="fu-cv" id="card-tomorrow">—</div>
+            <div class="fu-cl">Due Tomorrow</div>
+          </div>
+        </div>
+        <div class="fu-card red" onclick="applyQuickFilter('incomplete')">
+          <div class="fu-ci"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="fu-card-info">
+            <div class="fu-cv" id="card-overdue">—</div>
+            <div class="fu-cl">Incomplete</div>
+          </div>
+        </div>
+        <div class="fu-card gray" onclick="applyQuickFilter('completed')">
+          <div class="fu-ci"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="fu-card-info">
+            <div class="fu-cv" id="card-completed">—</div>
+            <div class="fu-cl">Completed Treatment</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Filters ── -->
+      <div class="fu-filters">
+        <div class="fu-fg">
+          <label>Search</label>
+          <input type="text" id="fSearch" placeholder="PAT- / ABC- / Name / Contact / Barangay" style="min-width:220px;">
+        </div>
+        <div class="fu-fg">
+          <label>Filter by Status</label>
+          <select id="fFilter">
+            <option value="">All Status</option>
+            <option value="due-today">Due Today</option>
+            <option value="due-tomorrow">Due Tomorrow</option>
+            <option value="due-this-week">Due This Week</option>
+            <option value="incomplete">Incomplete / Missed Dose</option>
+            <option value="completed">Completed</option>
+            <option value="ongoing">Ongoing</option>
+          </select>
+        </div>
+        <div class="fu-fg">
+          <label>Filter by Vaccine</label>
+          <select id="fVaccine">
+            <option value="">All Vaccines</option>
+          </select>
+        </div>
+        <button class="fu-btn-search" onclick="loadFollowup()"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+        <button class="fu-btn-reset" onclick="resetFilters()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+      </div>
+
+      <!-- ── Table ── -->
+      <div class="fu-table-wrap">
+        <table class="fu-table">
+          <thead>
+            <tr>
+              <th class="fc-no">Patient ID</th>
+              <th class="fc-name">Patient Name</th>
+              <th class="fc-age">Age</th>
+              <th class="fc-sex">Gender</th>
+              <th class="fc-bgy">Barangay</th>
+              <th class="fc-contact">Contact No.</th>
+              <th class="fc-animal">Animal Type</th>
+              <th class="fc-cat">Bite Category</th>
+              <th class="fc-vaccine">Current Vaccine</th>
+              <th class="fc-dose">Dose No.</th>
+              <th class="fc-sched">Next Schedule</th>
+              <th class="fc-days">Days Remaining</th>
+              <th class="fc-tstatus">Treatment Status</th>
+              <th class="fc-action">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="fuTableBody">
+            <tr><td colspan="14" style="padding:24px;color:#888;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="fuFooter" style="margin-top:10px;font-size:12px;color:#888;text-align:right;"></div>
+    </div>
+  </div>
+
+  <!-- ══ PATIENT DETAIL MODAL ══ -->
+  <div class="fu-modal" id="detailModal">
+    <div class="fu-modal-content" style="max-width:900px;border-radius:16px;box-shadow:0 12px 48px rgba(41,54,129,.18);">
+      <div class="fu-modal-header" style="border-bottom:2px solid #e8f0fe;padding-bottom:14px;margin-bottom:20px;">
+        <h3 style="color:#293681;font-size:16px;font-weight:800;display:flex;align-items:center;gap:9px;margin:0;">
+          <i class="fa-solid fa-user-injured" style="color:#4274D9;"></i> Patient Record &amp; Follow-up Details
+        </h3>
+        <button class="fu-modal-close" onclick="closeModal('detailModal')">×</button>
+      </div>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <div class="fu-modal" id="smsModal">
+    <div class="fu-modal-content" style="max-width:560px;">
+      <div class="fu-modal-header">
+        <h3><i class="fa-solid fa-comment-sms" style="color:#5b21b6;margin-right:6px;"></i> Send SMS</h3>
+        <button class="fu-modal-close" type="button" onclick="closeModal('smsModal')">×</button>
+      </div>
+      <div id="smsModalBody" style="display:grid;grid-template-columns:160px 1fr;gap:8px 12px;font-size:13px;align-items:start;"></div>
+      <p style="margin:12px 0 0;font-size:12px;color:#475569;">This sends the vaccination reminder only. The temporary password is printed on the Patient Card.</p>
+      <label for="smsMessage" style="display:block;margin:14px 0 6px;font-size:12px;font-weight:700;color:#293681;">Message</label>
+      <textarea id="smsMessage" rows="6" readonly style="width:100%;box-sizing:border-box;border:1.5px solid #cdd5e0;border-radius:8px;padding:10px;font:inherit;font-size:13px;resize:vertical;background:#f8fafc;"></textarea>
+      <div id="smsModalNote" style="min-height:18px;margin-top:8px;font-size:12px;color:#b91c1c;"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+        <button type="button" class="fu-btn-reset" onclick="closeModal('smsModal')">Cancel</button>
+        <button type="button" class="fu-btn-search" id="smsSendBtn" onclick="submitManualSms()">Send SMS</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/shared/rbac.js"></script>
+  <script src="/js/shared/app.js"></script>
+  <script src="/js/nurse/treatment-restart.js"></script>
+  <script src="/js/nurse/sms-reminders.js"></script>
+  <script>
+    /* ═══════════════════════════════════════════
+       PATIENT MONITORING — full JavaScript
+    ═══════════════════════════════════════════ */
+
+    let currentStaff   = 'Staff';
+    let smsPatientId   = null;
+    let smsBusy        = false;
+    let allData        = [];
+
+    // ── INIT ──────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+      const auth = await checkAuth();
+      if (auth?.username) {
+        currentStaff = auth.username;
+      }
+      if (window.VaccineCatalog) {
+        await VaccineCatalog.load();
+        const sel = document.getElementById('fVaccine');
+        if (sel) {
+          const brands = VaccineCatalog.catalog.antiRabies || [];
+          sel.innerHTML = '<option value="">All Vaccines</option>' +
+            brands.map((v) => `<option value="${v.name.replace(/"/g,'&quot;')}">${v.name}</option>`).join('');
+        }
+      }
+      loadFollowup();
+
+      // Search on Enter key
+      document.getElementById('fSearch').addEventListener('keydown', e => {
+        if (e.key === 'Enter') loadFollowup();
+      });
+    });
+
+    // ── HELPERS ───────────────────────────────────────────────────────
+    function esc(v) {
+      if (v == null) return '—';
+      return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      if (typeof formatDateShort === 'function') return formatDateShort(d, '—');
+      const iso = String(d).slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}/.test(iso)) return String(d);
+      const [y, mo, da] = iso.split('-').map(Number);
+      return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][mo - 1] + ` ${da}, ${y}`;
+    }
+
+    function animalLabel(code) {
+      const m = {D:'Pet Dog',SD:'Stray Dog',C:'Cat',O:'Others'};
+      return m[code] || code || '—';
+    }
+
+    function sexLabel(s) { return s==='M'?'Male':s==='F'?'Female':'Other'; }
+
+    function treatmentBadge(status) {
+      const map = {
+        'Completed':    'badge-completed',
+        'Ongoing':      'badge-ongoing',
+        'Due Today':    'badge-due-today',
+        'Due Tomorrow': 'badge-due-tomorrow',
+        'Upcoming':     'badge-due-tomorrow',
+        'Overdue':      'badge-overdue',
+        'Incomplete':   'badge-overdue',
+        'Treatment Interrupted': 'badge-overdue',
+      };
+      const label = (status === 'Treatment Interrupted' || status === 'Incomplete') ? 'Incomplete' : (status||'—');
+      return `<span class="badge ${map[status]||'badge-pending'}">${label}</span>`;
+    }
+
+    function followupBadge(status) {
+      // Statuses set by the automatic follow-up system only
+      const map = {
+        'Pending':   'badge-pending',
+        'Confirmed': 'badge-confirmed',
+        'Completed': 'badge-completed',
+        'Texted':    'badge-pending',   // legacy — show as Pending
+      };
+      return `<span class="badge ${map[status]||'badge-pending'}">${status||'Pending'}</span>`;
+    }
+
+    function daysCell(days) {
+      if (days === null || days === undefined) return '—';
+      if (days < 0)  return `<span class="days-red">${days}d</span>`;
+      if (days === 0) return `<span class="days-orange">Today</span>`;
+      if (days <= 3)  return `<span class="days-orange">${days}d</span>`;
+      return `<span class="days-green">${days}d</span>`;
+    }
+
+    // ── LOAD TABLE ─────────────────────────────────────────────────────
+    async function loadFollowup() {
+      const p = new URLSearchParams();
+      const s = document.getElementById('fSearch').value.trim();
+      const f = document.getElementById('fFilter').value;
+      const v = document.getElementById('fVaccine').value;
+      if (s) p.append('search', s);
+      if (f) p.append('filter', f);
+      if (v) p.append('vaccine', v);
+
+      try {
+        const res  = await fetch('/api/followup?' + p);
+        const json = await res.json();
+        if (!json.success) return;
+
+        allData = json.data;
+
+        // Update summary cards
+        const sm = json.summary;
+        document.getElementById('card-total').textContent     = sm.total;
+        document.getElementById('card-today').textContent     = sm.dueToday;
+        document.getElementById('card-tomorrow').textContent  = sm.dueTomorrow;
+        document.getElementById('card-overdue').textContent   = sm.incomplete != null ? sm.incomplete : sm.overdue;
+        document.getElementById('card-completed').textContent = sm.completed;
+
+        renderTable(json.data);
+        document.getElementById('fuFooter').textContent =
+          `Showing ${json.data.length} of ${sm.total} patients · Last updated: ${new Date().toLocaleTimeString()}`;
+      } catch (e) {
+        console.error('Follow-up load error:', e);
+      }
+    }
+
+    function sortByRegistration(rows) {
+      return [...rows].sort((a, b) => {
+        const parseReg = (r) => {
+          const s = String(r.registration_number || '');
+          const parts = s.split('-');
+          if (parts.length >= 3 && parts[0] === 'ABC') {
+            return { year: parseInt(parts[1], 10) || 0, seq: parseInt(parts[2], 10) || 0 };
+          }
+          return { year: 0, seq: parseInt(s, 10) || 0 };
+        };
+        const ra = parseReg(a);
+        const rb = parseReg(b);
+        if (ra.year !== rb.year) return rb.year - ra.year;
+        if (ra.seq !== rb.seq) return ra.seq - rb.seq;
+        return (a.patient_id || 0) - (b.patient_id || 0);
+      });
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('fuTableBody');
+      const sorted = sortByRegistration(rows);
+      if (!sorted.length) {
+        tbody.innerHTML = '<tr><td colspan="14" style="padding:24px;color:#888;text-align:center;">No patients found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = sorted.map(r => `
+        <tr>
+          <td class="fc-no" style="font-weight:700;color:#293681;">${esc(r.patient_id_display || ('PAT-' + String(r.patient_id).padStart(6,'0')))}</td>
+          <td class="fc-name">${esc(r.full_name)}</td>
+          <td class="fc-age">${esc(r.age)}</td>
+          <td class="fc-sex">${sexLabel(r.sex)}</td>
+          <td class="fc-bgy">${esc(r.barangay)}</td>
+          <td class="fc-contact">${esc(r.contact_number)}</td>
+          <td class="fc-animal">${animalLabel(r.type_of_animal)}</td>
+          <td class="fc-cat">${r.category ? 'Category ' + r.category : '—'}</td>
+          <td class="fc-vaccine">${esc(r.brand_name)}</td>
+          <td class="fc-dose">${r.nextDoseLabel || '—'}</td>
+          <td class="fc-sched">${fmtDate(r.nextSchedule)}</td>
+          <td class="fc-days">${daysCell(r.daysRemaining)}</td>
+          <td class="fc-tstatus">${treatmentBadge(r.treatmentStatus)}</td>
+          <td class="fc-action">
+            <div class="fu-actions">
+              <button class="fu-act-btn view" onclick="viewRecord(${r.patient_id})"><i class="fa-solid fa-eye"></i> ${(r.treatmentStatus === 'Incomplete' || r.treatmentStatus === 'Treatment Interrupted') ? 'Review Missed Dose' : 'View'}</button>
+              <a      class="fu-act-btn hist" href="/nurse/patient-episodes.html?id=${r.patient_id}"><i class="fa-solid fa-timeline"></i> View Treatment History</a>
+              <button class="fu-act-btn sms" type="button" onclick="openSendSms(${r.patient_id})"><i class="fa-solid fa-comment-sms"></i> Send SMS</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // ── FILTERS ───────────────────────────────────────────────────────
+    function applyQuickFilter(val) {
+      document.getElementById('fFilter').value = val;
+      loadFollowup();
+    }
+
+    function resetFilters() {
+      document.getElementById('fSearch').value  = '';
+      document.getElementById('fFilter').value  = '';
+      document.getElementById('fVaccine').value = '';
+      loadFollowup();
+    }
+
+    // ── MODAL HELPERS ──────────────────────────────────────────────────
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function smsField(label, value) {
+      return `<div style="font-weight:700;color:#64748b;">${label}</div><div style="color:#0f172a;">${esc(value || '—')}</div>`;
+    }
+
+    let smsLoadToken = 0;
+
+    async function openSendSms(patientId) {
+      if (smsBusy) return;
+      const loadToken = ++smsLoadToken;
+      smsPatientId = patientId;
+      const note = document.getElementById('smsModalNote');
+      const box = document.getElementById('smsMessage');
+      const btn = document.getElementById('smsSendBtn');
+      note.style.color = '#64748b';
+      note.textContent = 'Loading patient…';
+      box.value = '';
+      btn.disabled = true;
+      document.getElementById('smsModalBody').innerHTML = '';
+      openModal('smsModal');
+      try {
+        const res = await fetch('/api/sms/manual/' + patientId);
+        const json = await res.json();
+        if (loadToken !== smsLoadToken) return;
+        if (!json.success) {
+          note.style.color = '#b91c1c';
+          note.textContent = json.message || 'Could not load the SMS form.';
+          return;
+        }
+        const d = json.data;
+        if (Number(d.patient_id) !== Number(patientId)) return;
+        document.getElementById('smsModalBody').innerHTML = [
+          smsField('Patient', d.patient_name),
+          smsField('Patient ID', d.patient_id_display),
+          smsField('Contact Number', d.contact_number),
+          smsField('Current Case', d.current_case_label),
+          smsField('Current Treatment Status', d.treatment_status),
+          smsField('Next Vaccination Dose', d.next_dose),
+          smsField('Next Scheduled Date', d.next_scheduled_label),
+          smsField('Vaccine', d.vaccine_brand),
+          smsField('Reminder', d.reminder_type || 'Not due'),
+        ].join('');
+        box.value = d.message || '';
+        if (!d.can_send) {
+          note.style.color = d.already_sent ? '#15803d' : '#b91c1c';
+          note.textContent = d.block_reason || d.phone_error || 'This reminder cannot be sent.';
+          btn.disabled = true;
+          return;
+        }
+        note.style.color = '#15803d';
+        note.textContent = 'Reminder has not been sent.';
+        btn.disabled = false;
+      } catch (err) {
+        note.style.color = '#b91c1c';
+        note.textContent = 'Could not load the SMS form.';
+      }
+    }
+
+    async function submitManualSms() {
+      if (smsBusy || !smsPatientId) return;
+      const btn = document.getElementById('smsSendBtn');
+      const note = document.getElementById('smsModalNote');
+      const patientId = smsPatientId;
+      smsBusy = true;
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      note.style.color = '#64748b';
+      note.textContent = 'Sending SMS...';
+      let sent = false;
+      try {
+        const res = await fetch('/api/sms/manual', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patient_id: patientId }),
+        });
+        const json = await res.json();
+        if (!json.success) {
+          const duplicate = json.data && json.data.duplicate;
+          note.style.color = duplicate ? '#15803d' : '#b91c1c';
+          note.textContent = json.message || 'SMS was not sent.';
+          btn.disabled = Boolean(duplicate);
+          btn.textContent = duplicate ? 'Already sent' : 'Send SMS';
+          return;
+        }
+        sent = true;
+        note.style.color = '#15803d';
+        note.textContent = json.message || 'IPROG SMS accepted this reminder.';
+        btn.disabled = true;
+        btn.textContent = 'Sent';
+      } catch (err) {
+        note.style.color = '#b91c1c';
+        note.textContent = 'SMS was not sent. The server could not be reached.';
+        btn.disabled = false;
+        btn.textContent = 'Send SMS';
+      } finally {
+        smsBusy = false;
+        if (!sent && !btn.disabled) btn.textContent = 'Send SMS';
+      }
+    }
+
+    // Close on backdrop click
+    document.querySelectorAll('.fu-modal').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    });
+
+    // ── VIEW RECORD ────────────────────────────────────────────────────
+    async function viewRecord(id) {
+      const res  = await fetch('/api/followup/' + id);
+      const json = await res.json();
+      if (!json.success) return;
+      const p = json.data;
+
+      // ── Category-aware dose schedule ──────────────────────────────────
+      // Only show the doses that apply to this patient's category
+      const ALL_DOSES = [
+        { lbl:'Day 0',  key:'vaccine_d0',  days:0  },
+        { lbl:'Day 3',  key:'vaccine_d3',  days:3  },
+        { lbl:'Day 7',  key:'vaccine_d7',  days:7  },
+        { lbl:'Day 14', key:'vaccine_d14', days:14 },
+        { lbl:'Day 28', key:'vaccine_d28', days:28 },
+      ];
+      const CAT_DAYS = { '1':[0,3,7], '2':[0,3,7,14], '3':[0,3] };
+      const reqDays  = CAT_DAYS[String(p.category)] || [0,3,7,14,28];
+      const doses    = ALL_DOSES.filter(d => reqDays.includes(d.days));
+
+      const anchorIso = p.vaccine_d0
+        || (Number(p.treatment_cycle) > 1 ? p.cycle_started_on : null);
+
+      function plusDays(iso, days) {
+        const s = String(iso || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}/.test(s)) return null;
+        const [y, mo, da] = s.split('-').map(Number);
+        const dt = new Date(y, mo - 1, da + days);
+        const mm = String(dt.getMonth() + 1).padStart(2, '0');
+        const dd = String(dt.getDate()).padStart(2, '0');
+        return `${dt.getFullYear()}-${mm}-${dd}`;
+      }
+
+      const doseTimeline = doses.map((d, i, arr) => {
+        const given   = p[d.key] || null;
+        const prevGiven = i === 0 ? true : !!(p[arr[i-1].key]);
+        const isNext  = !given && prevGiven;
+        const expDate = anchorIso ? plusDays(anchorIso, d.days) : null;
+
+        let cls, labelTxt;
+        if (given) {
+          cls = 'dose-done';
+          labelTxt = `${d.lbl}: ${fmtDate(given)}`;
+        } else if (isNext) {
+          cls = 'dose-next';
+          labelTxt = expDate ? `${d.lbl}: ${fmtDate(expDate)} (NEXT)` : `${d.lbl}: NEXT`;
+        } else {
+          cls = 'dose-empty';
+          labelTxt = expDate ? `${d.lbl}: ${fmtDate(expDate)}` : `${d.lbl}: —`;
+        }
+        return `<span class="dose-item ${cls}" title="${d.lbl}">${labelTxt}</span>`;
+      }).join('');
+
+      // ── Follow-up Information helpers ─────────────────────────────────
+      const autoStatus = p.treatmentStatus;
+      const nextFollowUp = p.nextSchedule || p.next_schedule || null;
+      const daysLeft = p.daysRemaining;
+      const reminderWindow = daysLeft === 3 ? '3 days before'
+        : daysLeft === 1 ? '1 day before'
+        : daysLeft === 0 ? 'Same day'
+        : (daysLeft > 3 ? 'Not due yet' : (daysLeft < 0 ? 'Scheduled date has passed' : 'Not in a reminder window'));
+      const caseLabel = p.current_case_number ? `Case #${p.current_case_number}` : '—';
+
+      // Map treatment status to a monitoring-friendly follow-up label
+      const followupLabel = {
+        'Completed':            'Completed',
+        'Due Today':            'Due — Contact Patient',
+        'Overdue':              'Incomplete — Restart Required',
+        'Incomplete':           'Incomplete — Restart Required',
+        'Treatment Interrupted':'Incomplete — Restart Required',
+        'Upcoming':             'Upcoming',
+        'Ongoing':              'Ongoing',
+      }[autoStatus] || autoStatus || 'Pending';
+
+      const fuBadgeCls = {
+        'Completed':           'badge-completed',
+        'Due — Contact Patient':'badge-due-today',
+        'Overdue — Urgent':    'badge-overdue',
+        'Incomplete — Restart Required': 'badge-overdue',
+        'Interrupted':         'badge-overdue',
+        'Upcoming':            'badge-due-tomorrow',
+      }[followupLabel] || 'badge-pending';
+
+      document.getElementById('detailBody').innerHTML = `
+        <div class="fu-section">
+          <h4><i class="fa-solid fa-user" style="color:#4274D9;margin-right:5px;"></i> Patient Information</h4>
+          <div class="fu-detail-grid">
+            <div class="fu-detail-item"><div class="di-label">Name</div><div class="di-value">${esc(p.full_name)}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Age</div><div class="di-value">${esc(p.age)}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Gender</div><div class="di-value">${sexLabel(p.sex)}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Address</div><div class="di-value">${esc(p.address)}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Barangay</div><div class="di-value">${esc(p.barangay)}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Contact Number</div><div class="di-value">${esc(p.contact_number)}</div></div>
+          </div>
+        </div>
+
+        <div class="fu-section">
+          <h4><i class="fa-solid fa-paw" style="color:#4274D9;margin-right:5px;"></i> Animal Bite Information</h4>
+          <div class="fu-detail-grid">
+            <div class="fu-detail-item"><div class="di-label">Animal Type</div><div class="di-value">${animalLabel(p.type_of_animal)}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Type of Exposure</div><div class="di-value">${p.type_of_exposure === 'B' ? 'Bite' : p.type_of_exposure === 'NB' ? 'Non-Bite' : '—'}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Bite Category</div><div class="di-value">${p.category ? 'Category ' + p.category : '—'}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Body Part</div><div class="di-value">${esc(p.site_of_exposure)}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Exposure Date</div><div class="di-value">${fmtDate(p.date_of_exposure)}</div></div>
+          </div>
+        </div>
+
+        <div class="fu-section">
+          <h4><i class="fa-solid fa-syringe" style="color:#4274D9;margin-right:5px;"></i>
+            Vaccination Schedule
+            ${p.category ? `<span style="font-size:10px;font-weight:600;background:#eff6ff;color:#4274D9;border-radius:99px;padding:2px 8px;margin-left:6px;">Category ${p.category}</span>` : ''}
+          </h4>
+          <div class="fu-detail-grid">
+            <div class="fu-detail-item"><div class="di-label">Vaccine Brand</div><div class="di-value">${esc(p.brand_name) || '—'}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Completed Doses</div><div class="di-value">${p.completedDoses} / ${p.totalDoses}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Remaining Doses</div><div class="di-value">${Math.max(0, p.totalDoses - p.completedDoses)}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Next Dose</div><div class="di-value">${p.nextSchedule ? fmtDate(p.nextSchedule) + (p.nextDoseLabel ? ' (' + p.nextDoseLabel + ')' : '') : '—'}</div></div>
+            <div class="fu-detail-item"><div class="di-label">Treatment Status</div><div class="di-value">${treatmentBadge(p.treatmentStatus)}</div></div>
+          </div>
+          <div class="dose-timeline" style="margin-top:12px;">${doseTimeline}</div>
+          ${window.TreatmentRestart ? TreatmentRestart.renderBanner(p, { episodeId: p.current_case_id, patientId: p.patient_id, missedDose: p.missedDose || p.missed_dose, missedDate: p.missedDate || p.missed_date, daysDelayed: p.daysDelayed || p.daysOverdue }) : ''}
+        </div>
+
+        <div class="fu-section">
+          <h4><i class="fa-solid fa-chart-line" style="color:#4274D9;margin-right:5px;"></i>
+            Monitoring Information
+            <span style="font-size:10px;font-weight:600;background:#f0fdf4;color:#16a34a;border-radius:99px;padding:2px 8px;margin-left:6px;border:1px solid #86efac;">
+              <i class="fa-solid fa-robot" style="font-size:9px;"></i> Auto-tracked
+            </span>
+          </h4>
+          <div class="fu-detail-grid">
+            <div class="fu-detail-item">
+              <div class="di-label">Treatment Status</div>
+              <div class="di-value"><span class="badge ${fuBadgeCls}">${followupLabel}</span></div>
+            </div>
+            <div class="fu-detail-item">
+              <div class="di-label">Current Case</div>
+              <div class="di-value">${esc(caseLabel)}${Number(p.treatment_cycle) > 1 ? ` · Cycle ${esc(p.treatment_cycle)}` : ''}</div>
+            </div>
+            <div class="fu-detail-item">
+              <div class="di-label">Next Dose</div>
+              <div class="di-value">${esc(p.nextDoseLabel || '—')}</div>
+            </div>
+            <div class="fu-detail-item">
+              <div class="di-label">Scheduled Date</div>
+              <div class="di-value">${nextFollowUp ? fmtDate(nextFollowUp) : '—'}</div>
+            </div>
+            <div class="fu-detail-item">
+              <div class="di-label">Days Remaining</div>
+              <div class="di-value">${daysLeft == null ? '—' : esc(daysLeft)}</div>
+            </div>
+            <div class="fu-detail-item">
+              <div class="di-label">Reminder Window</div>
+              <div class="di-value">${esc(reminderWindow)}</div>
+            </div>
+          </div>
+        </div>
+        <div id="smsStatusHost"></div>
+      `;
+      openModal('detailModal');
+      if (window.SmsReminders && p.patient_id) SmsReminders.mount('smsStatusHost', p.patient_id, p.current_case_id);
+    }
+
+  </script>
+</body>
+</html>

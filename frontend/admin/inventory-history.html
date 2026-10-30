@@ -1,0 +1,369 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory History – HopeCare Admin</title>
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="/js/shared/sidebar.js"></script>
+  <style>
+    .shift-warn { background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; border-radius:12px; padding:12px 14px; margin:0 16px 14px; font-size:13px; }
+    .shift-warn a { color:#9a3412; font-weight:700; }
+    .shift-audit { font-size:11px; color:#64748b; line-height:1.35; }
+    .hist-filters { margin-bottom:18px; }
+    .shift-filter-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }
+    .hist-count { font-size:12px; font-weight:600; color:#64748b; margin-left:auto; }
+    .adm-panel-hd { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .hist-scroll {
+      max-height: min(440px, 58vh);
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+      border: 1px solid var(--adm-border, #e8edf8);
+      border-radius: 12px;
+      background: #fff;
+      margin: 0 16px 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+    }
+    .hist-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+    .hist-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 999px; }
+    .hist-scroll::-webkit-scrollbar-thumb {
+      background: #c7d2fe;
+      border-radius: 999px;
+      border: 2px solid #f8fafc;
+    }
+    .hist-scroll { scrollbar-color: #c7d2fe #f1f5f9; scrollbar-width: thin; }
+    .hist-scroll table {
+      margin: 0;
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .hist-scroll .inv-hist-table { min-width: 1280px; }
+    .hist-scroll #histTable { min-width: 860px; }
+    .hist-scroll thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: #eef2ff;
+      color: #293681;
+      font-size: 11px;
+      letter-spacing: .02em;
+      box-shadow: 0 1px 0 #dbe4f5;
+      white-space: nowrap;
+    }
+    .hist-scroll tbody td {
+      vertical-align: middle;
+      background: #fff;
+    }
+    .hist-scroll tbody tr:hover td { background: #f8fafc; }
+    .hist-vax {
+      display: block;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .hist-scroll .col-remarks {
+      max-width: 220px;
+      white-space: normal !important;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .hist-scroll .badge { white-space: nowrap; }
+    .hist-scroll .inv-hist-table td:nth-child(11),
+    .hist-scroll .inv-hist-table td:nth-child(12),
+    .hist-scroll .inv-hist-table td:nth-child(13) { white-space: normal !important; min-width: 120px; }
+    .hist-staff { display:block; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .hist-verify { text-align:left; white-space:normal !important; min-width:190px; line-height:1.45; font-size:12px; }
+    .hist-verify strong { color:#293681; font-weight:700; }
+    .hist-scroll .adm-empty { padding: 36px 16px; }
+    .hist-loading i { animation: hist-spin 0.8s linear infinite; }
+    @keyframes hist-spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1024px) {
+      .hist-scroll { max-height: min(380px, 52vh); margin: 0 10px 14px; }
+    }
+    @media (max-width: 760px) {
+      .hist-filters { gap:8px; }
+      .hist-filters > div { flex:1 1 calc(50% - 8px); min-width:140px; }
+      .hist-filters input, .hist-filters select { min-width:0; width:100%; }
+      .shift-filter-actions { width:100%; }
+      .hist-scroll { max-height: min(340px, 48vh); }
+      .hist-vax { max-width: 140px; }
+    }
+  </style>
+</head>
+<body class="hc-admin" data-nav="inventory-history">
+<div class="main-wrapper"><script>initAppSidebar();</script>
+<div class="main-content">
+  <div class="adm-header">
+    <div>
+      <h1><i class="fa-solid fa-clock-rotate-left"></i> Inventory History</h1>
+      <p>Review saved AM and PM inventory records and each stock movement in Stock Transactions.</p>
+    </div>
+    <div class="adm-header-actions">
+      <a class="adm-btn" href="/admin/inventory.html"><i class="fa-solid fa-boxes-stacked"></i> Vaccine Inventory</a>
+    </div>
+  </div>
+  <div class="adm-filters hist-filters">
+    <div><label for="fFrom">From</label><input type="date" id="fFrom"></div>
+    <div><label for="fTo">To</label><input type="date" id="fTo"></div>
+    <div><label for="fVaccine">Vaccine</label><select id="fVaccine"><option value="">All</option></select></div>
+    <div><label for="fSearch">Search</label><input id="fSearch" placeholder="Vaccine, staff, remarks"></div>
+    <div class="shift-filter-actions">
+      <button type="button" class="adm-btn adm-btn-primary" onclick="load()"><i class="fa-solid fa-filter"></i> Apply</button>
+      <button type="button" class="adm-btn" onclick="filterToday()">Today</button>
+      <button type="button" class="adm-btn" onclick="resetFilters()">Reset</button>
+    </div>
+  </div>
+  <div class="adm-panel">
+    <div class="adm-panel-hd">
+      <h3>Shift Inventory Status</h3>
+      <span class="hist-count" id="shiftCount"></span>
+    </div>
+    <div id="varianceBox"></div>
+    <div class="hist-scroll" id="shiftScroll">
+        <table class="adm-table inv-sheet-table inv-hist-table">
+        <thead><tr>
+          <th>Date</th><th>Vaccine</th>
+          <th>AM Status</th><th>PM Status</th><th>Completion</th>
+          <th>Verification</th>
+          <th>Additional Vaccine</th>
+          <th>AM Count</th><th>PM Count</th>
+          <th>Difference</th>
+          <th>AM Saved By</th><th>PM Saved By</th>
+          <th>Verified By</th>
+          <th>Remarks</th>
+        </tr></thead>
+        <tbody id="shiftBody"><tr><td colspan="14" class="adm-empty hist-loading"><i class="fa-solid fa-spinner"></i>Loading shift inventory…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="adm-panel">
+    <div class="adm-panel-hd">
+      <h3>Stock Transactions</h3>
+      <span class="hist-count" id="txnCount"></span>
+    </div>
+    <p class="lot-filter-hint" style="margin:12px 16px 0;">Every vaccine lot record is listed here as the stock receipt for that lot. Stock Added is the quantity received, not the vials remaining. An AM Count or PM Count correction is an Adjustment in this list and does not add stock.</p>
+    <div class="hist-scroll" id="txnScroll">
+    <table class="adm-table" id="histTable">
+      <thead><tr>
+        <th>Date</th><th>Vaccine</th><th>Type</th>
+        <th>Stock Added</th>
+        <th>Expiration Date</th><th>Remarks</th><th>Staff / Admin</th>
+      </tr></thead>
+      <tbody id="tbody"><tr><td colspan="7" class="adm-empty hist-loading"><i class="fa-solid fa-spinner"></i>Loading transactions…</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+</div></div>
+<script src="/js/shared/rbac.js"></script><script src="/js/shared/app.js"></script><script src="/js/shared/notify.js"></script>
+<script>
+let rows=[]; let shiftRows=[];
+document.addEventListener('DOMContentLoaded',async()=>{
+  await checkAuth();
+  try{
+    const br=await fetch('/api/inventory/brands?include_inactive=1');
+    const bj=await br.json();
+    document.getElementById('fVaccine').innerHTML='<option value="">All</option>'+(bj.data||[]).map(v=>`<option value="${v.vaccine_id}">${v.name||v.sheet_label}</option>`).join('');
+  } catch(e){
+    console.warn(e);
+    toast('The system is temporarily unavailable. Please try again later.', false);
+  }
+  load();
+});
+function statusBadge(st){
+  const map={
+    Recorded:'badge-recorded', Closed:'badge-recorded', Open:'badge-recorded', Completed:'badge-recorded',
+    Pending:'badge-pending','Pending PM Count':'badge-pending','Pending Verification':'badge-late','Pending Initial Setup':'badge-pending',
+    Matched:'badge-recorded', Verified:'badge-recorded','Initial Setup':'badge-recorded',
+    'Late Entry':'badge-late', Expired:'badge-exp-expired', Adjusted:'badge-late', Variance:'badge-late',
+    'Not Started':'badge-pending', 'In Progress':'badge-open', Saved:'badge-recorded', Verified:'badge-recorded',
+    'Both Shifts Completed':'badge-recorded', 'Missing AM Inventory':'badge-late', 'Missing PM Inventory':'badge-late',
+    'Variance Detected':'badge-late', 'Pending Verification':'badge-late', 'Verified Correction':'badge-recorded',
+    Complete:'badge-recorded', Incomplete:'badge-pending'
+  };
+  return `<span class="badge ${map[st]||'badge-pending'}">${st||'Pending'}</span>`;
+}
+function miss(v, recorded){
+  if(!recorded || v===null || v===undefined || v==='') return '<span class="inv-missing">Not Recorded</span>';
+  return v;
+}
+function ymd(v){ if(!v) return '—'; return String(v).slice(0,10); }
+function typeBadge(type){
+  const t=String(type||'').trim()||'—';
+  const map={
+    'Stock In':'badge-recorded',
+    'Initial Opening Balance':'badge-open',
+    'Returned Vaccine':'badge-exp-valid',
+    'Vaccine Usage':'badge-pending',
+    'Usage':'badge-pending',
+    'Stock Out':'badge-late',
+    'Adjustment':'badge-late',
+    'Transfer':'badge-open',
+    'Damaged Vaccine':'badge-missed',
+    'Expired Vaccine':'badge-exp-expired'
+  };
+  return `<span class="badge ${map[t]||'badge-pending'} hist-type-badge">${t}</span>`;
+}
+function todayYmd(){
+  const t=new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
+function filterToday(){
+  const d=todayYmd();
+  document.getElementById('fFrom').value=d;
+  document.getElementById('fTo').value=d;
+  load();
+}
+function resetFilters(){
+  ['fFrom','fTo','fVaccine','fSearch'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  load();
+}
+function esc(v){
+  return String(v==null?'':v).replace(/[&<>"']/g, ch=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]));
+}
+function vaxCell(name){
+  const t=String(name||'—');
+  return `<strong class="hist-vax" title="${esc(t)}">${esc(t)}</strong>`;
+}
+function resetScroll(id){
+  const el=document.getElementById(id);
+  if(el) el.scrollTop=0;
+}
+function when(v){
+  if(!v) return '—';
+  const s=String(v).replace('T',' ').replace(/\.\d+Z?$/, '').replace(/Z$/, '');
+  const m=s.match(/^(\d{4}-\d{2}-\d{2})(?: (\d{2}:\d{2}))?/);
+  if(m) return m[2] && m[2]!=='00:00' ? `${m[1]} ${m[2]}` : m[1];
+  const dt=new Date(v);
+  return Number.isNaN(dt.getTime())?'—':dt.toLocaleString();
+}
+function staffCell(name, at){
+  if(!name && !at) return '—';
+  return `<span class="hist-staff">${esc(name||'—')}</span><div class="shift-audit">${at?when(at):''}</div>`;
+}
+async function load(){
+  const from=document.getElementById('fFrom').value;
+  const to=document.getElementById('fTo').value;
+  if(from && to && to < from){
+    toast('Please select a valid date range.', 'warning');
+    return;
+  }
+  const p=new URLSearchParams();
+  if(from)p.append('date_from',from);
+  if(to)p.append('date_to',to);
+  if(document.getElementById('fVaccine').value)p.append('vaccine_id',document.getElementById('fVaccine').value);
+  if(document.getElementById('fSearch').value)p.append('search',document.getElementById('fSearch').value);
+  document.getElementById('tbody').innerHTML='<tr><td colspan="7" class="adm-empty hist-loading"><i class="fa-solid fa-spinner"></i>Loading transactions…</td></tr>';
+  document.getElementById('shiftBody').innerHTML='<tr><td colspan="14" class="adm-empty hist-loading"><i class="fa-solid fa-spinner"></i>Loading shift inventory…</td></tr>';
+  const sc=document.getElementById('shiftCount'); if(sc) sc.textContent='';
+  const tc=document.getElementById('txnCount'); if(tc) tc.textContent='';
+  try{
+    const [r,s]=await Promise.all([
+      fetch('/api/inventory/history?'+p),
+      fetch('/api/inventory/shift-history?'+p)
+    ]);
+    const hist=await RemisNotify.parseApi(r,{
+      server:'The system is temporarily unavailable. Please try again later.',
+      forbidden:'You do not have permission to complete this action.',
+    });
+    const shift=await RemisNotify.parseApi(s,{
+      server:'The system is temporarily unavailable. Please try again later.',
+      forbidden:'You do not have permission to complete this action.',
+    });
+    if(!hist.ok){
+      toast(hist.message, false);
+      document.getElementById('tbody').innerHTML='<tr><td colspan="7"><div class="adm-empty">Unable to load inventory history.</div></td></tr>';
+    } else {
+      rows=(hist.body && hist.body.data)||[]; render();
+    }
+    if(!shift.ok){
+      toast(shift.message, false);
+      document.getElementById('shiftBody').innerHTML='<tr><td colspan="14"><div class="adm-empty">Unable to load shift inventory records.</div></td></tr>';
+    } else {
+      shiftRows=(shift.body && shift.body.data)||[];
+      renderShifts();
+    }
+    resetScroll('shiftScroll');
+    resetScroll('txnScroll');
+  } catch(e){
+    console.warn(e);
+    toast('The system is temporarily unavailable. Please try again later.', false);
+    document.getElementById('tbody').innerHTML='<tr><td colspan="7"><div class="adm-empty">Unable to load inventory history.</div></td></tr>';
+    document.getElementById('shiftBody').innerHTML='<tr><td colspan="14"><div class="adm-empty">Unable to load shift inventory records.</div></td></tr>';
+  }
+}
+function renderShifts(){
+  const tb=document.getElementById('shiftBody');
+  const box=document.getElementById('varianceBox');
+  const variances=shiftRows.filter(r=>r.verification_status==='Variance Detected' || r.difference_status==='Variance');
+  box.innerHTML=variances.length
+    ? `<div class="shift-warn"><i class="fa-solid fa-triangle-exclamation"></i> ${variances.length} vaccine record${variances.length===1?'':'s'} ${variances.length===1?'has':'have'} a variance. Additional Vaccine is listed separately and is not treated as the difference. Review in Vaccine Inventory: ${variances.map(v=>`<a href="/admin/inventory.html?date=${ymd(v.record_date)}">${v.vaccine_name||v.sheet_label} (${ymd(v.record_date)})</a>`).join(', ')}</div>`
+    : '';
+  const count=document.getElementById('shiftCount');
+  if(count) count.textContent=`${shiftRows.length} record${shiftRows.length===1?'':'s'}`;
+  if(!shiftRows.length){
+    tb.innerHTML='<tr><td colspan="14"><div class="adm-empty"><i class="fa-solid fa-clipboard-list"></i>No shift inventory records for the selected filters.</div></td></tr>';
+    return;
+  }
+  tb.innerHTML=shiftRows.map(r=>{
+    const am=r.inventory_am!=null?r.inventory_am:r.morning_shift_inventory;
+    const pm=r.inventory_pm!=null?r.inventory_pm:r.remaining_pm_shift;
+    const amSaved=!!r.am_recorded;
+    const pmSaved=!!r.pm_recorded;
+    const expected=r.expected_am_stock!=null&&r.expected_am_stock!==''?Number(r.expected_am_stock):null;
+    const count=am!=null&&am!==''?Number(am):null;
+    const savedDiff=amSaved&&Number.isFinite(count)&&Number.isFinite(expected)
+      ? count-expected
+      : (amSaved?(r.am_difference!=null?Number(r.am_difference):(r.stock_difference!=null?Number(r.stock_difference):null)):null);
+    const diffText=!amSaved||savedDiff==null||!Number.isFinite(savedDiff)
+      ? '—'
+      : (savedDiff===0?'0':((savedDiff>0?'+'+savedDiff:String(savedDiff))+' '+(Math.abs(savedDiff)===1?'vial':'vials')));
+    const remarksText=String(r.remarks||r.verification_reason||'').trim();
+    const reasonText=!amSaved||savedDiff==null||!Number.isFinite(savedDiff)
+      ? '—'
+      : (savedDiff===0?'No Discrepancy':(remarksText||'—'));
+    const remarks=remarksText||'—';
+    return `<tr>
+      <td>${ymd(r.record_date)}</td>
+      <td>${vaxCell(r.vaccine_name||r.sheet_label||'—')}</td>
+      <td>${statusBadge(r.am_count_status|| (amSaved?'Verified':'Not Started'))}</td>
+      <td>${statusBadge(r.pm_count_status|| (pmSaved?'Verified':'Not Started'))}</td>
+      <td>${statusBadge(r.completion_status||'Not Started')}</td>
+      <td>${statusBadge(r.verification_status||'Pending')}</td>
+      <td class="num-cell">${amSaved?(r.additional_vaccine||0):'—'}</td>
+      <td class="num-cell">${amSaved && am!=null?am:'—'}</td>
+      <td class="num-cell">${pmSaved && pm!=null?pm:'—'}</td>
+      <td class="hist-verify"><div><strong>Difference:</strong> ${esc(diffText)}</div><div><strong>Remarks:</strong> ${esc(reasonText)}</div></td>
+      <td>${staffCell(r.am_recorded_by_name, r.am_recorded_at)}</td>
+      <td>${staffCell(r.pm_recorded_by_name, r.pm_recorded_at)}</td>
+      <td>${staffCell(r.verified_by_name, r.verified_at)}</td>
+      <td class="col-remarks" title="${esc(remarks)}">${esc(remarks)}</td>
+    </tr>`;
+  }).join('');
+}
+function render(){
+  const tb=document.getElementById('tbody');
+  const count=document.getElementById('txnCount');
+  if(count) count.textContent=`${rows.length} transaction${rows.length===1?'':'s'}`;
+  if(!rows.length){tb.innerHTML='<tr><td colspan="7"><div class="adm-empty"><i class="fa-solid fa-clock-rotate-left"></i>No inventory transactions for the selected filters.</div></td></tr>';return;}
+  tb.innerHTML=rows.map(r=>{
+    const added=['Stock In','Returned Vaccine','Initial Opening Balance'].includes(String(r.transaction_type||''));
+    const remarks=r.remarks||r.notes||'—';
+    const qtyCell=`${added?(Number(r.stock_added)||0)+' vials':'—'}${r.is_corrected?`<div class="shift-audit">Original ${esc(r.original_quantity)} vials · Corrected</div>`:''}`;
+    return `<tr>
+    <td>${when(r.transaction_date)}</td>
+    <td>${vaxCell(r.vaccine_name||r.sheet_label||'—')}${added&&(r.batch_number||r.inventory_id)?`<div class="shift-audit">Batch ${esc(r.batch_number||('#'+r.inventory_id))}</div>`:''}</td>
+    <td>${typeBadge(r.transaction_type)}</td>
+    <td class="num-cell">${qtyCell}</td>
+    <td>${ymd(r.expiration_date)}</td>
+    <td class="col-remarks" title="${esc(remarks)}">${esc(remarks)}</td>
+    <td>${esc(r.staff_name||'—')}<div class="shift-audit">${esc(r.staff_id_display||'')}</div></td>
+  </tr>`;
+  }).join('');
+}
+</script></body></html>

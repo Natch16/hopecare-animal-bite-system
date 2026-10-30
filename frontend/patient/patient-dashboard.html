@@ -1,0 +1,401 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Dashboard – HopeCare ABC System</title>
+  <link rel="stylesheet" href="/css/patient-portal.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css');
+    .pill-green { background: var(--pp-success-bg); color: var(--pp-success); }
+    .pill-orange { background: var(--pp-warning-bg); color: var(--pp-warning); }
+    .pill-red    { background: var(--pp-danger-bg);  color: var(--pp-danger); }
+    .pill-blue   { background: var(--pp-info-bg);    color: var(--pp-accent); }
+  </style>
+</head>
+<body>
+
+<button class="pp-hamburger" id="ppHamburger" aria-label="Menu">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="pp-overlay" id="ppOverlay"></div>
+
+<div class="pp-wrapper">
+
+  <aside class="pp-sidebar" id="ppSidebar">
+    <div class="pp-sidebar-logo">
+      <img src="/images/logo.png" alt="HopeCare ABC Logo" class="logo-img">
+      <div class="pp-sidebar-title">
+        HopeCare <span>ABC</span>
+      </div>
+      <div class="pp-portal-badge">
+        <i class="fa-solid fa-heart-pulse"></i>
+        Patient Portal
+      </div>
+    </div>
+
+    <div class="pp-patient-card">
+      <div class="pp-patient-inner">
+        <div class="pp-patient-avatar" id="ppSidebarAvatar">P</div>
+        <div class="pp-patient-info">
+          <div class="pp-patient-label">
+            <i class="fa-solid fa-user-check"></i> Logged-in Patient
+          </div>
+          <div class="pp-patient-name" id="ppSidebarName">Loading…</div>
+          <div class="pp-patient-regno" id="ppSidebarPatientId" title="Patient ID">
+            <i class="fa-solid fa-fingerprint" style="font-size:10px;opacity:.75;"></i>
+            <span id="ppSidebarPatientIdVal">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pp-sidebar-menu">
+      <div class="pp-menu-section">Main</div>
+      <a href="#" class="pp-menu-item active" data-section="dashboard">
+        <i class="fa-solid fa-gauge-high"></i> Dashboard
+      </a>
+      <a href="#" class="pp-menu-item" data-section="profile">
+        <i class="fa-regular fa-id-card"></i> My Profile
+      </a>
+      <a href="#" class="pp-menu-item" data-section="cases">
+        <i class="fa-solid fa-folder-open"></i> My Cases
+      </a>
+      <a href="#" class="pp-menu-item" data-section="vaccination">
+        <i class="fa-solid fa-syringe"></i> Vaccination History
+      </a>
+      <a href="#" class="pp-menu-item" data-section="treatment">
+        <i class="fa-solid fa-chart-pie"></i> Treatment Progress
+      </a>
+      <a href="#" class="pp-menu-item" data-section="schedule">
+        <i class="fa-solid fa-calendar-check"></i> Upcoming Schedules
+      </a>
+
+      <div class="pp-menu-section">Account</div>
+      <a href="#" class="pp-menu-item" data-section="notifications">
+        <i class="fa-regular fa-bell"></i> Notifications
+      </a>
+      <a href="#" class="pp-menu-item" data-section="change-password">
+        <i class="fa-solid fa-key"></i> Change Password
+      </a>
+    </div>
+
+    <div class="pp-sidebar-footer">
+      <button type="button" class="pp-logout-btn" onclick="ppLogout()">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <main class="pp-main">
+
+    <div class="pp-topbar">
+      <div class="pp-topbar-left">
+        <h1 id="ppHeaderGreeting">Good Day, Patient</h1>
+        <p>HopeCare Animal Bite Center – Patient Health Portal</p>
+      </div>
+      <div class="pp-topbar-right">
+        <div class="pp-notif-bell" id="ppNotifBell" title="Notifications">
+          <i class="fa-regular fa-bell"></i>
+          <span class="pp-notif-badge" id="ppNotifBadge" style="display:none;">0</span>
+        </div>
+        <div class="pp-user-chip">
+          <span class="pp-regno-badge" title="Patient ID">
+            <i class="fa-solid fa-id-badge"></i>
+            <span id="ppTopRegNo">—</span>
+          </span>
+          <div class="pp-user-avatar" id="ppUserAvatar">P</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ppTempBanner" class="pp-temp-banner" hidden>
+      <i class="fa-solid fa-key"></i>
+      <span>You are using a <strong>temporary password</strong>. Please change it to a personal password.</span>
+      <button type="button" class="pp-temp-banner-btn" onclick="ppSetActiveSection('change-password')">Change password</button>
+    </div>
+
+    <div id="ppCaseBar" class="pp-case-bar" style="display:none;"></div>
+
+    <section class="pp-section active" id="pp-dashboard">
+      <div class="pp-welcome-card">
+        <div>
+          <h2><i class="fa-solid fa-heart"></i> Welcome to Your Patient Portal</h2>
+          <p>Track your anti-rabies vaccination progress, view schedules, and manage your health records.</p>
+          <div id="ppWelcomeStatus"></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:48px;opacity:.35;color:var(--pp-teal);">
+            <i class="fa-solid fa-shield-dog"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="pp-stats-grid">
+        <div class="pp-stat-card c-indigo">
+          <div class="pp-stat-icon indigo"><i class="fa-solid fa-folder-open"></i></div>
+          <div class="pp-stat-val" id="ppStatCase">—</div>
+          <div class="pp-stat-lbl">Selected Case</div>
+        </div>
+        <div class="pp-stat-card c-indigo">
+          <div class="pp-stat-icon indigo"><i class="fa-solid fa-calendar-day"></i></div>
+          <div class="pp-stat-val small" id="ppStatBiteDate">—</div>
+          <div class="pp-stat-lbl">Date of Exposure</div>
+        </div>
+        <div class="pp-stat-card c-green">
+          <div class="pp-stat-icon green"><i class="fa-solid fa-syringe"></i></div>
+          <div class="pp-stat-val" id="ppStatDose">—</div>
+          <div class="pp-stat-lbl">Current Dose</div>
+        </div>
+        <div class="pp-stat-card c-blue">
+          <div class="pp-stat-icon blue"><i class="fa-solid fa-clipboard-check"></i></div>
+          <div id="ppStatStatus">
+            <div class="pp-stat-val" style="font-size:16px;">—</div>
+          </div>
+          <div class="pp-stat-lbl">Treatment Status</div>
+        </div>
+        <div class="pp-stat-card c-teal">
+          <div class="pp-stat-icon teal"><i class="fa-solid fa-percent"></i></div>
+          <div class="pp-stat-val" id="ppStatCompletion">—</div>
+          <div class="pp-stat-lbl">Completion</div>
+        </div>
+        <div class="pp-stat-card c-orange">
+          <div class="pp-stat-icon orange"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="pp-stat-val" id="ppStatRemaining">—</div>
+          <div class="pp-stat-lbl">Doses Remaining</div>
+        </div>
+        <div class="pp-stat-card c-indigo">
+          <div class="pp-stat-icon indigo"><i class="fa-regular fa-calendar"></i></div>
+          <div class="pp-stat-val small" id="ppStatUpcoming">—</div>
+          <div class="pp-stat-lbl">Next Appointment</div>
+        </div>
+        <div class="pp-stat-card c-red">
+          <div class="pp-stat-icon red"><i class="fa-regular fa-clock"></i></div>
+          <div class="pp-stat-val" id="ppStatDaysLeft">—</div>
+          <div class="pp-stat-lbl">Days Left</div>
+        </div>
+      </div>
+
+      <div class="pp-content-grid">
+        <div class="pp-panel">
+          <div class="pp-panel-hd">
+            <h3><i class="fa-solid fa-chart-simple"></i> Treatment Progress Overview</h3>
+          </div>
+          <div class="pp-panel-body" id="ppQuickProgress">
+            <div class="pp-empty"><div class="pp-empty-icon">📊</div>Loading treatment progress…</div>
+          </div>
+        </div>
+        <div class="pp-panel">
+          <div class="pp-panel-hd">
+            <h3><i class="fa-regular fa-calendar-check"></i> Next Vaccination Schedule</h3>
+          </div>
+          <div class="pp-panel-body" id="ppQuickSchedule">
+            <div class="pp-empty"><div class="pp-empty-icon">📅</div>Loading schedule…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pp-content-grid">
+        <div class="pp-panel">
+          <div class="pp-panel-hd">
+            <h3><i class="fa-solid fa-bell"></i> Recent Notifications</h3>
+            <button class="pp-action-btn" onclick="ppSetActiveSection('notifications')">
+              <i class="fa-solid fa-arrow-right"></i> View All
+            </button>
+          </div>
+          <div class="pp-panel-body">
+            <div style="max-height:320px;overflow-y:auto;">
+              <div id="ppDashboardNotifList" style="display:flex;flex-direction:column;gap:9px;">
+                <div class="pp-empty"><div class="pp-empty-icon">🔔</div>Loading notifications…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pp-panel">
+          <div class="pp-panel-hd">
+            <h3><i class="fa-solid fa-circle-info"></i> Quick Information</h3>
+          </div>
+          <div class="pp-panel-body">
+            <div style="display:flex;flex-direction:column;gap:11px;">
+              <div style="display:flex;gap:11px;align-items:flex-start;padding:10px 12px;background:var(--pp-info-bg);border-radius:10px;border:1px solid rgba(66,116,217,.18);">
+                <i class="fa-solid fa-phone" style="color:var(--pp-accent);margin-top:2px;"></i>
+                <div>
+                  <div style="font-size:12px;font-weight:700;color:var(--pp-primary);">Clinic Contact</div>
+                  <div style="font-size:12px;color:var(--pp-muted);">HopeCare Animal Bite Center – Gingoog City</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:11px;align-items:flex-start;padding:10px 12px;background:var(--pp-success-bg);border-radius:10px;border:1px solid rgba(34,197,94,.18);">
+                <i class="fa-solid fa-regular fa-clock" style="color:var(--pp-success);margin-top:2px;"></i>
+                <div>
+                  <div style="font-size:12px;font-weight:700;color:var(--pp-primary);">Operating Hours</div>
+                  <div style="font-size:12px;color:var(--pp-muted);">Monday – Saturday · 8:00 AM to 5:00 PM</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:11px;align-items:flex-start;padding:10px 12px;background:var(--pp-warning-bg);border-radius:10px;border:1px solid rgba(234,88,12,.18);">
+                <i class="fa-solid fa-triangle-exclamation" style="color:var(--pp-warning);margin-top:2px;"></i>
+                <div>
+                  <div style="font-size:12px;font-weight:700;color:var(--pp-primary);">Emergency</div>
+                  <div style="font-size:12px;color:var(--pp-muted);">For severe symptoms, go to the nearest hospital immediately.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pp-section" id="pp-cases">
+      <div class="pp-welcome-card" style="border-top-color:var(--pp-accent);margin-bottom:20px;">
+        <div>
+          <h2 style="font-size:1.15rem;"><i class="fa-solid fa-folder-open"></i> My Cases</h2>
+          <p>Each New Case / New Exposure has its own vaccination history and treatment record. Select a case to view its details.</p>
+        </div>
+      </div>
+      <div id="ppCasesList" class="pp-cases-list"></div>
+    </section>
+
+    <section class="pp-section" id="pp-vaccination">
+      <div class="pp-welcome-card" style="border-top-color:var(--pp-accent);margin-bottom:20px;">
+        <div>
+          <h2 style="font-size:1.15rem;"><i class="fa-solid fa-syringe"></i> Vaccination History</h2>
+          <p>Case-specific vaccination records from your treatment history. Updates when the clinic records a dose.</p>
+        </div>
+      </div>
+
+      <div class="pp-panel">
+        <div class="pp-panel-hd">
+          <h3><i class="fa-solid fa-syringe" style="color:var(--pp-accent);"></i> Vaccination Records</h3>
+          <span id="ppPepCaseLabel" style="font-size:12px;color:var(--pp-muted);font-weight:700;"></span>
+        </div>
+        <div class="pp-panel-body">
+          <div class="pp-vaccine-wrap">
+            <table class="pp-vaccine-table">
+              <thead>
+                <tr>
+                  <th>Dose Day</th>
+                  <th>Vaccine Brand</th>
+                  <th>Route</th>
+                  <th>Date Due</th>
+                  <th>Date Given</th>
+                  <th>Vaccinator</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="ppPepTbody">
+                <tr><td colspan="7"><div class="pp-empty">Loading…</div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pp-section" id="pp-treatment">
+      <div class="pp-welcome-card" style="border-top-color:var(--pp-success);margin-bottom:20px;">
+        <div>
+          <h2 style="font-size:1.15rem;"><i class="fa-solid fa-chart-pie"></i> Treatment Progress</h2>
+          <p>Completed, remaining, and required doses for the selected case, calculated from your vaccination records.</p>
+        </div>
+      </div>
+
+      <div class="pp-panel" style="max-width:720px;margin:0 auto;">
+        <div class="pp-panel-hd">
+          <h3><i class="fa-solid fa-circle-notch"></i> Overall Treatment Completion</h3>
+        </div>
+        <div class="pp-panel-body" id="ppTreatmentFull">
+          <div class="pp-empty"><div class="pp-empty-icon">📊</div>Loading treatment progress…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pp-section" id="pp-schedule">
+      <div class="pp-welcome-card" style="border-top-color:var(--pp-teal);margin-bottom:20px;">
+        <div>
+          <h2 style="font-size:1.15rem;"><i class="fa-regular fa-calendar-check"></i> Upcoming Schedules</h2>
+          <p>Scheduled doses for the selected case, based on your actual treatment record.</p>
+        </div>
+      </div>
+
+      <div id="ppScheduleCard">
+        <div class="pp-empty"><div class="pp-empty-icon">📅</div>Loading schedule…</div>
+      </div>
+    </section>
+
+    <section class="pp-section" id="pp-profile">
+      <div class="pp-welcome-card" style="border-top-color:#6366f1;margin-bottom:20px;">
+        <div>
+          <h2 style="font-size:1.15rem;"><i class="fa-regular fa-id-card"></i> My Profile</h2>
+          <p>Your Patient ID and account information. Use Change Password to update your login.</p>
+        </div>
+      </div>
+
+      <div id="ppProfileFull">
+        <div class="pp-empty"><div class="pp-empty-icon">👤</div>Loading profile…</div>
+      </div>
+    </section>
+
+    <section class="pp-section" id="pp-change-password">
+      <div class="pp-welcome-card" style="border-top-color:var(--pp-danger);margin-bottom:20px;">
+        <div>
+          <h2 style="font-size:1.15rem;"><i class="fa-solid fa-key"></i> Change Password</h2>
+          <p>Secure your account with a new, strong password.</p>
+        </div>
+      </div>
+
+      <div id="ppChangePwForm"></div>
+    </section>
+
+    <section class="pp-section" id="pp-notifications">
+      <div class="pp-welcome-card" style="border-top-color:var(--pp-warning);margin-bottom:20px;">
+        <div>
+          <h2 style="font-size:1.15rem;"><i class="fa-regular fa-bell"></i> Notifications</h2>
+          <p>Vaccination reminders, schedule alerts, and important health updates.</p>
+        </div>
+      </div>
+
+      <div class="pp-panel">
+        <div class="pp-panel-hd">
+          <h3><i class="fa-solid fa-inbox"></i> All Notifications</h3>
+        </div>
+        <div class="pp-panel-body">
+          <div id="ppNotifList" style="display:flex;flex-direction:column;gap:9px;">
+            <div class="pp-empty"><div class="pp-empty-icon">🔔</div>Loading notifications…</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="modal" id="ppLogoutModal" tabindex="-1" role="dialog" aria-modal="true">
+  <div class="modal-content" style="max-width:440px;padding:32px 28px;text-align:center;">
+    <button class="close-modal" id="ppLogoutCloseX" aria-label="Close">×</button>
+    <div style="width:78px;height:78px;border-radius:50%;background:linear-gradient(135deg,#fff1f2,#ffe4e6);border:2.5px solid #fecaca;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 0 0 8px rgba(239,68,68,.07);">
+      <i class="fa-solid fa-right-from-bracket" style="font-size:30px;color:#ef4444;"></i>
+    </div>
+    <h3 style="font-size:20px;font-weight:800;color:#0f172a;margin-bottom:8px;">
+      Ready to <span style="color:#ef4444;">Sign Out?</span>
+    </h3>
+    <p style="font-size:13px;color:#64748b;margin-bottom:22px;line-height:1.55;">
+      Are you sure you want to log out of your patient portal?<br>
+      Please sign in again to access your health records.
+    </p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" id="ppLogoutCancel" style="flex:1;">
+        <i class="fa-solid fa-xmark"></i> Cancel
+      </button>
+      <button class="btn btn-danger" id="ppLogoutConfirm" style="flex:1;">
+        <i class="fa-solid fa-right-from-bracket"></i> Yes, Sign Out
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/patient/patient-portal.js?v=temp-notice2"></script>
+</body>
+</html>

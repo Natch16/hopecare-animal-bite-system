@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nurse dashboard layout check</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/nurse-dashboard.css?v=1">
+  <script src="/js/shared/sidebar.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body data-nav="dashboard">
+<div class="main-wrapper">
+<script>initAppSidebar();</script>
+<div class="main-content">
+<div class="nd-page">
+  <header class="nd-head">
+    <div class="nd-head-main">
+      <div class="nd-eyebrow"><i class="fa-solid fa-house-medical"></i> <span>Nurse Dashboard</span></div>
+      <h1>Good Afternoon, Nurse</h1>
+      <p>HopeCare Animal Bite Center &mdash; Gingoog City</p>
+    </div>
+    <div class="nd-head-side">
+      <div class="nd-clock">01:10 PM</div>
+      <div class="nd-date">Thursday, October 8, 2026</div>
+    </div>
+  </header>
+  <div class="nd-section-title"><i class="fa-solid fa-chart-simple"></i> Patient Overview</div>
+  <div class="nd-kpis">
+    <a class="nd-kpi" href="#"><div class="nd-kpi-icon"><i class="fa-solid fa-users"></i></div><div class="nd-kpi-body"><div class="nd-kpi-val">12</div><div class="nd-kpi-lbl">Total Patients</div></div></a>
+    <a class="nd-kpi teal" href="#"><div class="nd-kpi-icon"><i class="fa-solid fa-paw"></i></div><div class="nd-kpi-body"><div class="nd-kpi-val">8</div><div class="nd-kpi-lbl">Total Bite Cases</div></div></a>
+    <div class="nd-kpi indigo"><div class="nd-kpi-icon"><i class="fa-solid fa-syringe"></i></div><div class="nd-kpi-body"><div class="nd-kpi-val">3</div><div class="nd-kpi-lbl">Under Treatment</div></div></div>
+    <div class="nd-kpi ok"><div class="nd-kpi-icon"><i class="fa-solid fa-circle-check"></i></div><div class="nd-kpi-body"><div class="nd-kpi-val">2</div><div class="nd-kpi-lbl">Completed</div><div class="nd-kpi-sub">Full PEP schedule done</div></div></div>
+    <a class="nd-kpi warn" href="#"><div class="nd-kpi-icon"><i class="fa-solid fa-calendar-day"></i></div><div class="nd-kpi-body"><div class="nd-kpi-val">1</div><div class="nd-kpi-lbl">Due Today</div><div class="nd-kpi-sub">Needs attention</div></div></a>
+    <a class="nd-kpi warn" href="#"><div class="nd-kpi-icon"><i class="fa-solid fa-calendar-plus"></i></div><div class="nd-kpi-body"><div class="nd-kpi-val">0</div><div class="nd-kpi-lbl">Upcoming Tomorrow</div></div></a>
+    <a class="nd-kpi bad" href="#"><div class="nd-kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="nd-kpi-body"><div class="nd-kpi-val">1</div><div class="nd-kpi-lbl">Incomplete Treatments</div><div class="nd-kpi-sub">Missed dose — restart required</div></div></a>
+  </div>
+  <div class="nd-section-title"><i class="fa-solid fa-clipboard-list"></i> Today's Work</div>
+  <div class="nd-grid cols-main">
+    <section class="nd-panel"><div class="nd-panel-hd"><h3>Today's Vaccination Schedule</h3></div><div class="nd-panel-bd"><div class="nd-empty ok"><i class="fa-solid fa-circle-check"></i>No vaccinations scheduled for today.</div></div></section>
+    <section class="nd-panel"><div class="nd-panel-hd"><h3>Notifications</h3></div><div class="nd-panel-bd"><div class="nd-empty ok"><i class="fa-solid fa-bell-slash"></i>No new notifications.</div></div></section>
+  </div>
+  <div class="nd-section-title"><i class="fa-solid fa-heart-pulse"></i> Patient Monitoring</div>
+  <div class="nd-grid">
+    <section class="nd-panel" id="activePanel"><div class="nd-panel-hd"><h3>Current Active Cases</h3></div><div class="nd-table-wrap"><table class="nd-table nd-cards"><thead><tr><th>Patient</th><th>Animal</th><th>Category</th><th>Progress</th><th>Status</th><th>Action</th></tr></thead><tbody><tr><td data-label="Patient">Sample Patient</td><td data-label="Animal">Dog</td><td data-label="Category">Cat 2</td><td data-label="Progress">1 / 4</td><td data-label="Status">Ongoing</td><td data-label="Action">History</td></tr></tbody></table></div></section>
+  </div>
+  <div class="nd-grid cols-main" id="attnRow">
+    <section class="nd-panel" id="attnPanel"><div class="nd-panel-hd"><h3>Patients Needing Immediate Attention</h3></div><div class="nd-table-wrap"><table class="nd-table nd-cards"><thead><tr><th>Patient</th><th>Barangay</th><th>Contact</th><th>Vaccine</th><th>Next Schedule</th><th>Status</th><th>Action</th></tr></thead><tbody id="attnTbody"><tr><td colspan="7"><div class="nd-empty ok"><i class="fa-solid fa-circle-check"></i>No patients needing attention right now.</div></td></tr></tbody></table></div></section>
+    <div class="nd-stack">
+      <section class="nd-panel"><div class="nd-panel-hd"><h3>Quick Actions</h3></div><div class="nd-panel-bd"><div class="nd-qa"><a href="#"><span class="ico"><i class="fa-solid fa-user-plus"></i></span>Register Patient</a><a href="#"><span class="ico"><i class="fa-solid fa-paw"></i></span>Add New Case</a><a href="#"><span class="ico"><i class="fa-solid fa-syringe"></i></span>Record Vaccination</a><a href="#"><span class="ico"><i class="fa-solid fa-file-medical"></i></span>Generate Report</a></div></div></section>
+      <section class="nd-panel"><div class="nd-panel-hd"><h3>Recent Registrations</h3></div><div class="nd-panel-bd"><div class="nd-empty"><i class="fa-solid fa-user-clock"></i>No records yet.</div></div></section>
+    </div>
+  </div>
+  <div class="nd-section-title"><i class="fa-solid fa-chart-pie"></i> Clinical Insights</div>
+  <div class="nd-grid cols-4">
+    <section class="nd-panel"><div class="nd-panel-hd"><h3>Animal Bite Distribution</h3></div><div class="nd-panel-bd"><div class="nd-chart"></div></div></section>
+    <section class="nd-panel"><div class="nd-panel-hd"><h3>Case Category Distribution</h3></div><div class="nd-panel-bd"><div class="nd-chart"></div></div></section>
+    <section class="nd-panel"><div class="nd-panel-hd"><h3>PEP Treatment Progress</h3></div><div class="nd-panel-bd"><div class="nd-chart"></div></div></section>
+    <section class="nd-panel"><div class="nd-panel-hd"><h3>Monthly Bite Cases</h3></div><div class="nd-panel-bd"><div class="nd-chart"></div></div></section>
+  </div>
+</div>
+</div>
+</div>
+</body>
+</html>

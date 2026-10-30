@@ -1,0 +1,316 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geographic Case Map – Gingoog City</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/shared/sidebar.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen@3.0.2/Control.FullScreen.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.fullscreen@3.0.2/Control.FullScreen.js"></script>
+  <style>
+    .geo-page { display:flex; flex-direction:column; gap:14px; }
+    .geo-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    .geo-header h1 { color:#293681; font-size:1.15rem; font-weight:800; display:flex; align-items:center; gap:9px; margin:0; }
+    .geo-header h1 i { color:#ef4444; }
+    .geo-status { font-size:11px; color:#64748b; font-weight:600; }
+
+    /* Statistics grid */
+    .geo-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+    @media(max-width:900px){ .geo-stats{ grid-template-columns:repeat(2,1fr); } }
+    .stat-card { background:#fff; border-radius:11px; padding:11px 14px; box-shadow:0 2px 8px rgba(41,54,129,.08); border:1px solid #e8edf8; border-left:3px solid #4274D9; transition:transform .15s; }
+    .stat-card:hover { transform:translateY(-1px); }
+    .stat-card.c-red { border-left-color:#ef4444; }
+    .stat-card.c-green { border-left-color:#22c55e; }
+    .stat-card.c-amber { border-left-color:#eab308; }
+    .stat-card.c-orange { border-left-color:#f97316; }
+    .stat-card.c-purple { border-left-color:#8b5cf6; }
+    .stat-val { font-size:19px; font-weight:800; color:#293681; line-height:1.1; }
+    .stat-lbl { font-size:10px; color:#64748b; margin-top:3px; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
+    .stat-val.sm { font-size:12px; font-weight:700; }
+
+    /* Filters */
+    .geo-filter { background:#fff; border-radius:12px; padding:11px 16px; box-shadow:0 2px 8px rgba(41,54,129,.07); display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; border:1px solid #e2e8f5; }
+    .geo-fg { display:flex; flex-direction:column; gap:3px; }
+    .geo-fg label { font-size:10px; font-weight:700; color:#293681; text-transform:uppercase; letter-spacing:.5px; }
+    .geo-fg select, .geo-fg input { padding:7px 10px; border:1.5px solid #dde4f5; border-radius:8px; font-size:12.5px; font-family:inherit; background:#f8faff; min-width:110px; transition:border-color .2s; }
+    .geo-fg select:focus, .geo-fg input:focus { outline:none; border-color:#4274D9; }
+    .geo-toggle-group { display:flex; gap:6px; flex-wrap:wrap; }
+    .geo-toggle-btn { display:inline-flex; align-items:center; gap:5px; padding:7px 11px; border:1.5px solid #dde4f5; border-radius:8px; font-size:11.5px; font-weight:600; font-family:inherit; background:#f8faff; color:#64748b; cursor:pointer; transition:all .18s; }
+    .geo-toggle-btn.on { background:#eff6ff; color:#293681; border-color:#4274D9; }
+    .geo-toggle-btn:hover { border-color:#4274D9; }
+    .geo-refresh-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 18px; background:linear-gradient(135deg,#4274D9,#293681); color:#fff; border:none; border-radius:8px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .2s; white-space:nowrap; margin-left:auto; }
+    .geo-refresh-btn:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(66,116,217,.35); }
+
+    /* Main layout */
+    .geo-main { display:grid; grid-template-columns:1fr 300px; gap:14px; }
+    @media(max-width:1100px){ .geo-main{ grid-template-columns:1fr; } }
+    .map-wrap { position:relative; }
+    #map { height:600px; border-radius:14px; box-shadow:0 4px 20px rgba(41,54,129,.15); border:1px solid #dde4f5; }
+    #mapLoading { position:absolute; inset:0; background:rgba(255,255,255,.7); border-radius:14px; display:flex; align-items:center; justify-content:center; z-index:1000; font-size:13px; font-weight:700; color:#293681; gap:8px; backdrop-filter:blur(3px); }
+
+    /* Sidebar */
+    .geo-side-card { background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(41,54,129,.09); border:1px solid #e2e8f5; overflow:hidden; }
+    .geo-side-hd { padding:10px 14px; background:linear-gradient(135deg,#293681,#4274D9); color:#fff; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; display:flex; align-items:center; gap:7px; }
+    .geo-side-body { padding:12px 14px; }
+    .legend-row { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:11.5px; }
+    .leg-swatch { width:28px; height:13px; border-radius:3px; border:1px solid rgba(0,0,0,.1); flex-shrink:0; }
+    .top-item { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid #f0f4ff; font-size:11.5px; }
+    .top-item:last-child { border-bottom:none; }
+    .top-rank { color:#94a3b8; font-size:10px; font-weight:700; margin-right:4px; }
+    .top-name { font-weight:700; color:#293681; }
+    .top-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:99px; }
+    .ai-rec { display:flex; gap:9px; font-size:11.5px; line-height:1.5; padding:8px 10px; border-radius:8px; background:#f8faff; border-left:3px solid #4274D9; margin-bottom:7px; align-items:flex-start; }
+    .ai-rec:last-child { margin-bottom:0; }
+    .ai-rec i { margin-top:2px; flex-shrink:0; }
+    .ai-rec.rec-danger { border-left-color:#ef4444; background:#fff5f5; }
+    .ai-rec.rec-success { border-left-color:#22c55e; background:#f0fdf4; }
+    .ai-rec.rec-warn { border-left-color:#eab308; background:#fefce8; }
+    .ai-rec.rec-info { border-left-color:#4274D9; }
+    .gis-empty { color:#94a3b8; font-size:12px; text-align:center; padding:8px; }
+
+    /* Popup */
+    .leaflet-popup-content-wrapper { border-radius:14px !important; box-shadow:0 8px 32px rgba(41,54,129,.22) !important; padding:0 !important; overflow:hidden; border:1px solid #dde4f5; }
+    .leaflet-popup-content { margin:0 !important; width:290px !important; }
+    .pop-hd { background:linear-gradient(135deg,#293681,#4274D9); color:#fff; padding:12px 14px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+    .pop-name { font-size:13px; font-weight:800; }
+    .pop-sub { font-size:9.5px; opacity:.8; margin-top:2px; }
+    .pop-risk { font-size:10px; font-weight:700; padding:3px 9px; border-radius:99px; white-space:nowrap; }
+    .pop-body { padding:10px 13px; }
+    .pop-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #f0f4ff; font-size:11.5px; }
+    .pop-row:last-child { border-bottom:none; }
+    .pop-lbl { color:#64748b; }
+    .pop-val { font-weight:700; color:#293681; }
+    .pop-accent { color:#ef4444 !important; }
+    .pop-divider { font-size:9px; font-weight:800; color:#4274D9; text-transform:uppercase; letter-spacing:.5px; padding:6px 0 2px; }
+    /* View Records — beat Leaflet `.leaflet-container a` and global `a { color: inherit }` */
+    .leaflet-popup-content-wrapper a.pop-btn,
+    .gis-popup a.pop-btn,
+    a.pop-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-sizing: border-box;
+      width: calc(100% - 26px);
+      max-width: 100%;
+      margin: 10px 13px 13px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, #4274D9, #293681);
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.35;
+      letter-spacing: 0.2px;
+      text-align: center;
+      text-decoration: none !important;
+      white-space: nowrap;
+      overflow: visible;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(41, 54, 129, 0.28);
+      opacity: 1;
+      filter: none;
+      cursor: pointer;
+      transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+    .leaflet-popup-content-wrapper a.pop-btn i,
+    .gis-popup a.pop-btn i,
+    a.pop-btn i {
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff;
+      font-size: 12px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .leaflet-popup-content-wrapper a.pop-btn:link,
+    .leaflet-popup-content-wrapper a.pop-btn:visited,
+    .leaflet-popup-content-wrapper a.pop-btn:active,
+    .gis-popup a.pop-btn:link,
+    .gis-popup a.pop-btn:visited,
+    .gis-popup a.pop-btn:active,
+    a.pop-btn:link,
+    a.pop-btn:visited,
+    a.pop-btn:active {
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff;
+      background: linear-gradient(135deg, #4274D9, #293681);
+      opacity: 1;
+    }
+    .leaflet-popup-content-wrapper a.pop-btn:hover,
+    .gis-popup a.pop-btn:hover,
+    a.pop-btn:hover {
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff;
+      background: linear-gradient(135deg, #5084e8, #3546a0);
+      box-shadow: 0 4px 14px rgba(66, 116, 217, 0.42);
+      transform: translateY(-1px);
+      filter: none;
+      opacity: 1;
+    }
+    @media (max-width: 640px) {
+      .leaflet-popup-content-wrapper a.pop-btn,
+      .gis-popup a.pop-btn,
+      a.pop-btn {
+        font-size: 12.5px;
+        padding: 11px 12px;
+        white-space: normal;
+      }
+    }
+
+    /* Markers */
+    .gis-bubble { display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:800; color:#fff; box-shadow:0 2px 10px rgba(0,0,0,.35); border:2.5px solid rgba(255,255,255,.9); cursor:pointer; transition:transform .15s; line-height:1; }
+    .gis-bubble:hover { transform:scale(1.15); }
+    .gis-dot { width:8px; height:8px; border-radius:50%; background:#94a3b8; border:1.5px solid rgba(255,255,255,.9); cursor:pointer; }
+    .gis-label { font-size:8px; font-weight:800; color:#1e293b; text-shadow:0 0 3px #fff,0 0 3px #fff; white-space:nowrap; pointer-events:none; }
+
+    #geoErrorBanner { display:none; background:#fff3f3; border:1.5px solid #fecaca; border-radius:10px; padding:14px 18px; color:#b91c1c; font-size:12.5px; font-weight:600; line-height:1.6; }
+    #geoErrorBanner i { margin-right:6px; }
+  </style>
+</head>
+<body data-nav="map">
+<div class="main-wrapper">
+<script>initAppSidebar();</script>
+
+  <div class="main-content">
+    <div class="geo-page">
+
+      <div class="geo-header">
+        <div>
+          <h1><i class="fa-solid fa-map-location-dot"></i> Geographic Case Map – Gingoog City</h1>
+          <div class="geo-status" id="mapStatus">Loading official barangay boundaries…</div>
+        </div>
+      </div>
+
+      <div id="geoErrorBanner">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Official GeoJSON not found. Place <strong>frontend/data/gingoog-barangays.geojson</strong> (79 barangay polygons) before using this map.
+      </div>
+
+      <!-- Statistics Panel -->
+      <div class="geo-stats">
+        <div class="stat-card">
+          <div class="stat-val" id="st-total">–</div>
+          <div class="stat-lbl">Total Cases</div>
+        </div>
+        <div class="stat-card c-orange">
+          <div class="stat-val sm" id="st-highest">–</div>
+          <div class="stat-lbl">Highest Risk Barangay</div>
+        </div>
+        <div class="stat-card c-green">
+          <div class="stat-val sm" id="st-animal">–</div>
+          <div class="stat-lbl">Most Common Animal</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="st-affected">–</div>
+          <div class="stat-lbl">Affected Barangays</div>
+        </div>
+        <div class="stat-card c-red">
+          <div class="stat-val" id="st-risk">–</div>
+          <div class="stat-lbl">Overall Risk Level</div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="geo-filter">
+        <div class="geo-fg">
+          <label>Animal Type</label>
+          <select id="fAnimal" onchange="GisMap.loadMapData()">
+            <option value="All">All Animals</option>
+            <option value="D">Pet Dog</option>
+            <option value="SD">Stray Dog</option>
+            <option value="C">Cat</option>
+            <option value="O">Other</option>
+          </select>
+        </div>
+        <div class="geo-fg">
+          <label>Date Filter</label>
+          <select id="fDateType" onchange="GisMap.handleDateChange()">
+            <option value="">All Time</option>
+            <option value="monthly" selected>This Month</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+        <div class="geo-fg" id="dateWrap">
+          <label id="dateLabel">Month</label>
+          <input type="text" id="fDateVal" placeholder="YYYY-MM" style="width:100px;" onchange="GisMap.loadMapData()">
+        </div>
+        <div class="geo-fg">
+          <label>Risk Level</label>
+          <select id="fRisk" onchange="GisMap.onFilterChange()">
+            <option value="All">All Levels</option>
+            <option value="None">No Cases</option>
+            <option value="Low">Low (1–4)</option>
+            <option value="Medium">Medium (5–9)</option>
+            <option value="High">High (10–19)</option>
+            <option value="Critical">Critical (20+)</option>
+          </select>
+        </div>
+        <div class="geo-fg">
+          <label>Layers</label>
+          <div class="geo-toggle-group">
+            <button class="geo-toggle-btn on" id="btnPolygons" onclick="GisMap.toggleLayer('polygons')"><i class="fa-solid fa-draw-polygon"></i> Polygons</button>
+            <button class="geo-toggle-btn on" id="btnMarkers" onclick="GisMap.toggleLayer('markers')"><i class="fa-solid fa-circle-dot"></i> Markers</button>
+            <button class="geo-toggle-btn" id="btnLabels" onclick="GisMap.toggleLayer('labels')"><i class="fa-solid fa-tag"></i> Labels</button>
+          </div>
+        </div>
+        <button class="geo-refresh-btn" onclick="GisMap.loadMapData()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+      </div>
+
+      <!-- Map + Sidebar -->
+      <div class="geo-main">
+        <div class="map-wrap">
+          <div id="map"></div>
+          <div id="mapLoading"><i class="fa-solid fa-spinner fa-spin"></i> Loading map data…</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="geo-side-card">
+            <div class="geo-side-hd"><i class="fa-solid fa-circle-info"></i> Risk Level Legend</div>
+            <div class="geo-side-body">
+              <div class="legend-row"><div class="leg-swatch" style="background:#22c55e;"></div><span><strong>Low</strong> — 1 to 4 cases</span></div>
+              <div class="legend-row"><div class="leg-swatch" style="background:#eab308;"></div><span><strong>Medium</strong> — 5 to 9 cases</span></div>
+              <div class="legend-row"><div class="leg-swatch" style="background:#f97316;"></div><span><strong>High</strong> — 10 to 19 cases</span></div>
+              <div class="legend-row"><div class="leg-swatch" style="background:#ef4444;"></div><span><strong>Critical</strong> — 20+ cases</span></div>
+              <div class="legend-row"><div class="leg-swatch" style="background:#94a3b8;"></div><span><strong>No Cases</strong> — 0 cases</span></div>
+            </div>
+          </div>
+
+          <div class="geo-side-card">
+            <div class="geo-side-hd"><i class="fa-solid fa-ranking-star"></i> Top Barangays</div>
+            <div class="geo-side-body" id="topList"><div class="gis-empty">Loading…</div></div>
+          </div>
+
+          <div class="geo-side-card">
+            <div class="geo-side-hd"><i class="fa-solid fa-robot"></i> AI Recommendations</div>
+            <div class="geo-side-body" id="aiList"><div class="gis-empty">Loading…</div></div>
+          </div>
+
+          <div class="geo-side-card" id="outsideCard" style="display:none;">
+            <div class="geo-side-hd"><i class="fa-solid fa-location-dot-slash"></i> Outside / Unlocated</div>
+            <div class="geo-side-body" id="outsideList"><div class="gis-empty">None recorded.</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/js/shared/app.js"></script>
+<script src="/js/nurse/map-gis.js?v=maprec1"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await checkAuth();
+  if (auth?.username) {
+  }
+  await GisMap.boot();
+});
+</script>
+</body>
+</html>

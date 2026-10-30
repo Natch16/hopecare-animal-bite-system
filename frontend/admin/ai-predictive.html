@@ -1,0 +1,276 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Inventory Analytics &amp; Forecasting – REMIS Admin</title>
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/js/shared/sidebar.js"></script>
+  <style>
+    .ai-status { margin:0 0 12px; font-size:12px; color:#4274D9; font-weight:600; }
+    .ai-loading { display:none; flex-direction:column; align-items:center; padding:20px; color:#293681; text-align:center; }
+    .ai-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:18px; }
+    .ai-card { background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 12px rgba(41,54,129,.08); border-top:3px solid #4274D9; min-width:0; }
+    .ai-card.orange { border-top-color:#ea580c; }
+    .ai-card.red { border-top-color:#dc2626; }
+    .ai-card.green { border-top-color:#16a34a; }
+    .ai-card .lbl { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.4px; }
+    .ai-card .val { font-size:24px; font-weight:800; color:#293681; margin-top:6px; overflow-wrap:anywhere; }
+    .ai-card .hint { font-size:11px; color:#94a3b8; margin-top:4px; }
+    .ai-card .val .unit { font-size:13px; font-weight:700; color:#64748b; margin-left:4px; }
+    .ai-card .miss-split { font-size:12px; font-weight:700; color:#9a3412; margin-top:4px; overflow-wrap:anywhere; }
+    .ai-chart { position:relative; height:240px; }
+    .ai-empty { color:#94a3b8; font-size:13px; text-align:center; padding:16px; }
+    .ai-note { margin:0 0 10px; color:#64748b; font-size:12px; line-height:1.5; }
+    .ai-notice { padding:12px 14px; border-radius:8px; font-size:13px; line-height:1.5; margin:0 0 12px; }
+    .ai-notice.info { background:#eef4ff; border:1px solid #c7d7fb; color:#293681; }
+    .ai-notice.warn { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
+    .ai-notice.err { background:#fff5f5; border:1px solid #fecaca; color:#c53030; }
+    .ai-list p { margin:0 0 8px; font-size:13px; line-height:1.5; color:#334155; overflow-wrap:anywhere; }
+    .ai-list .basis { display:block; font-size:11px; color:#64748b; margin-top:2px; }
+    .ai-disclaimer { margin:12px 0 0; font-size:11px; line-height:1.5; color:#64748b; }
+    .ai-trend-row { display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px 12px; padding:8px 0; border-bottom:1px solid #e8edf8; font-size:13px; }
+    .ai-trend-row:last-child { border-bottom:none; }
+    .ai-grid-2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+    .ai-section-title { margin:18px 0 8px; color:#293681; font-size:13px; font-weight:700; }
+    .adm-btn:disabled { opacity:.55; cursor:not-allowed; }
+    .ai-insights-hd { align-items:center; gap:10px; }
+    .ai-insights-hd h3 { flex:1 1 auto; min-width:0; }
+    .ai-insights-hd .adm-btn { flex:0 0 auto; white-space:nowrap; }
+    .hist-filters { margin-bottom:18px; }
+    .shift-filter-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }
+    .ai-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
+    .ai-tab { border:1px solid #dbe4f8; background:#fff; color:#293681; border-radius:999px; padding:8px 14px; font-size:13px; font-weight:700; cursor:pointer; }
+    .ai-tab.active { background:#293681; color:#fff; border-color:#293681; }
+    .ai-pane { display:none; }
+    .ai-pane.active { display:block; }
+    .ai-badge { display:inline-block; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:700; white-space:nowrap; }
+    .ai-badge.ok { background:#e8f8ef; color:#166534; }
+    .ai-badge.low { background:#fff4e5; color:#9a3412; }
+    .ai-badge.crit { background:#fde8e8; color:#991b1b; }
+    .ai-badge.info { background:#eef4ff; color:#293681; }
+    .ai-badge.mute { background:#f1f5f9; color:#475569; }
+    .ai-table-scroll { max-height:420px; overflow:auto; border:1px solid #e8edf8; border-radius:10px; -webkit-overflow-scrolling:touch; }
+    .ai-table-scroll table { margin:0; min-width:640px; }
+    .ai-table-scroll thead th { position:sticky; top:0; z-index:1; }
+    .dq-badges { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+    .dq-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px 16px; font-size:12px; color:#475569; }
+    .dq-grid div { min-width:0; overflow-wrap:anywhere; }
+    .dq-grid strong { display:block; color:#293681; font-size:13px; }
+    .risk-item { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-bottom:1px solid #e8edf8; font-size:13px; line-height:1.5; }
+    .risk-item:last-child { border-bottom:none; }
+    .risk-item .body { min-width:0; overflow-wrap:anywhere; color:#334155; }
+    @media (max-width: 900px) {
+      .ai-grid-2 { grid-template-columns:1fr; }
+      .ai-chart { height:220px; }
+    }
+    @media (max-width: 600px) {
+      .ai-card .val { font-size:20px; }
+      .ai-insights-hd { flex-direction:column; align-items:stretch; }
+      .ai-insights-hd .adm-btn { width:100%; justify-content:center; }
+      .ai-tab { flex:1 1 calc(50% - 8px); text-align:center; }
+    }
+  </style>
+</head>
+<body class="hc-admin" data-nav="ai-predictive">
+<div class="main-wrapper"><script>initAppSidebar();</script>
+<div class="main-content">
+  <div class="adm-header">
+    <div>
+      <h1><i class="fa-solid fa-brain"></i> AI Inventory Analytics &amp; Forecasting</h1>
+      <p>REMIS: Rabies Exposure &amp; Monitoring Information System with GARP Features for the HOPECARE Animal Bite Center, Gingoog City</p>
+    </div>
+  </div>
+
+  <p id="aiPageStatus" class="ai-status" style="display:none;"></p>
+  <div id="aiPageError" class="ai-notice err" style="display:none;">Statistical analytics could not be loaded. Please refresh and try again.</div>
+
+  <div class="adm-filters hist-filters" id="aiFilters">
+    <div><label for="aiFrom">From</label><input type="date" id="aiFrom"></div>
+    <div><label for="aiTo">To</label><input type="date" id="aiTo"></div>
+    <div><label for="aiVaccine">Vaccine</label><select id="aiVaccine"><option value="">All vaccines</option></select></div>
+    <div><label for="aiGrain">Usage view</label>
+      <select id="aiGrain">
+        <option value="day">Daily</option>
+        <option value="week">Weekly</option>
+        <option value="month">Monthly</option>
+      </select>
+    </div>
+    <div class="shift-filter-actions">
+      <button type="button" class="adm-btn adm-btn-primary" id="btnApplyStats"><i class="fa-solid fa-filter"></i> Apply</button>
+      <button type="button" class="adm-btn" id="btnResetStats">Reset</button>
+    </div>
+  </div>
+
+  <div class="ai-tabs" role="tablist">
+    <button type="button" class="ai-tab active" data-pane="paneUsage">Inventory Usage Analysis</button>
+    <button type="button" class="ai-tab" data-pane="paneForecast">Vaccine Demand Forecast</button>
+    <button type="button" class="ai-tab" data-pane="paneMonitor">Current Inventory Monitoring</button>
+    <button type="button" class="ai-tab" data-pane="paneAmPm">AM/PM Inventory Analysis</button>
+    <button type="button" class="ai-tab" data-pane="paneAi">AI Insights &amp; Recommendations</button>
+  </div>
+
+  <!-- A. Inventory Usage Analysis -->
+  <div id="paneUsage" class="ai-pane active">
+    <div class="ai-kpis">
+      <div class="ai-card"><div class="lbl">Total Vials Used</div><div class="val" id="uTotal">—</div><div class="hint">Verified AM + Additional − PM</div></div>
+      <div class="ai-card"><div class="lbl">Average Daily Usage</div><div class="val" id="uAvg">—</div><div class="hint">Per day with verified records</div></div>
+      <div class="ai-card green"><div class="lbl">Days With Verified Records</div><div class="val" id="uDays">—</div><div class="hint" id="uDaysHint"></div></div>
+      <div class="ai-card orange"><div class="lbl">Additional Vials Received</div><div class="val" id="uAdd">—</div><div class="hint">Not counted as usage</div></div>
+      <div class="ai-card"><div class="lbl">Verified AM/PM Records</div><div class="val" id="uPairs">—</div><div class="hint">Completed vaccine-day pairs</div></div>
+    </div>
+    <div class="ai-grid-2">
+      <div class="adm-panel">
+        <div class="adm-panel-hd"><h3><i class="fa-solid fa-chart-line"></i> Usage by Date</h3></div>
+        <div class="adm-panel-bd">
+          <p class="ai-note" id="uPeriodNote"></p>
+          <div class="ai-chart"><canvas id="chartUsage"></canvas></div>
+        </div>
+      </div>
+      <div class="adm-panel">
+        <div class="adm-panel-hd"><h3><i class="fa-solid fa-syringe"></i> Usage per Vaccine</h3></div>
+        <div class="adm-panel-bd">
+          <div class="ai-chart"><canvas id="chartUsageVaccine"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="adm-panel">
+      <div class="adm-panel-hd"><h3><i class="fa-solid fa-arrow-trend-up"></i> Usage Trend</h3></div>
+      <div class="adm-panel-bd">
+        <div id="uTrendNotice"></div>
+        <div id="usageTrendList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B. Vaccine Demand Forecast -->
+  <div id="paneForecast" class="ai-pane">
+    <div class="adm-panel">
+      <div class="adm-panel-hd"><h3><i class="fa-solid fa-boxes-stacked"></i> Vaccine Demand Forecast</h3></div>
+      <div class="adm-panel-bd">
+        <div id="forecastNotice"></div>
+        <p class="ai-note">Forecast values are <strong>totals for the stated period</strong>, not daily amounts. Average daily usage is per day with verified records. Forecasts are estimates, not guaranteed quantities.</p>
+        <div class="ai-chart" id="forecastChartWrap"><canvas id="chartForecast"></canvas></div>
+        <div class="ai-table-scroll" style="margin-top:12px;">
+          <table class="adm-table">
+            <thead><tr>
+              <th>Vaccine</th><th>Historical Usage</th><th>Avg Daily Usage</th>
+              <th>Next 7 Days</th><th>Next 30 Days</th><th>Next 90 Days</th><th>Method</th><th>Trend</th>
+            </tr></thead>
+            <tbody id="forecastBody"><tr><td colspan="8" class="ai-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <h4 class="ai-section-title">High-Usage Vaccines</h4>
+        <div id="highUsage" class="ai-list"></div>
+      </div>
+    </div>
+    <div class="adm-panel">
+      <div class="adm-panel-hd"><h3><i class="fa-solid fa-people-arrows"></i> Bite Cases and Vaccine Usage (context)</h3></div>
+      <div class="adm-panel-bd">
+        <div class="ai-kpis">
+          <div class="ai-card"><div class="lbl">Total Bite Cases</div><div class="val" id="aiTotalCases">—</div><div class="hint">From patient exposure records</div></div>
+          <div class="ai-card"><div class="lbl">Predicted Cases Next Month</div><div class="val" id="aiPredMonth">—</div><div class="hint">Estimated (linear regression)</div></div>
+          <div class="ai-card"><div class="lbl">Predicted Cases Next Quarter</div><div class="val" id="aiPredQuarter">—</div><div class="hint">Estimated (linear regression)</div></div>
+        </div>
+        <p id="demandObs" class="ai-note" style="font-size:13px;color:#334155;"></p>
+        <div class="ai-chart"><canvas id="chartDemand"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C. Current Inventory Monitoring -->
+  <div id="paneMonitor" class="ai-pane">
+    <div class="ai-kpis">
+      <div class="ai-card green"><div class="lbl">Current Usable Stock</div><div class="val" id="monStock">—</div><div class="hint">Sum of usable vials on active lots</div></div>
+      <div class="ai-card orange"><div class="lbl">Low-Stock Lots</div><div class="val" id="monLow">—</div><div class="hint">Vaccines whose current stock is low</div></div>
+      <div class="ai-card red"><div class="lbl">Critical-Stock Lots</div><div class="val" id="monCrit">—</div><div class="hint">Vaccines whose current stock is critical</div></div>
+      <div class="ai-card red"><div class="lbl">Out-of-Stock Lots</div><div class="val" id="monOut">—</div><div class="hint">Vaccines whose current stock is zero</div></div>
+      <div class="ai-card orange"><div class="lbl">Expiring Lots (30 days)</div><div class="val" id="monExp">—</div></div>
+      <div class="ai-card red"><div class="lbl">Expired Lots</div><div class="val" id="monExpired">—</div></div>
+    </div>
+    <p id="monConsistency" class="ai-note" style="display:none;"></p>
+    <div class="adm-panel">
+      <div class="adm-panel-hd"><h3><i class="fa-solid fa-triangle-exclamation"></i> Vaccine Risk Alerts</h3></div>
+      <div class="adm-panel-bd">
+        <p class="ai-note">Calculated by REMIS from current stock, thresholds, expiry dates and verified usage.</p>
+        <div id="monRisk"></div>
+      </div>
+    </div>
+    <div class="adm-panel">
+      <div class="adm-panel-hd"><h3><i class="fa-solid fa-warehouse"></i> Stock per Vaccine</h3></div>
+      <div class="adm-panel-bd">
+        <div class="ai-chart"><canvas id="chartStock"></canvas></div>
+        <p class="ai-note">Current stock is the usable quantity of each lot. Additional received in the selected period is already inside that balance and is not added again.</p>
+        <div class="ai-table-scroll" style="margin-top:12px;">
+          <table class="adm-table">
+            <thead><tr><th>Vaccine</th><th>Current Stock</th><th>Low / Critical Threshold</th><th>Additional Received</th><th>Stock Status</th><th>Stock Sufficiency</th><th>Expiration</th></tr></thead>
+            <tbody id="monBody"><tr><td colspan="7" class="ai-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- D. AM/PM Inventory Analysis -->
+  <div id="paneAmPm" class="ai-pane">
+    <div class="ai-notice info" id="shiftNote">Total vial usage was calculated from verified AM and PM inventory records. Shift-specific usage cannot be determined from the available data.</div>
+    <div class="ai-kpis">
+      <div class="ai-card green"><div class="lbl">Completed AM/PM</div><div class="val" id="shiftDone">—</div></div>
+      <div class="ai-card orange"><div class="lbl">Missing Count</div><div class="val" id="shiftMissing">—</div><div class="miss-split" id="shiftMissSplit"></div><div class="hint" id="shiftAwaiting"></div></div>
+      <div class="ai-card"><div class="lbl">Calculated Vials Used</div><div class="val" id="shiftUsed">—</div></div>
+      <div class="ai-card orange"><div class="lbl">Additional Vials</div><div class="val" id="shiftAdd">—</div></div>
+    </div>
+    <div class="adm-panel">
+      <div class="adm-panel-hd"><h3><i class="fa-solid fa-clock"></i> AM/PM Inventory Records</h3></div>
+      <div class="adm-panel-bd">
+        <p class="ai-note" id="amPmMeta"></p>
+        <div class="ai-table-scroll">
+          <table class="adm-table">
+            <thead><tr><th>Date</th><th>Vaccine</th><th>AM Count</th><th>Additional</th><th>PM Count</th><th>Vials Used</th><th>Status</th><th>Recorded By (AM / PM)</th></tr></thead>
+            <tbody id="amPmBody"><tr><td colspan="8" class="ai-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- E. AI Insights and Recommendations -->
+  <div id="paneAi" class="ai-pane">
+    <div class="adm-panel">
+      <div class="adm-panel-hd ai-insights-hd">
+        <h3><i class="fa-solid fa-wand-magic-sparkles"></i> AI Insights &amp; Recommendations</h3>
+        <button type="button" id="btnGenerateAI" class="adm-btn adm-btn-primary"><i class="fa-solid fa-microchip"></i> Generate AI Analysis</button>
+      </div>
+      <div class="adm-panel-bd">
+        <div id="aiLoading" class="ai-loading">
+          <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+          <p style="margin:10px 0 0; font-weight:600;">Generating AI Analysis...</p>
+          <p style="margin:4px 0 0; color:#64748b; font-size:13px;">Interpreting aggregated inventory statistics...</p>
+        </div>
+        <div id="aiError" class="ai-notice err" style="display:none;"></div>
+        <div id="aiEmpty" class="ai-empty">Click Generate AI Analysis to interpret the calculated REMIS inventory statistics. All statistics on the other tabs remain available without AI.</div>
+        <div id="aiResult" style="display:none;">
+          <div class="dq-badges" id="aiSourceBadges"></div>
+          <h4 class="ai-section-title" id="insightTitle">AI Insights</h4>
+          <div class="ai-list" id="insightBody"></div>
+          <h4 class="ai-section-title" id="recTitle">AI Recommendations</h4>
+          <div class="ai-list" id="recBody"></div>
+          <h4 class="ai-section-title">Trend &amp; Forecast Explanation</h4>
+          <div class="ai-list" id="trendBody"></div>
+          <h4 class="ai-section-title">Vaccine Risk Alerts</h4>
+          <div class="ai-list" id="riskBody"></div>
+          <h4 class="ai-section-title">Data Limitations</h4>
+          <div class="ai-list" id="limitBody"></div>
+          <p id="aiLastUpdated" style="margin:12px 0 0; font-size:12px; color:#64748b;"></p>
+        </div>
+        <p class="ai-disclaimer">AI-generated insights are based on aggregated REMIS inventory statistics. Predictions are estimates and should not be treated as guaranteed outcomes. AI does not modify inventory or patient records.</p>
+      </div>
+    </div>
+  </div>
+</div></div>
+<script src="/js/shared/rbac.js"></script>
+<script src="/js/shared/app.js"></script>
+<script src="/js/admin/ai-predictive.js?v=stock3"></script>
+</body>
+</html>
